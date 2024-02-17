@@ -13,6 +13,7 @@ UFirearmsAmmoSkillUpgrade::UFirearmsAmmoSkillUpgrade(const FObjectInitializer& O
     WeaponType = EWeaponType::None;
     Index = 0;
     BaseDescription = FText::FromString(TEXT("Increase capacity to {0} bullets."));
+    bRefillAmmoAfterUpgrade = true;
 }
 
 bool UFirearmsAmmoSkillUpgrade::UpgradeShooter_Implementation(AShooterCharacter* ShooterCharacter)
@@ -27,6 +28,14 @@ bool UFirearmsAmmoSkillUpgrade::UpgradeShooter_Implementation(AShooterCharacter*
     int32* Capaticy = Info.SkillsSystem->RanksProgression.AmmoCapaticy.Find(WeaponType);
     if (!Capaticy) return false;
     *Capaticy = Index;
+
+    constexpr uint8 DefaultFailureValue = 0;
+    const int32 AmmoCapacityUpgrade = Info.SkillsSystem->GetAmmoCapacityOrDefault(WeaponType, DefaultFailureValue);
+    if (AmmoCapacityUpgrade <= DefaultFailureValue) return false;
+    bool bAmmoUpgradeSet = Info.StatsComponent->SetWeaponMaxAmmo(WeaponType, AmmoCapacityUpgrade);
+    if (!bAmmoUpgradeSet) return false;
+    if (bRefillAmmoAfterUpgrade) ShooterCharacter->SetFullAmmoForWeapon(WeaponType);
+
     return true;
 }
 
@@ -54,4 +63,3 @@ FText UFirearmsAmmoSkillUpgrade::GetDescription_Implementation(AShooterCharacter
     Description.ReplaceInline(*ToReplace, *FString::FromInt(Ammo->MaxCount[Index]), ESearchCase::CaseSensitive);
     return FText::FromString(Description);
 }
-

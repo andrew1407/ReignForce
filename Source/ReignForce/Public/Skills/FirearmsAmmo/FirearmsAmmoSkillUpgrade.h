@@ -29,4 +29,7 @@ protected:
 
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Rank", meta = (ClampMin = 0, UIMin = 0))
 	int32 Index;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Rank")
+	bool bRefillAmmoAfterUpgrade;
 };

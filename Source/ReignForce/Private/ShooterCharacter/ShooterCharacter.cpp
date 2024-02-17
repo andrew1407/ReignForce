@@ -472,7 +472,12 @@ void AShooterCharacter::Perish(AActor* Cause)
 
 bool AShooterCharacter::RefillAmmo(EWeaponType WeaponType)
 {
-	if (!IsShooterComponentsValid()) return false;
+	bool bHasAvailableSlot = SkillsSystem->AvailableSlots.Contains(WeaponType);
+	if (!bHasAvailableSlot) return false;
+
+	bool bCanRefill = UWeaponSlotsSystem::IsFirearmsType(WeaponType) && IsShooterComponentsValid();
+	if (!bCanRefill) return false;
+
 	auto Weapon = Cast<AFirearmsWeapon>(WeaponSlotsSystem->GetWeaponFromSlot(WeaponType));
 	if (!IsValid(Weapon)) return false;
 	const int32 Ammo = StatsComponent->GetAmmoCount(WeaponType);
@@ -495,6 +500,8 @@ void AShooterCharacter::RefillAmmoForAllAvailableFirearms()
 bool AShooterCharacter::SetFullAmmoForWeapon(EWeaponType WeaponType)
 {
 	if (!IsShooterComponentsValid()) return false;
+	bool bHasAvailableSlot = SkillsSystem->AvailableSlots.Contains(WeaponType);
+	if (!bHasAvailableSlot) return false;
 
 	bool bFirearms = UWeaponSlotsSystem::IsFirearmsType(WeaponType);
 	if (!bFirearms) return false;
