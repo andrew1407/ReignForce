@@ -111,6 +111,8 @@ void APlayerCharacter::BeginPlay()
 				ShooterHUD->SetCurrentSkillsCountState(SkillsCount);
 			}
 		}
+
+		ShooterHUD->OpenStartRoundWidget();
 	}
 
     DefineStats();

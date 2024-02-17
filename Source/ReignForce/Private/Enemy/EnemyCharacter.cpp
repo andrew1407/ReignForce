@@ -97,7 +97,7 @@ void AEnemyCharacter::Tick(float DeltaTime)
 	RotateHealthBarToPlayer();
 
 	bool bShouldFire = IsValid(GetWeaponSlotsSystem()) && GetWeaponSlotsSystem()->IsFirearmsActive();
-	if (bShouldFire) GetWorld()->GetTimerManager().SetTimerForNextTick(this, &AEnemyCharacter::OnDuringAttack);
+	if (bShouldFire) GetWorldTimerManager().SetTimerForNextTick(this, &AEnemyCharacter::OnDuringAttack);
 }
 
 float AEnemyCharacter::TakeDamage(float DamageAmount, FDamageEvent const& DamageEvent, AController* EventInstigator, AActor* DamageCauser)

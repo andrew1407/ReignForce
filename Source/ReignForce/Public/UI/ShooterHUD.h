@@ -14,6 +14,10 @@ class UShooterStatsWidget;
 class USkillsProgressionWidget;
 class UPauseMenuWidget;
 
+class URestartLevelAfterLoseWidget;
+class URoundProgressWidget;
+class UStartRoundWidget;
+
 /**
  * 
  */
@@ -87,9 +91,41 @@ public:
 
 	#pragma endregion
 
+	#pragma region ROUND_INFO
+
+	UFUNCTION(BlueprintPure)
+	bool IsRestartLevelAfterLoseWidgetOpened() const;
+
+	UFUNCTION(BlueprintCallable)
+	bool OpenRestartLevelAfterLoseWidget();
+
+	UFUNCTION(BlueprintCallable)
+	bool CloseRestartLevelAfterLoseWidget();
+
+	UFUNCTION(BlueprintPure)
+	bool IsRoundProgressWidgetOpened() const;
+
+	UFUNCTION(BlueprintCallable)
+	bool OpenRoundProgressWidget();
+
+	UFUNCTION(BlueprintPure)
+	bool IsStartRoundWidgetOpened() const;
+
+	UFUNCTION(BlueprintCallable)
+	bool OpenStartRoundWidget();
+
+	UFUNCTION(BlueprintCallable)
+	bool CloseStartRoundWidget();
+
+	#pragma endregion
+
 	FORCEINLINE UAimWidget* GetAimWidget() const { return AimWidget; }
 	FORCEINLINE UShooterStatsWidget* GetShooterStatsWidget() const { return ShooterStatsWidget; }
 	FORCEINLINE USkillsProgressionWidget* GetSkillsProgressionWidget() const { return SkillsProgressionWidget; }
+
+	FORCEINLINE URestartLevelAfterLoseWidget* GetRestartLevelAfterLoseWidget() const { return RestartLevelAfterLoseWidget; }
+	FORCEINLINE URoundProgressWidget* GetRoundProgressWidget() const { return RoundProgressWidget; }
+	FORCEINLINE UStartRoundWidget* GetStartRoundWidget() const { return StartRoundWidget; }
 
 protected:
 	virtual void BeginPlay() override;
@@ -128,6 +164,28 @@ private:
 
 	UPROPERTY(BlueprintReadOnly, Category = "Menu|Pause", meta = (AllowPrivateAccess = true))
 	TObjectPtr<UPauseMenuWidget> PauseMenuWidget;
+
+	#pragma endregion
+
+	#pragma region ROUND_WIDGETS
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Round", meta = (AllowPrivateAccess = true))
+	TSubclassOf<URestartLevelAfterLoseWidget> RestartLevelAfterLoseClass;
+
+	UPROPERTY(BlueprintReadOnly, Category = "Round", meta = (AllowPrivateAccess = true))
+	TObjectPtr<URestartLevelAfterLoseWidget> RestartLevelAfterLoseWidget;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Round", meta = (AllowPrivateAccess = true))
+	TSubclassOf<URoundProgressWidget> RoundProgressClass;
+
+	UPROPERTY(BlueprintReadOnly, Category = "Round", meta = (AllowPrivateAccess = true))
+	TObjectPtr<URoundProgressWidget> RoundProgressWidget;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Round", meta = (AllowPrivateAccess = true))
+	TSubclassOf<UStartRoundWidget> StartRoundClass;
+
+	UPROPERTY(BlueprintReadOnly, Category = "Round", meta = (AllowPrivateAccess = true))
+	TObjectPtr<UStartRoundWidget> StartRoundWidget;
 
 	#pragma endregion
 

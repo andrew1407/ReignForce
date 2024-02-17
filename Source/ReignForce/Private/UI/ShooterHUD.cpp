@@ -18,6 +18,10 @@
 #include "UI/Skills/SkillsProgressionWidget.h"
 #include "UI/PauseMenu/PauseMenuWidget.h"
 
+#include "UI/Rounds/RestartLevelAfterLoseWidget.h"
+#include "UI/Rounds/RoundProgressWidget.h"
+#include "UI/Rounds/StartRoundWidget.h"
+
 
 void AShooterHUD::BeginPlay()
 {
@@ -168,6 +172,61 @@ bool AShooterHUD::ClosePauseMenu()
     PauseMenuWidget = nullptr;
     SetPauseMenuMusicPlayState(false);
 
+    return true;
+}
+
+bool AShooterHUD::IsRestartLevelAfterLoseWidgetOpened() const
+{
+    return IsValid(RestartLevelAfterLoseWidget);
+}
+
+bool AShooterHUD::OpenRestartLevelAfterLoseWidget()
+{
+    if (IsRestartLevelAfterLoseWidgetOpened() || !IsValid(RestartLevelAfterLoseClass)) return false;
+    RestartLevelAfterLoseWidget = CreateWidget<URestartLevelAfterLoseWidget>(GetWorld(), RestartLevelAfterLoseClass);
+    RestartLevelAfterLoseWidget->AddToViewport();
+    return true;
+}
+
+bool AShooterHUD::CloseRestartLevelAfterLoseWidget()
+{
+    if (!IsRestartLevelAfterLoseWidgetOpened()) return false;
+    RestartLevelAfterLoseWidget->RemoveFromParent();
+    RestartLevelAfterLoseWidget = nullptr;
+    return true;
+}
+
+bool AShooterHUD::IsRoundProgressWidgetOpened() const
+{
+    return IsValid(RoundProgressWidget);
+}
+
+bool AShooterHUD::OpenRoundProgressWidget()
+{
+    if (IsRoundProgressWidgetOpened() || !IsValid(RoundProgressClass)) return false;
+    RoundProgressWidget = CreateWidget<URoundProgressWidget>(GetWorld(), RoundProgressClass);
+    RoundProgressWidget->AddToViewport();
+    return true;
+}
+
+bool AShooterHUD::IsStartRoundWidgetOpened() const
+{
+    return IsValid(StartRoundWidget);
+}
+
+bool AShooterHUD::OpenStartRoundWidget()
+{
+    if (IsStartRoundWidgetOpened() || !IsValid(StartRoundClass)) return false;
+    StartRoundWidget = CreateWidget<UStartRoundWidget>(GetWorld(), StartRoundClass);
+    StartRoundWidget->AddToViewport();
+    return true;
+}
+
+bool AShooterHUD::CloseStartRoundWidget()
+{
+    if (!IsStartRoundWidgetOpened()) return false;
+    StartRoundWidget->RemoveFromParent();
+    StartRoundWidget = nullptr;
     return true;
 }
 

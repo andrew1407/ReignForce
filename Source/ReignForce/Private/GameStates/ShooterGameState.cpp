@@ -3,10 +3,14 @@
 
 #include "GameStates/ShooterGameState.h"
 #include "Kismet/GameplayStatics.h"
+#include "GameFramework/PlayerController.h"
 
 #include "ShooterSaveGame.h"
 #include "GameStates/Components/UpgradesProgressStateComponent.h"
 #include "GameStates/Components/RoundDifficultyProgression.h"
+
+#include "UI/ShooterHUD.h"
+#include "UI/Rounds/RoundProgressWidget.h"
 
 #include "PlayerCharacter/PlayerCharacter.h"
 #include "ShooterCharacter/Stats/ShooterSkillsSystem.h"
@@ -224,9 +228,22 @@ void AShooterGameState::OnEnemiesSpawned(bool bSuccess)
 	TArray<AShooterCharacter*> Spawned = EnemySpawnerComponent->Execute_GetSpawnedShooters(EnemySpawnerComponent);
 	EnemyEquipSystem->Execute_DistributeBehaviors(EnemyEquipSystem, Spawned);
 
+	APlayerController* PlayerController = GetWorld()->GetFirstPlayerController();
+	AShooterHUD* ShooterHUD = IsValid(PlayerController) ? PlayerController->GetHUD<AShooterHUD>() : nullptr;
+	bool bCanOpenRoundProgressWidget = IsValid(ShooterHUD) && !ShooterHUD->IsRoundProgressWidgetOpened();
+	if (bCanOpenRoundProgressWidget) ShooterHUD->OpenRoundProgressWidget();
+
+	URoundProgressWidget* RoundProgressWidget = GetRoundProgressWidget();
+	if (IsValid(RoundProgressWidget))
+	{
+		const int32 SpawnedTotal = EnemySpawnerComponent->Execute_GetSpawnedCount(EnemySpawnerComponent);
+		RoundProgressWidget->SetEnemiesToKillTotalCount(SpawnedTotal);
+		RoundProgressWidget->SetEnemiesToKillCurrentCount(0); 
+	}
+
 	RoundState = ERoundState::Going;
-	constexpr bool bAbsolute = true;
-	OnRoundStarted.Broadcast(bAbsolute);
+	constexpr bool bStartedByPlayer = true;
+	OnRoundStarted.Broadcast(bStartedByPlayer);
 
 	if (LOG_ENEMY_SPAWN_ACTIONS)
 	{
@@ -257,6 +274,15 @@ void AShooterGameState::OnEnemyPerished(AShooterCharacter* Enemy, AActor* Cause)
 	}
 
 	const int32 Alive = EnemySpawnerComponent->Execute_GetAliveSpawnedCount(EnemySpawnerComponent);
+
+	URoundProgressWidget* RoundProgressWidget = GetRoundProgressWidget();
+	if (IsValid(RoundProgressWidget))
+	{
+		const int32 SpawnedTotal = EnemySpawnerComponent->Execute_GetSpawnedCount(EnemySpawnerComponent);
+		const int32 Defeated = SpawnedTotal - Alive;
+		RoundProgressWidget->SetEnemiesToKillCurrentCount(Defeated); 
+	}
+
 	bool bAllEnemiesDefeated = Alive <= 0;
 	if (!bAllEnemiesDefeated) return;
 
@@ -278,4 +304,13 @@ bool AShooterGameState::SpawnEnemies(int32 ToSpawn)
 
 	EnemySpawnerComponent->Execute_SpawnShooterBunchAsync(EnemySpawnerComponent, OnShooterCreatedDeferred, OnShootersSpawned, ToSpawn);
 	return true;
+}
+
+URoundProgressWidget* AShooterGameState::GetRoundProgressWidget() const
+{
+	APlayerController* PlayerController = GetWorld()->GetFirstPlayerController();
+	if (!IsValid(PlayerController)) return nullptr;
+
+	auto ShooterHUD = PlayerController->GetHUD<AShooterHUD>();
+	return IsValid(ShooterHUD) ? ShooterHUD->GetRoundProgressWidget() : nullptr;
 }

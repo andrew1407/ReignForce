@@ -8,6 +8,9 @@
 #include "GameModes/Components/BackgroundMusicComponent.h"
 #include "GameStates/ShooterGameState.h"
 
+#include "UI/ShooterHUD.h"
+#include "UI/Rounds/RestartLevelAfterLoseWidget.h"
+
 #include "ShooterCharacter/ShooterCharacter.h"
 #include "PlayerCharacter/PlayerCharacter.h"
 #include "Weapons/Types/Weapon.h"
@@ -30,10 +33,9 @@ void AReignForceGameMode::BeginPlay()
 	auto ShooterGameState = GetGameState<AShooterGameState>();
 	if (IsValid(ShooterGameState))
 	{
-		ShooterGameState->OnRoundStarted.AddDynamic(this, &AReignForceGameMode::PlayBackgroundGameplayMusic);
-		ShooterGameState->OnRoundStarted.AddDynamic(this, &AReignForceGameMode::RefillPlayerAmmoOnRoundStart);
+		ShooterGameState->OnRoundStarted.AddDynamic(this, &AReignForceGameMode::HandleRoundStart);
 
-		ShooterGameState->OnRoundEnded.AddDynamic(this, &AReignForceGameMode::StopBackgroundGameplayMusic);
+		ShooterGameState->OnRoundEnded.AddDynamic(this, &AReignForceGameMode::HandleRoundEnd);
 	}
 
 	APlayerController* PlayerController = GetWorld()->GetFirstPlayerController();
@@ -73,31 +75,77 @@ void AReignForceGameMode::RefillPlayerAmmo()
 	RefillShooterAmmo(Player);
 }
 
-void AReignForceGameMode::PlayBackgroundGameplayMusic(bool bStartedByPlayer)
+void AReignForceGameMode::AtivateRoundReloadCoundown(bool bResetIfStarted)
 {
-	if (!IsValid(BackgroundMusicComponent)) return;
+	bool bCountdownActivated = GetWorldTimerManager().IsTimerActive(ReloadRoundTimer);
+	if (bCountdownActivated)
+	{
+		if (bResetIfStarted) GetWorldTimerManager().ClearTimer(ReloadRoundTimer);
+		else return;
+	}
 
-	BackgroundMusicComponent->ResetActiveGameplaySound();
+	constexpr float InRate = 1;
+	constexpr bool bInLoop = true;
+	constexpr float InFirstDelay = 0;
+	GetWorldTimerManager().SetTimer(ReloadRoundTimer, this, &AReignForceGameMode::OnReloadLevelTimerHandle, InRate, bInLoop, InFirstDelay);
 }
 
-void AReignForceGameMode::RefillPlayerAmmoOnRoundStart(bool bStartedByPlayer)
+void AReignForceGameMode::HandleRoundStart(bool bStartedByPlayer)
 {
+	if (IsValid(BackgroundMusicComponent)) BackgroundMusicComponent->ResetActiveGameplaySound();
+
 	RefillPlayerAmmo();
+
+	AShooterHUD* ShooterHUD = GetShooterHUD();
+	if (IsValid(ShooterHUD)) ShooterHUD->CloseStartRoundWidget();
 }
 
-void AReignForceGameMode::StopBackgroundGameplayMusic(bool bPlayerWin)
+void AReignForceGameMode::HandleRoundEnd(bool bPlayerWin)
 {
-	if (!IsValid(BackgroundMusicComponent)) return;
+	if (IsValid(BackgroundMusicComponent)) BackgroundMusicComponent->StopActiveGameplaySound();
 
-	BackgroundMusicComponent->StopActiveGameplaySound();
+	AShooterHUD* ShooterHUD = GetShooterHUD();
+	if (IsValid(ShooterHUD)) ShooterHUD->OpenStartRoundWidget();
 }
 
 void AReignForceGameMode::EndRoundOnPlayerDeath(AShooterCharacter* Character, AActor* Cause)
 {
 	auto ShooterGameState = GetGameState<AShooterGameState>();
-	if (!IsValid(ShooterGameState)) return;
+	if (!IsValid(ShooterGameState))
+	{
+		ShooterGameState->StopEnemiesAttackForTarget(Character);
+		constexpr bool bPlayerWin = false;
+		ShooterGameState->EndRound(bPlayerWin);
+	}
 
-	ShooterGameState->StopEnemiesAttackForTarget(Character);
-	constexpr bool bPlayerWin = false;
-	ShooterGameState->EndRound(bPlayerWin);
+	AtivateRoundReloadCoundown();
+}
+
+void AReignForceGameMode::OnReloadLevelTimerHandle()
+{
+
+	AShooterHUD* ShooterHUD = GetShooterHUD();
+	if (!IsValid(ShooterHUD)) return;
+	bool bRestartLevelAfterLoseWidgetOpened = ShooterHUD->IsRestartLevelAfterLoseWidgetOpened();
+	if (!bRestartLevelAfterLoseWidgetOpened) ShooterHUD->OpenRestartLevelAfterLoseWidget();
+
+	URestartLevelAfterLoseWidget* RestartLevelWidget = ShooterHUD->GetRestartLevelAfterLoseWidget();
+	if (!IsValid(RestartLevelWidget)) return;
+
+	if (RestartLevelWidget->IsCountdownFull()) RestartLevelWidget->ResetCountdownMessage();
+	if (!bRestartLevelAfterLoseWidgetOpened) return;
+	RestartLevelWidget->DecreaseCurrentSecondsCountdown();
+
+	if (RestartLevelWidget->IsNoSecondsLeft())
+	{
+		GetWorldTimerManager().ClearTimer(ReloadRoundTimer);
+		auto ShooterGameState = GetGameState<AShooterGameState>();
+		if (IsValid(ShooterGameState)) ShooterGameState->RestartLevel();
+	}
+}
+
+AShooterHUD* AReignForceGameMode::GetShooterHUD() const
+{
+	APlayerController* PlayerController = GetWorld()->GetFirstPlayerController();
+	return IsValid(PlayerController) ? PlayerController->GetHUD<AShooterHUD>() : nullptr;
 }

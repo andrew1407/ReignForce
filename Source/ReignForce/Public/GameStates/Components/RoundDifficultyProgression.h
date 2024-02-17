@@ -31,7 +31,7 @@ struct FDifficultyValueContainer
 
 	bool FitsByComparingValue(int32 Comparable) const
 	{
-		return bValueRange ? (ValueMin >= Comparable && Comparable <= ValueMax) : (Comparable == Value);
+		return bValueRange ? (Comparable >= ValueMin && Comparable <= ValueMax) : (Comparable == Value);
 	}
 };
 

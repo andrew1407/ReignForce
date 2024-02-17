@@ -18,6 +18,8 @@ class UEnemySpawnerComponent;
 class UEnemyEquipSystem;
 class URoundDifficultyProgression;
 
+class URoundProgressWidget;
+
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnRoundStarted, bool, bStartedByPlayer);
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnRoundEnded, bool, bPlayerWin);
 
@@ -131,4 +133,6 @@ private:
 	void OnEnemyPerished(AShooterCharacter* Enemy, AActor* Cause);
 
 	bool SpawnEnemies(int32 ToSpawn = -1);
+
+	URoundProgressWidget* GetRoundProgressWidget() const;
 };

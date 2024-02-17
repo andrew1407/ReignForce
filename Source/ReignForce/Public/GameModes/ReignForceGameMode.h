@@ -12,6 +12,7 @@ class UShooterEquipmentDataAsset;
 class UBackgroundMusicComponent;
 class AWeapon;
 class AShooterCharacter;
+class AShooterHUD;
 
 UCLASS(minimalapi)
 class AReignForceGameMode : public AGameModeBase
@@ -33,6 +34,9 @@ public:
 	UFUNCTION(BlueprintCallable)
 	void RefillPlayerAmmo();
 
+	UFUNCTION(BlueprintCallable)
+	void AtivateRoundReloadCoundown(bool bResetIfStarted = false);
+
 	FORCEINLINE UShooterEquipmentDataAsset* GetShooterEquipment() const { return ShooterEquipment; }
 	FORCEINLINE UBackgroundMusicComponent* GetBackgroundMusicComponent() const { return BackgroundMusicComponent; }
 
@@ -46,15 +50,20 @@ private:
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Weapons", meta = (AllowPrivateAccess = true))
 	TObjectPtr<UBackgroundMusicComponent> BackgroundMusicComponent;
 
-	UFUNCTION()
-	void PlayBackgroundGameplayMusic(bool bStartedByPlayer);
+	UPROPERTY()
+	FTimerHandle ReloadRoundTimer;
 
 	UFUNCTION()
-	void RefillPlayerAmmoOnRoundStart(bool bStartedByPlayer);
+	void HandleRoundStart(bool bStartedByPlayer);
 
 	UFUNCTION()
-	void StopBackgroundGameplayMusic(bool bPlayerWin);
+	void HandleRoundEnd(bool bPlayerWin);
 
 	UFUNCTION()
 	void EndRoundOnPlayerDeath(AShooterCharacter* Character, AActor* Cause);
+
+	UFUNCTION()
+	void OnReloadLevelTimerHandle();
+
+	AShooterHUD* GetShooterHUD() const;
 };

@@ -11,6 +11,7 @@ URoundDifficultyProgression::URoundDifficultyProgression(const FObjectInitialize
 
 int32 URoundDifficultyProgression::GetEnemiesCountBySkills(int32 Skills) const
 {
+
     for (const auto& Options : EnemiesPerRoundByGainedSkills)
     {
         bool bFitsBySkills = Options.NecessarySkills.FitsByComparingValue(Skills);
