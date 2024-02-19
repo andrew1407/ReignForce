@@ -9,6 +9,7 @@
 #include "Spawners/EnemySpawnTargetPoint.h"
 #include "ShooterCharacter/ShooterCharacter.h"
 #include "Spawners/Interfaces/ShooterCharacterSpawner.h"
+#include "Weapons/Components/WeaponSlotsSystem.h"
 #include "Enemy/EnemyCharacter.h"
 
 
@@ -94,10 +95,16 @@ void UEnemySpawnerComponent::SpawnShooterBunchAsync_Implementation(const FOnShoo
 	SpawnPerTick(OnShooterCreatedDeferred, OnShootersSpawned, Bunch);
 }
 
-void UEnemySpawnerComponent::ClearSpawnedShooters_Implementation()
+void UEnemySpawnerComponent::ClearSpawnedShooters_Implementation(bool bDeadOnly)
 {
+	if (SpawnedEnemies.IsEmpty()) return;
+
 	for (auto& Enemy : SpawnedEnemies)
 	{
+		if (!IsValid(Enemy)) continue;
+		bool bShouldDestroy = !bDeadOnly || (bDeadOnly && Enemy->IsDead());
+		UWeaponSlotsSystem* WeaponSlotsSystem = Enemy->GetWeaponSlotsSystem();
+		if (IsValid(WeaponSlotsSystem)) WeaponSlotsSystem->RemoveAllWeapons();
 		bool bDestroyed = Enemy->Destroy();
 	}
 

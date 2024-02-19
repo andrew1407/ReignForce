@@ -57,5 +57,5 @@ public:
 	void SpawnShooterBunchAsync(const FOnShooterCreatedDeferred& OnShooterCreatedDeferred, const FOnShootersSpawned& OnShootersSpawned, int32 Bunch = -1);
 
 	UFUNCTION(BlueprintNativeEvent, BlueprintCallable, Category = "ShooterCharacterSpawner")
-	void ClearSpawnedShooters();
+	void ClearSpawnedShooters(bool bDeadOnly = false);
 };

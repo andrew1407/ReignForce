@@ -37,6 +37,9 @@ public:
 	UFUNCTION(BlueprintCallable)
 	void AtivateRoundReloadCoundown(bool bResetIfStarted = false);
 
+	UFUNCTION(BlueprintCallable)
+	void SetPlayerHealthToFull();
+
 	FORCEINLINE UShooterEquipmentDataAsset* GetShooterEquipment() const { return ShooterEquipment; }
 	FORCEINLINE UBackgroundMusicComponent* GetBackgroundMusicComponent() const { return BackgroundMusicComponent; }
 

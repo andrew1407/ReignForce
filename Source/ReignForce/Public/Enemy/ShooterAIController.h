@@ -77,6 +77,7 @@ public:
 	void SetTargetVisibility(bool bState);
 
 protected:
+	virtual void BeginDestroy() override;
 	virtual void OnPossess(APawn* InPawn) override;
 	virtual void OnUnPossess() override;
 	virtual ETeamAttitude::Type GetTeamAttitudeTowards(const AActor& Other) const override;

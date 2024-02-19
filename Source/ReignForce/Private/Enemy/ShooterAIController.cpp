@@ -30,6 +30,7 @@
 
 #include "ReinforcementLearning/Interfaces/AICommandsStrategy.h"
 
+// TODO: fix player detection by enemy after first round spawn
 
 AShooterAIController::AShooterAIController(const FObjectInitializer& ObjectInitializer)
     : Super(ObjectInitializer.SetDefaultSubobjectClass<UCrowdFollowingComponent>(TEXT("PathFollowingComponent")))
@@ -105,9 +106,8 @@ void AShooterAIController::SetShooterAICommand(EShooterAICommand Command)
 
 void AShooterAIController::StopCommandsFetchTimer()
 {
-    FTimerManager& TimerManager = GetWorldTimerManager();
-    bool bTimerRunning = TimerManager.IsTimerActive(AICommandTimerHandle);
-    if (bTimerRunning) TimerManager.ClearTimer(AICommandTimerHandle);
+    bool bTimerRunning = GetWorldTimerManager().IsTimerActive(AICommandTimerHandle);
+    if (bTimerRunning) GetWorldTimerManager().ClearTimer(AICommandTimerHandle);
 }
 
 AActor* AShooterAIController::GetTargetFocus() const
@@ -115,6 +115,21 @@ AActor* AShooterAIController::GetTargetFocus() const
     if (!IsValid(Blackboard) || FocusedTargetKey.IsNone()) return nullptr;
     UObject* Target = Blackboard->GetValueAsObject(FocusedTargetKey);
     return Cast<AActor>(Target);
+}
+
+void AShooterAIController::BeginDestroy()
+{
+    if (IsValid(this) && IsValid(GetWorld()))
+    {
+        if (SightTimerHandle.IsValid() && GetWorldTimerManager().IsTimerActive(SightTimerHandle))
+            GetWorldTimerManager().ClearTimer(SightTimerHandle);
+
+        if (AICommandTimerHandle.IsValid() && GetWorldTimerManager().IsTimerActive(AICommandTimerHandle))
+            GetWorldTimerManager().ClearTimer(AICommandTimerHandle);
+    }
+
+
+    Super::BeginDestroy();
 }
 
 void AShooterAIController::OnPossess(APawn* InPawn)
@@ -177,6 +192,7 @@ void AShooterAIController::SetTargetVisibility(bool bState)
 
 void AShooterAIController::ResetTargetFocus(AActor* Target, bool bApplyToTargetVisibility)
 {
+    if (!IsValid(this)) return;
     if (!IsValid(Blackboard) || FocusedTargetKey.IsNone()) return;
     UObject* TargetState = Blackboard->GetValueAsObject(FocusedTargetKey);
     if (Target == TargetState) return;

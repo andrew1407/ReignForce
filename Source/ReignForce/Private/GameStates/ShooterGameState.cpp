@@ -48,6 +48,11 @@ void AShooterGameState::BeginPlay()
 	OnRoundEnded.AddDynamic(this, &AShooterGameState::AddSkillsForRoundWin);
 }
 
+void AShooterGameState::BeginDestroy()
+{
+	Super::BeginDestroy();
+}
+
 bool AShooterGameState::SavePlayerCharacterState(APlayerCharacter* Player)
 {
 	bool bPlayerValid = IsValid(Player) && IsValid(Player->GetSkillsSystem()) && IsValid(Player->GetStatsComponent());
@@ -131,18 +136,8 @@ bool AShooterGameState::ActivateEnemiesSpawnByProgression()
 
 void AShooterGameState::ClearLevelFromSpawnedEnemies(bool bDeadOnly)
 {
-	if (!IsValid(EnemySpawnerComponent)) return;
-	
-	TArray<AShooterCharacter*> Enemies = EnemySpawnerComponent->Execute_GetSpawnedShooters(EnemySpawnerComponent);
-	for (auto Enemy : Enemies)
-	{
-		if (!IsValid(Enemy)) continue;
-		bool bShouldDestroy = !bDeadOnly || (bDeadOnly && Enemy->IsDead());
-		if (!bShouldDestroy) continue;
-		UWeaponSlotsSystem* WeaponSlotsSystem = Enemy->GetWeaponSlotsSystem();
-		if (IsValid(WeaponSlotsSystem)) WeaponSlotsSystem->RemoveAllWeapons();
-		Enemy->Destroy();
-	}
+	if (IsValid(EnemySpawnerComponent))
+		EnemySpawnerComponent->Execute_ClearSpawnedShooters(EnemySpawnerComponent, bDeadOnly);
 }
 
 void AShooterGameState::StopEnemiesAttackForTarget(AActor* Target, float DelaySec)
@@ -161,8 +156,8 @@ void AShooterGameState::StopEnemiesAttackForTarget(AActor* Target, float DelaySe
 		GetWorldTimerManager().SetTimerForNextTick([this, DelaySec, ShooterAIController]
         {
 			if (!IsValid(ShooterAIController)) return;
-            FTimerHandle TimerHandle;
 			auto ClearFocus = [this, ShooterAIController] { ShooterAIController->ResetTargetFocus(nullptr); };
+			FTimerHandle TimerHandle;
 			GetWorldTimerManager().SetTimer(TimerHandle, ClearFocus, DelaySec, false);
         });
 	}

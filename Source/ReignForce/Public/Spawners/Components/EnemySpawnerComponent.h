@@ -57,7 +57,7 @@ public:
 
 	virtual void SpawnShooterBunchAsync_Implementation(const FOnShooterCreatedDeferred& OnShooterCreatedDeferred,
 														const FOnShootersSpawned& OnShootersSpawned, int32 Bunch = -1) override;
-	void ClearSpawnedShooters_Implementation();
+	void ClearSpawnedShooters_Implementation(bool bDeadOnly = false);
 
 	#pragma endregion
 

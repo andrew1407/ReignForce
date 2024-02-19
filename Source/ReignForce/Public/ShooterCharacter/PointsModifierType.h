@@ -8,4 +8,5 @@ enum class EPointsModifierType : uint8
     Damage UMETA(DisplayName="Damage"),
     Regeneration UMETA(DisplayName="Regeneration"),
     SkillUpgrade UMETA(DisplayName="SkillUpgrade"),
+    SetManually UMETA(DisplayName="SetManually"),
 };
