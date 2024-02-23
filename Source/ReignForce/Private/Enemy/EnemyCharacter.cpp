@@ -66,12 +66,6 @@ AEnemyCharacter::AEnemyCharacter(const FObjectInitializer& ObjectInitializer) : 
 void AEnemyCharacter::BeginPlay()
 {
 	Super::BeginPlay();
-	
-	if (!IsValid(GetController()))
-	{
-		auto AIController = GetWorld()->SpawnActor<AAIController>(AIControllerClass);
-		if (IsValid(AIController)) AIController->Possess(this);
-	}
 
 	if (IsValid(HealthWidgetComponent))
 		HealthWidget = Cast<UHealthBarWidget>(HealthWidgetComponent->GetUserWidgetObject());

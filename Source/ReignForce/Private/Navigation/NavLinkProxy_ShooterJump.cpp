@@ -43,6 +43,9 @@ void ANavLinkProxy_ShooterJump::HandleSmartLinkReached(AActor* Agent, const FVec
     auto Character = Cast<ACharacter>(Agent);
     if (!IsValid(Character)) return;
 
+    UCharacterMovementComponent* Movement = Character->GetCharacterMovement();
+    if (!IsValid(Movement) || Movement->IsFalling()) return;
+
     const FVector JumpVelocity = CalulateJumpVelocity(Character->GetActorLocation(), Destination, JumpDuration);
     constexpr bool bXYOverride = true;
     constexpr bool bZOverride = true;

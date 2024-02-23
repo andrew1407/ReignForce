@@ -77,6 +77,7 @@ public:
 	void SetTargetVisibility(bool bState);
 
 protected:
+	virtual void BeginPlay() override;
 	virtual void BeginDestroy() override;
 	virtual void OnPossess(APawn* InPawn) override;
 	virtual void OnUnPossess() override;

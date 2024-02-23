@@ -27,10 +27,8 @@
 #include "ShooterCharacter/TeamID.h"
 
 #include "Weapons/Types/Weapon.h"
-
 #include "ReinforcementLearning/Interfaces/AICommandsStrategy.h"
 
-// TODO: fix player detection by enemy after first round spawn
 
 AShooterAIController::AShooterAIController(const FObjectInitializer& ObjectInitializer)
     : Super(ObjectInitializer.SetDefaultSubobjectClass<UCrowdFollowingComponent>(TEXT("PathFollowingComponent")))
@@ -47,7 +45,6 @@ AShooterAIController::AShooterAIController(const FObjectInitializer& ObjectIniti
     PerceptionComponent->ConfigureSense(*HearingConfig);
     PerceptionComponent->ConfigureSense(*DamageConfig);
     PerceptionComponent->SetDominantSense(SightConfig->GetSenseImplementation());
-    PerceptionComponent->OnTargetPerceptionInfoUpdated.AddDynamic(this, &AShooterAIController::OnPerceptionInfoUpdated);
 
     SightConfig->SightRadius = 1500;
     SightConfig->LoseSightRadius = 2000;
@@ -68,7 +65,6 @@ AShooterAIController::AShooterAIController(const FObjectInitializer& ObjectIniti
     CombatCommandKey = TEXT("CombatCommand");
 
     IgnoreAllyDistanceHearing = 800;
-
     TemperamentType = ETemperamentType::Moderate;
 
     SenseHandlers =
@@ -80,6 +76,14 @@ AShooterAIController::AShooterAIController(const FObjectInitializer& ObjectIniti
 
     OnTargetVisibilityChanged.AddDynamic(this, &AShooterAIController::TriggerAICommandsFetch);
     OnTargetVisibilityChanged.AddDynamic(this, &AShooterAIController::HandleShooterTargetVisibility);
+}
+
+void AShooterAIController::BeginPlay()
+{
+    Super::BeginPlay();
+
+    if (IsValid(PerceptionComponent))
+        PerceptionComponent->OnTargetPerceptionInfoUpdated.AddDynamic(this, &AShooterAIController::OnPerceptionInfoUpdated);
 }
 
 FGenericTeamId AShooterAIController::GetGenericTeamId() const
@@ -128,7 +132,6 @@ void AShooterAIController::BeginDestroy()
             GetWorldTimerManager().ClearTimer(AICommandTimerHandle);
     }
 
-
     Super::BeginDestroy();
 }
 
@@ -162,6 +165,16 @@ void AShooterAIController::OnUnPossess()
     }
 
     StopCommandsFetchTimer();
+
+    if (IsValid(this) && IsValid(GetWorld()))
+    {
+        if (SightTimerHandle.IsValid() && GetWorldTimerManager().IsTimerActive(SightTimerHandle))
+            GetWorldTimerManager().ClearTimer(SightTimerHandle);
+
+        if (AICommandTimerHandle.IsValid() && GetWorldTimerManager().IsTimerActive(AICommandTimerHandle))
+            GetWorldTimerManager().ClearTimer(AICommandTimerHandle);
+    }
+
     PossessedShooter = nullptr;
 }
 
@@ -192,8 +205,7 @@ void AShooterAIController::SetTargetVisibility(bool bState)
 
 void AShooterAIController::ResetTargetFocus(AActor* Target, bool bApplyToTargetVisibility)
 {
-    if (!IsValid(this)) return;
-    if (!IsValid(Blackboard) || FocusedTargetKey.IsNone()) return;
+    if (!IsValid(this) || !IsValid(Blackboard) || FocusedTargetKey.IsNone()) return;
     UObject* TargetState = Blackboard->GetValueAsObject(FocusedTargetKey);
     if (Target == TargetState) return;
 
@@ -214,10 +226,13 @@ void AShooterAIController::ResetTargetFocus(AActor* Target, bool bApplyToTargetV
 
 void AShooterAIController::OnPerceptionInfoUpdated(const FActorPerceptionUpdateInfo& UpdateInfo)
 {
+    if (!PossessedShooter.IsValid() || PossessedShooter->IsDead()) return;
+
     const FAIStimulus& Stimulus = UpdateInfo.Stimulus;
     bool bSelfSource = UpdateInfo.Target == GetPawn();
     if (bSelfSource) return;
     TSubclassOf<UAISense> SenseType = UAIPerceptionSystem::GetSenseClassForStimulus(GetWorld(), Stimulus);
+
     if (FSenseHandle* SenseHandle = SenseHandlers.Find(SenseType))
         SenseHandle->ExecuteIfBound(UpdateInfo);
 }

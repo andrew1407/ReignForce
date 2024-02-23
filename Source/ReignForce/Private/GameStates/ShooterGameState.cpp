@@ -163,13 +163,13 @@ void AShooterGameState::StopEnemiesAttackForTarget(AActor* Target, float DelaySe
 	}
 }
 
-bool AShooterGameState::StartRound()
+void AShooterGameState::StartRound()
 {
-	if (RoundState != ERoundState::None) return false;
+	if (RoundState != ERoundState::None) return;
 
 	constexpr bool bDeadOnly = false;
 	ClearLevelFromSpawnedEnemies(bDeadOnly);
-	return ActivateEnemiesSpawnByProgression();
+	GetWorldTimerManager().SetTimerForNextTick([this] { ActivateEnemiesSpawnByProgression(); });
 }
 
 void AShooterGameState::RestartLevel()
@@ -211,7 +211,7 @@ void AShooterGameState::EquipEnemyShooter(AShooterCharacter* Shooter)
 	if (LOG_ENEMY_SPAWN_ACTIONS)
 	{
 		if (GEngine)
-			GEngine->AddOnScreenDebugMessage(-1, 15.0f, FColor::Magenta, FString::Printf(TEXT("EquipEnemyShooter(AEnemyCharacter* Enemy): %s"), *Enemy->GetName()));
+			GEngine->AddOnScreenDebugMessage(-1, 15.0f, FColor::Magenta, FString::Printf(TEXT("EquipEnemyShooter(AEnemyCharacter* Enemy): %s"), *GetNameSafe(Enemy)));
 	}
 }
 

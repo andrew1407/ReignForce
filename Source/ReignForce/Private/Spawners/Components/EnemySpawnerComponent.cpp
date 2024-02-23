@@ -2,15 +2,17 @@
 
 
 #include "Spawners/Components/EnemySpawnerComponent.h"
+#include "GameFramework/Controller.h"
 #include "AIController.h"
 #include "EngineUtils.h"
 #include "Engine/TargetPoint.h"
+
+#include "Enemy/EnemyCharacter.h"
 
 #include "Spawners/EnemySpawnTargetPoint.h"
 #include "ShooterCharacter/ShooterCharacter.h"
 #include "Spawners/Interfaces/ShooterCharacterSpawner.h"
 #include "Weapons/Components/WeaponSlotsSystem.h"
-#include "Enemy/EnemyCharacter.h"
 
 
 // Sets default values for this component's properties
@@ -77,7 +79,16 @@ bool UEnemySpawnerComponent::SpawnShooter_Implementation(const FOnShooterCreated
 
 	Enemy->FinishSpawning(FTransform::Identity);
 	bool bSpawned = IsValid(Enemy);
-	if (bSpawned) SpawnedEnemies.Add(Enemy);
+	if (!bSpawned) return bSpawned;
+
+	SpawnedEnemies.Add(Enemy);
+
+	TSubclassOf<AController> AIControllerClass = Enemy->AIControllerClass;
+	if (IsValid(AIControllerClass))
+	{
+		auto AIController = GetWorld()->SpawnActor<AAIController>(Enemy->AIControllerClass);
+		if (IsValid(AIController)) AIController->Possess(Enemy);
+	}
 
 	return bSpawned;
 }
@@ -103,8 +114,13 @@ void UEnemySpawnerComponent::ClearSpawnedShooters_Implementation(bool bDeadOnly)
 	{
 		if (!IsValid(Enemy)) continue;
 		bool bShouldDestroy = !bDeadOnly || (bDeadOnly && Enemy->IsDead());
+
 		UWeaponSlotsSystem* WeaponSlotsSystem = Enemy->GetWeaponSlotsSystem();
 		if (IsValid(WeaponSlotsSystem)) WeaponSlotsSystem->RemoveAllWeapons();
+
+		auto EnemyController = Enemy->GetController<AAIController>();
+		if (IsValid(EnemyController)) EnemyController->Destroy();
+
 		bool bDestroyed = Enemy->Destroy();
 	}
 
@@ -131,10 +147,8 @@ bool UEnemySpawnerComponent::GetRandomEnemyToSpawn(TSubclassOf<AShooterCharacter
 bool UEnemySpawnerComponent::GetRandomSpawnPoint(ATargetPoint*& Container) const
 {
 	if (SpawnPoints.IsEmpty()) return false;
-	TArray<AEnemySpawnTargetPoint*> ActivePoints = SpawnPoints.FilterByPredicate([] (const AEnemySpawnTargetPoint* Point)
-	{
-		return Point->bActiveToSpawn;
-	});
+	const auto FilterPredicate = [] (const AEnemySpawnTargetPoint* Point) { return Point->bActiveToSpawn; };
+	TArray<AEnemySpawnTargetPoint*> ActivePoints = SpawnPoints.FilterByPredicate(FilterPredicate);
 	if (ActivePoints.IsEmpty()) return false;
 	Container = ActivePoints[FMath::RandRange(0, ActivePoints.Num() - 1)];
 	return IsValid(Container);

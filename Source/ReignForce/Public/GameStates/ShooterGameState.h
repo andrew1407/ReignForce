@@ -82,7 +82,7 @@ public:
 	#pragma region LEVEL_STATE
 
 	UFUNCTION(BlueprintCallable)
-	bool StartRound();
+	void StartRound();
 
 	UFUNCTION(BlueprintCallable)
 	void RestartLevel();
