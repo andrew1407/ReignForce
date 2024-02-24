@@ -49,8 +49,9 @@ bool UUpgradesProgressStateComponent::AddSkills(int32 ToAdd, bool bNotify)
 {
     if (ToAdd <= 0 || MaxSkillsAllowed == Progression.SkillsAvailable || IsFullOfSkills()) return false;
     const int32 BeforeSet = Progression.SkillsAvailable;
-    Progression.SkillsAvailable = FMath::Min(Progression.SkillsAvailable + ToAdd, MaxSkillsAllowed);
-    if (bNotify) OnSkillsAmountChanged.Broadcast(ESkillBalanceAction::Add, Progression.SkillsAvailable, ToAdd, MaxSkillsAllowed, BeforeSet);
+    const int32 ToAddFixed = FMath::Min(ToAdd, MaxSkillsAllowed - Progression.GetSkillsGained());
+    Progression.SkillsAvailable += ToAddFixed;
+    if (bNotify) OnSkillsAmountChanged.Broadcast(ESkillBalanceAction::Add, Progression.SkillsAvailable, ToAddFixed, MaxSkillsAllowed, BeforeSet);
     return true;
 }
 

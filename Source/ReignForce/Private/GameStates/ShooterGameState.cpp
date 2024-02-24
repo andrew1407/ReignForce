@@ -156,9 +156,11 @@ void AShooterGameState::StopEnemiesAttackForTarget(AActor* Target, float DelaySe
 		GetWorldTimerManager().SetTimerForNextTick([this, DelaySec, ShooterAIController]
         {
 			if (!IsValid(ShooterAIController)) return;
-			auto ClearFocus = [this, ShooterAIController] { ShooterAIController->ResetTargetFocus(nullptr); };
 			FTimerHandle TimerHandle;
-			GetWorldTimerManager().SetTimer(TimerHandle, ClearFocus, DelaySec, false);
+			GetWorldTimerManager().SetTimer(TimerHandle, [ShooterAIController]
+			{
+				if (IsValid(ShooterAIController)) ShooterAIController->ResetTargetFocus(nullptr);
+			}, DelaySec, false);
         });
 	}
 }
@@ -170,6 +172,12 @@ void AShooterGameState::StartRound()
 	constexpr bool bDeadOnly = false;
 	ClearLevelFromSpawnedEnemies(bDeadOnly);
 	GetWorldTimerManager().SetTimerForNextTick([this] { ActivateEnemiesSpawnByProgression(); });
+
+	if (LOG_ENEMY_SPAWN_ACTIONS)
+	{
+		if (GEngine)
+			GEngine->AddOnScreenDebugMessage(-1, 15.0f, FColor::Orange, TEXT("Round is started"));
+	}
 }
 
 void AShooterGameState::RestartLevel()
