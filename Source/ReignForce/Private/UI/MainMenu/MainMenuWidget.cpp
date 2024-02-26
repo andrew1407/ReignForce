@@ -7,6 +7,9 @@
 #include "Kismet/GameplayStatics.h"
 #include "Components/Button.h"
 
+#include "GameModes/ReignForceGameMode.h"
+#include "GameModes/Components/BackgroundMusicComponent.h"
+
 
 UMainMenuWidget::UMainMenuWidget(const FObjectInitializer& ObjectInitializer) : Super(ObjectInitializer)
 {
@@ -36,6 +39,13 @@ void UMainMenuWidget::OnPlayClick()
 
 void UMainMenuWidget::OnExitClick()
 {
+    auto GameMode = GetWorld()->GetAuthGameMode<AReignForceGameMode>();
+    if (IsValid(GameMode))
+    {
+        UBackgroundMusicComponent* BackgroundMusic = GameMode->GetBackgroundMusicComponent();
+        if (IsValid(BackgroundMusic)) BackgroundMusic->StopActiveMainMenuSound();
+    }
+
     // Specify the quit preference (e.g., Quit, Restart, etc.)
     TEnumAsByte<EQuitPreference::Type> QuitPreference = EQuitPreference::Quit;
 
