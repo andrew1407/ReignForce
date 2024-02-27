@@ -166,6 +166,9 @@ public:
 	UFUNCTION(BlueprintCallable)
 	virtual bool TryActivateMeleeCollision(bool bState, int32 Index = 0);
 
+	UFUNCTION(BlueprintCallable)
+	virtual bool TryAddWeapon(TSubclassOf<AWeapon> WeaponClass, EWeaponType Slot);
+
 	#pragma endregion
 
 	#pragma region REACTIONS

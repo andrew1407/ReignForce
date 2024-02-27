@@ -614,6 +614,25 @@ bool AShooterCharacter::TryActivateMeleeCollision(bool bState, int32 Index)
 	return true;
 }
 
+bool AShooterCharacter::TryAddWeapon(TSubclassOf<AWeapon> WeaponClass, EWeaponType Slot)
+{
+	if (!IsValid(WeaponSlotsSystem)) return false;
+	if (Slot == EWeaponType::None || !IsValid(WeaponClass)) return false;
+	bool bFirearmsSlot = UWeaponSlotsSystem::IsFirearmsType(Slot);
+	bool bFirearmsClass = WeaponClass->IsChildOf(AFirearmsWeapon::StaticClass());
+	if (bFirearmsSlot != bFirearmsClass) return false;
+
+	bool bCreaterd = WeaponSlotsSystem->CreateAttachedWeapon(WeaponClass, Slot);
+	if (!bCreaterd) return false;
+
+	AWeapon* Weapon = WeaponSlotsSystem->GetWeaponFromSlot(Slot);
+	if (!IsValid(Weapon)) return false;
+
+	Weapon->OnDamageCaused.AddDynamic(this, &AShooterCharacter::ReactOnDamageCaused);
+
+	return true;
+}
+
 void AShooterCharacter::ReactToSeen()
 {
 	if (!IsValid(ReactionsComponent)) return;

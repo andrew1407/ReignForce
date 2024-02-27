@@ -44,16 +44,14 @@ bool UUnlockSlotSkillUpgrade::UpgradeShooter_Implementation(AShooterCharacter* S
     TSoftClassPtr<AWeapon> WeaponClass = GameMode->GetWeaponModel(WeaponType, ModelIndex);
     if (WeaponClass.IsNull()) return false;
 
-    UWeaponSlotsSystem* WeaponSlotsSystem = ShooterCharacter->GetWeaponSlotsSystem();
-    if (!IsValid(WeaponSlotsSystem)) return false;
     Info.StatsComponent->SetWeaponModelOf(WeaponType, ModelIndex);
     Info.SkillsSystem->AvailableSlots.Add(WeaponType);
 
-    UAssetManager::GetStreamableManager().RequestAsyncLoad(WeaponClass.ToSoftObjectPath(), [this, WeaponSlotsSystem, ShooterCharacter, WeaponClass, Info]
+    UAssetManager::GetStreamableManager().RequestAsyncLoad(WeaponClass.ToSoftObjectPath(), [this, ShooterCharacter, WeaponClass, Info]
     {
-        if (!(WeaponClass.IsValid() && IsValid(WeaponSlotsSystem))) return;
-        bool bCreaterd = WeaponSlotsSystem->CreateAttachedWeapon(WeaponClass.Get(), WeaponType);
-        if (!bCreaterd) return;
+        if (!(WeaponClass.IsValid() && IsValid(ShooterCharacter))) return;
+        bool bAdded = ShooterCharacter->TryAddWeapon(WeaponClass.Get(), WeaponType);
+        if (!bAdded) return;
         RefreshState(ShooterCharacter, Info);
     });
 
