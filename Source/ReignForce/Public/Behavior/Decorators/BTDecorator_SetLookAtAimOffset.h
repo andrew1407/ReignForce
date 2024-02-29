@@ -37,6 +37,9 @@ private:
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, BlueprintReadWrite, Category = "LookAt", meta = (AllowPrivateAccess = true))
 	FName LookAtSocketName;
+	
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "LookAt", meta = (AllowPrivateAccess = true, ClampMin = 0, UIMin = 0))
+	float MinAllowedDistanceToFocusLook;
 
 	TWeakObjectPtr<ACharacter> TargetCharacter;
 	TWeakObjectPtr<AEnemyCharacter> OwnedCharacter;

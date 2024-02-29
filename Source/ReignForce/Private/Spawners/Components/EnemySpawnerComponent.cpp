@@ -81,14 +81,8 @@ bool UEnemySpawnerComponent::SpawnShooter_Implementation(const FOnShooterCreated
 	bool bSpawned = IsValid(Enemy);
 	if (!bSpawned) return bSpawned;
 
+	Enemy->SpawnDefaultController();
 	SpawnedEnemies.Add(Enemy);
-
-	TSubclassOf<AController> AIControllerClass = Enemy->AIControllerClass;
-	if (IsValid(AIControllerClass))
-	{
-		auto AIController = GetWorld()->SpawnActor<AAIController>(Enemy->AIControllerClass);
-		if (IsValid(AIController)) AIController->Possess(Enemy);
-	}
 
 	return bSpawned;
 }
@@ -113,14 +107,11 @@ void UEnemySpawnerComponent::ClearSpawnedShooters_Implementation(bool bDeadOnly)
 	for (auto& Enemy : SpawnedEnemies)
 	{
 		if (!IsValid(Enemy)) continue;
-		bool bShouldDestroy = !bDeadOnly || (bDeadOnly && Enemy->IsDead());
-
+		bool bShouldClear = !bDeadOnly || (bDeadOnly && Enemy->IsDead());
+		if (!bShouldClear) continue;
 		UWeaponSlotsSystem* WeaponSlotsSystem = Enemy->GetWeaponSlotsSystem();
 		if (IsValid(WeaponSlotsSystem)) WeaponSlotsSystem->RemoveAllWeapons();
-
-		auto EnemyController = Enemy->GetController<AAIController>();
-		if (IsValid(EnemyController)) EnemyController->Destroy();
-
+		if (!IsValid(Enemy)) continue;
 		bool bDestroyed = Enemy->Destroy();
 	}
 

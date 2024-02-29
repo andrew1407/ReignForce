@@ -149,6 +149,7 @@ void AShooterAIController::OnPossess(APawn* InPawn)
     WeaponNoiseTagToIgnore = TEXT("Melee.");
     WeaponNoiseTagToIgnore += GetNameSafe(InPawn);
 
+    if (IsValid(PerceptionComponent)) PerceptionComponent->RequestStimuliListenerUpdate();
     if (!IsValid(BehaviorTree)) return;
     if (IsValid(Blackboard)) Blackboard->InitializeBlackboard(*BehaviorTree->GetBlackboardAsset());
     if (IsValid(BehaviorTreeComponent)) BehaviorTreeComponent->StartTree(*BehaviorTree);

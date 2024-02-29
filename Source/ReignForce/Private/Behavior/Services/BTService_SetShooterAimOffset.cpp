@@ -2,6 +2,7 @@
 
 
 #include "Behavior/Services/BTService_SetShooterAimOffset.h"
+#include "AIController.h"
 #include "GameFramework/Character.h"
 #include "Enemy/EnemyCharacter.h"
 
@@ -26,4 +27,3 @@ void UBTService_SetShooterAimOffset::OnBecomeRelevant(UBehaviorTreeComponent& Ow
     auto Character = Cast<AEnemyCharacter>(OwnerComp.GetAIOwner()->GetCharacter());
     if (IsValid(Character)) Character->SetAimOffsetPitch(AimOffsetPitch);
 }
-

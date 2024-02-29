@@ -19,6 +19,7 @@ UBTDecorator_SetLookAtAimOffset::UBTDecorator_SetLookAtAimOffset(const FObjectIn
     bNotifyBecomeRelevant = true;
     bNotifyTick = true;
 
+    MinAllowedDistanceToFocusLook = 100;
     NodeName = TEXT("Set Look At Aim Offset");
     TargetVisibilityBlackboardKey.AddBoolFilter(this, GET_MEMBER_NAME_CHECKED(UBTDecorator_SetLookAtAimOffset, TargetVisibilityBlackboardKey));
     TargetBlackboardKey.AddObjectFilter(this, GET_MEMBER_NAME_CHECKED(UBTDecorator_SetLookAtAimOffset, TargetBlackboardKey), AActor::StaticClass());
@@ -63,6 +64,13 @@ void UBTDecorator_SetLookAtAimOffset::TickNode(UBehaviorTreeComponent& OwnerComp
     const FTransform TargetTransform = TargetMesh->GetSocketTransform(LookAtSocketName, ERelativeTransformSpace::RTS_World);
     const FTransform ControlledTransform = ControlledMesh->GetSocketTransform(LookFromSocketName, ERelativeTransformSpace::RTS_World);
 
-    const FRotator LookAtRotation = UKismetMathLibrary::FindLookAtRotation(ControlledTransform.GetLocation(), TargetTransform.GetLocation());
+    const FVector TargetLocation = TargetTransform.GetLocation();
+    const FVector ControlledLocation = ControlledTransform.GetLocation();
+    const float Distance = FVector::Dist(ControlledLocation, TargetLocation);
+
+    bool bShouldSetOffset = Distance > MinAllowedDistanceToFocusLook;
+    if (!bShouldSetOffset) return OwnedCharacter->SetAimOffsetPitch(0);
+
+    const FRotator LookAtRotation = UKismetMathLibrary::FindLookAtRotation(ControlledLocation, TargetLocation);
     OwnedCharacter->SetAimOffsetPitch(LookAtRotation.Pitch);
 }
