@@ -16,6 +16,10 @@ There's [three behavioral patterns](./Source/ReignForce/Public/ReinforcementLear
 - [Retreat](./Source/ReignForce/Private//ReinforcementLearning/RewardEstimators/RewardEstimatorRetreat.cpp)
 - [Moderate](./Source/ReignForce/Private//ReinforcementLearning/RewardEstimators/RewardEstimatorModerate.cpp)
 
+The game modes and temperament types can be switched and set up in Unreal Editor. Here's a scheme of **VLAD** (validate, learn, act, distinguish) system:
+
+![Project scheme](./Doc/Resources/project-components.png)
+
 To train the model the project is presented as a thick client using WebSocket protocol. It connects to the Python WebSocket server (see more [here](./TrainigServer/)).
 
 ## Scripts
@@ -68,9 +72,25 @@ An optional flag here is a build mode which is set as **"Shipping"** by default;
 
 ## Gameplay
 
-1. Main menu:
+### Main menu
 
-![Main menu](./Doc/Resources/Gameplay/main-menu.png)
+Default (without game progress saves):
+
+![Main menu new game](./Doc/Resources/Gameplay/main-menu-1.png)
+
+Default (with game progress saves):
+
+![Main menu game saves](./Doc/Resources/Gameplay/main-menu-2.png)
+
+Exiting confirmation modal window:
+
+![Main menu exit modal](./Doc/Resources/Gameplay/main-menu-exit.png)
+
+Play the new game having previous game saves confirmation modal window:
+
+![Main menu new game modal](./Doc/Resources/Gameplay/main-menu-new-game.png)
+
+### Gameplay
 
 Gameplay on a main map (melee attack):
 
@@ -86,14 +106,52 @@ Gameplay on a main map (firearms attack):
 
 ![Firearms attack 3](./Doc/Resources/Gameplay/attack-firearms-3.png)
 
-Pause menu during main game:
+Saving game during gameplay (success):
 
-![Pause menu](./Doc/Resources/Gameplay/pause-menu.png)
+![Successful game save](./Doc/Resources/Gameplay/gameplay-save-success.png)
 
-Skills (progression) menu:
+Saving game during round, when it's started (failure):
+
+![Successful game save](./Doc/Resources/Gameplay/gameplay-save-during-round.png)
+
+### Skills (progression) menu
 
 ![Skills progression 1](./Doc/Resources/Gameplay/skills-1.png)
 
 ![Skills progression 2](./Doc/Resources/Gameplay/skills-2.png)
 
 ![Skills progression 3](./Doc/Resources/Gameplay/skills-3.png)
+
+### Pause menu
+
+Pause menu during main game:
+
+![Pause menu](./Doc/Resources/Gameplay/pause-menu.png)
+
+Save progress connfirmation modal window:
+
+![Pause menu save progress](./Doc/Resources/Gameplay/pause-menu-save.png)
+
+Save progress (success):
+
+![Pause menu save progress success](./Doc/Resources/Gameplay/pause-menu-save-success.png)
+
+Save progress (failure):
+
+![Pause menu save progress success](./Doc/Resources/Gameplay/pause-menu-save-failure.png)
+
+Restart level connfirmation modal window:
+
+![Restart level](./Doc/Resources/Gameplay/pause-menu-restart.png)
+
+Go to the main menu connfirmation modal window:
+
+![Go to the main menu](./Doc/Resources/Gameplay/pause-menu-go-to-main.png)
+
+Exiting game connfirmation modal window:
+
+![Exiting game](./Doc/Resources/Gameplay/pause-menu-exit.png)
+
+Exiting game and saving a progress connfirmation modal window:
+
+![Exiting game and saving a progress](./Doc/Resources/Gameplay/pause-menu-save-exit.png)

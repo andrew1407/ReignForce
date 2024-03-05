@@ -86,6 +86,20 @@ void AShooterAIController::BeginPlay()
         PerceptionComponent->OnTargetPerceptionInfoUpdated.AddDynamic(this, &AShooterAIController::OnPerceptionInfoUpdated);
 }
 
+void AShooterAIController::BeginDestroy()
+{
+    if (IsValid(this) && IsValid(GetWorld()))
+    {
+        if (SightTimerHandle.IsValid() && GetWorldTimerManager().IsTimerActive(SightTimerHandle))
+            GetWorldTimerManager().ClearTimer(SightTimerHandle);
+
+        if (AICommandTimerHandle.IsValid() && GetWorldTimerManager().IsTimerActive(AICommandTimerHandle))
+            GetWorldTimerManager().ClearTimer(AICommandTimerHandle);
+    }
+
+    Super::BeginDestroy();
+}
+
 FGenericTeamId AShooterAIController::GetGenericTeamId() const
 {
     if (auto TeamAgent = Cast<IGenericTeamAgentInterface>(GetPawn()))
@@ -119,20 +133,6 @@ AActor* AShooterAIController::GetTargetFocus() const
     if (!IsValid(Blackboard) || FocusedTargetKey.IsNone()) return nullptr;
     UObject* Target = Blackboard->GetValueAsObject(FocusedTargetKey);
     return Cast<AActor>(Target);
-}
-
-void AShooterAIController::BeginDestroy()
-{
-    if (IsValid(this) && IsValid(GetWorld()))
-    {
-        if (SightTimerHandle.IsValid() && GetWorldTimerManager().IsTimerActive(SightTimerHandle))
-            GetWorldTimerManager().ClearTimer(SightTimerHandle);
-
-        if (AICommandTimerHandle.IsValid() && GetWorldTimerManager().IsTimerActive(AICommandTimerHandle))
-            GetWorldTimerManager().ClearTimer(AICommandTimerHandle);
-    }
-
-    Super::BeginDestroy();
 }
 
 void AShooterAIController::OnPossess(APawn* InPawn)

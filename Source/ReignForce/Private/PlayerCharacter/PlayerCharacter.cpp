@@ -36,6 +36,7 @@
 #include "UI/ShooterHUD.h"
 #include "UI/ShooterStatsWidget.h"
 #include "UI/Skills/SkillsProgressionWidget.h"
+#include "UI/Components/UIMessageLoggerComponent.h"
 
 #include "GameStates/ShooterGameState.h"
 #include "GameStates/Components/UpgradesProgressStateComponent.h"
@@ -214,19 +215,39 @@ void APlayerCharacter::SetupPlayerInputComponent(UInputComponent* PlayerInputCom
 	
 	if (Inputs.ResetRoundAction)
 		EnhancedInputComponent->BindAction(Inputs.ResetRoundAction, ETriggerEvent::Started, this, &APlayerCharacter::ResetRoundAction);
+
+	if (Inputs.QuickSaveAction)
+		EnhancedInputComponent->BindAction(Inputs.QuickSaveAction, ETriggerEvent::Started, this, &APlayerCharacter::QuickSaveAction);
 }
 
 bool APlayerCharacter::SaveProgress()
 {
-	if (!IsValid(GetController())) return false;
+	if (!ShooterHUD.IsValid()) return false;
+	UUIMessageLoggerComponent* MessageLoggerComponent = ShooterHUD->GetMessageLoggerComponent();
+	if (!IsValid(MessageLoggerComponent)) return false;
+
+	if (IsDead())
+	{
+		MessageLoggerComponent->AddErrorLoggerMessageSavingOnPlayerDead();
+		return false;
+	}
+
 	auto GameState = GetWorld()->GetGameState<AShooterGameState>();
 	if (!IsValid(GameState)) return false;
-	return GameState->SavePlayerCharacterState(this);
+
+	if (GameState->IsRoundGoing())
+	{
+		MessageLoggerComponent->AddErrorLoggerMessageSavingDuringRound();
+		return false;
+	}
+
+	bool bSaved = GameState->SavePlayerCharacterState(this);
+	if (bSaved) MessageLoggerComponent->AddLoggerMessageSavingSuccess();
+	return bSaved;
 }
 
 bool APlayerCharacter::LoadProgress()
 {
-	if (!IsValid(GetController())) return false;
 	auto GameState = GetWorld()->GetGameState<AShooterGameState>();
 	if (!IsValid(GameState)) return false;
 	return GameState->LoadPlayerCharacterState(this);
@@ -397,6 +418,11 @@ void APlayerCharacter::ResetRoundAction()
 	auto GameState = GetWorld()->GetGameState<AShooterGameState>();
 	if (!IsValid(GameState)) return;
 	GameState->StartRound();
+}
+
+void APlayerCharacter::QuickSaveAction()
+{
+	SaveProgress();
 }
 
 void APlayerCharacter::PlayCancelActionSound()

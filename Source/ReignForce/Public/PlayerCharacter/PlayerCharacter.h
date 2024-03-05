@@ -106,6 +106,7 @@ private:
 	void ToggleSkillsMenuAction();
 
 	void ResetRoundAction();
+	void QuickSaveAction();
 
 	#pragma endregion
 

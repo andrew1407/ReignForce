@@ -42,7 +42,7 @@ public:
 
 protected:
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Round", meta = (BindWidget))
-	TObjectPtr<UTextBlock> RestartMessage;	
+	TObjectPtr<UTextBlock> RestartMessage;
 
 private:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Round", meta = (AllowPrivateAccess = true, ClampMin = 0, UIMin = 0, Units = "Seconds"))

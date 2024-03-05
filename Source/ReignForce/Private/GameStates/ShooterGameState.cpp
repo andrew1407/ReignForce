@@ -48,9 +48,9 @@ void AShooterGameState::BeginPlay()
 	OnRoundEnded.AddDynamic(this, &AShooterGameState::AddSkillsForRoundWin);
 }
 
-void AShooterGameState::BeginDestroy()
+bool AShooterGameState::DoesPlayerHaveSavedProgress() const
 {
-	Super::BeginDestroy();
+	return UGameplayStatics::DoesSaveGameExist(CharacterStateSlot, SLOT_STATE_INDEX);
 }
 
 bool AShooterGameState::SavePlayerCharacterState(APlayerCharacter* Player)

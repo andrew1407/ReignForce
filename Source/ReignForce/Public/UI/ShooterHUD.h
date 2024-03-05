@@ -18,6 +18,8 @@ class URestartLevelAfterLoseWidget;
 class URoundProgressWidget;
 class UStartRoundWidget;
 
+class UUIMessageLoggerComponent;
+
 /**
  * 
  */
@@ -27,6 +29,8 @@ class REIGNFORCE_API AShooterHUD : public AHUD
 	GENERATED_BODY()
 
 public:
+	AShooterHUD(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
+
 	#pragma region AIM
 
 	UFUNCTION(BlueprintCallable)
@@ -126,11 +130,15 @@ public:
 	FORCEINLINE URestartLevelAfterLoseWidget* GetRestartLevelAfterLoseWidget() const { return RestartLevelAfterLoseWidget; }
 	FORCEINLINE URoundProgressWidget* GetRoundProgressWidget() const { return RoundProgressWidget; }
 	FORCEINLINE UStartRoundWidget* GetStartRoundWidget() const { return StartRoundWidget; }
+	FORCEINLINE UUIMessageLoggerComponent* GetMessageLoggerComponent() const { return MessageLoggerComponent; }
 
 protected:
 	virtual void BeginPlay() override;
 
 private:
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "MessageLogger", meta = (AllowPrivateAccess = true))
+	TObjectPtr<UUIMessageLoggerComponent> MessageLoggerComponent;
+
 	#pragma region AIM
 
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Aim", meta = (AllowPrivateAccess = true))

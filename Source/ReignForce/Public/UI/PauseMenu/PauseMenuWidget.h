@@ -8,6 +8,7 @@
 
 
 class UButton;
+class UConfirmationModalWidget;
 
 /**
  * 
@@ -51,6 +52,28 @@ private:
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Menu", meta = (AllowPrivateAccess = true))
 	bool bSaveOnGoToMenu;
 
+	#pragma region MODALS
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Menu|Modals", meta = (AllowPrivateAccess = true))
+	TSubclassOf<UConfirmationModalWidget> SaveProgressConfirmationWidgetClass;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Menu|Modals", meta = (AllowPrivateAccess = true))
+	TSubclassOf<UConfirmationModalWidget> RestartLevelConfirmationWidgetClass;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Menu|Modals", meta = (AllowPrivateAccess = true))
+	TSubclassOf<UConfirmationModalWidget> GotToMenuConfirmationWidgetClass;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Menu|Modals", meta = (AllowPrivateAccess = true))
+	TSubclassOf<UConfirmationModalWidget> SaveAndExitConfirmationWidgetClass;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Menu|Modals", meta = (AllowPrivateAccess = true))
+	TSubclassOf<UConfirmationModalWidget> ExitConfirmationWidgetClass;
+
+	UPROPERTY(BlueprintReadOnly, meta = (AllowPrivateAccess = true))
+	TObjectPtr<UConfirmationModalWidget> CurrentOpenedModal;
+
+	#pragma endregion
+
 	UFUNCTION()
 	void OnSaveProgress();
 
@@ -65,4 +88,23 @@ private:
 
 	UFUNCTION()
 	void OnSaveAndExit();
+
+	UFUNCTION()
+	void SaveProgressConfirmation(bool bAccepted);
+
+	UFUNCTION()
+	void RestartClickConfirmation(bool bAccepted);
+
+	UFUNCTION()
+	void GoToMenuClickConfirmation(bool bAccepted);
+
+	UFUNCTION()
+	void ExitClickConfirmation(bool bAccepted);
+
+	UFUNCTION()
+	void SaveAndExitConfirmation(bool bAccepted);
+
+	void CloseCurrentOpenedModal();
+
+	void OpenModalWindow(const TSubclassOf<UConfirmationModalWidget>& WidgetClass);
 };

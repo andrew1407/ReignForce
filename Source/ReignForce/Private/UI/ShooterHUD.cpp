@@ -13,6 +13,7 @@
 #include "PlayerCharacter/ShooterPlayerController.h"
 #include "PlayerCharacter/PlayerInteractionMode.h"
 
+#include "UI/Components/UIMessageLoggerComponent.h"
 #include "UI/AimWidget.h"
 #include "UI/ShooterStatsWidget.h"
 #include "UI/Skills/SkillsProgressionWidget.h"
@@ -23,9 +24,16 @@
 #include "UI/Rounds/StartRoundWidget.h"
 
 
+AShooterHUD::AShooterHUD(const FObjectInitializer& ObjectInitializer) : Super(ObjectInitializer)
+{
+	MessageLoggerComponent = CreateDefaultSubobject<UUIMessageLoggerComponent>(GET_MEMBER_NAME_CHECKED(AShooterHUD, MessageLoggerComponent));
+}
+
 void AShooterHUD::BeginPlay()
 {
     Super::BeginPlay();
+
+    if (IsValid(MessageLoggerComponent)) MessageLoggerComponent->OpenGameMessageLogger();
 
 	auto GameState = GetWorld()->GetGameState<AShooterGameState>();
     if (IsValid(GameState))
@@ -184,6 +192,7 @@ bool AShooterHUD::OpenRestartLevelAfterLoseWidget()
 {
     if (IsRestartLevelAfterLoseWidgetOpened() || !IsValid(RestartLevelAfterLoseClass)) return false;
     RestartLevelAfterLoseWidget = CreateWidget<URestartLevelAfterLoseWidget>(GetWorld(), RestartLevelAfterLoseClass);
+    if (!IsValid(RestartLevelAfterLoseWidget)) return false;
     RestartLevelAfterLoseWidget->AddToViewport();
     return true;
 }
@@ -205,6 +214,7 @@ bool AShooterHUD::OpenRoundProgressWidget()
 {
     if (IsRoundProgressWidgetOpened() || !IsValid(RoundProgressClass)) return false;
     RoundProgressWidget = CreateWidget<URoundProgressWidget>(GetWorld(), RoundProgressClass);
+    if (!IsValid(RoundProgressWidget)) return false;
     RoundProgressWidget->AddToViewport();
     return true;
 }
@@ -218,6 +228,7 @@ bool AShooterHUD::OpenStartRoundWidget()
 {
     if (IsStartRoundWidgetOpened() || !IsValid(StartRoundClass)) return false;
     StartRoundWidget = CreateWidget<UStartRoundWidget>(GetWorld(), StartRoundClass);
+    if (!IsValid(StartRoundWidget)) return false;
     StartRoundWidget->AddToViewport();
     return true;
 }

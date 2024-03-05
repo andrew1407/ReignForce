@@ -58,4 +58,7 @@ struct FCharacterInputActions
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
 	TObjectPtr<UInputAction> ResetRoundAction;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite)
+	TObjectPtr<UInputAction> QuickSaveAction;
 };

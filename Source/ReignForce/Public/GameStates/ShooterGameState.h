@@ -46,6 +46,9 @@ public:
 
 	#pragma region PLAYER_CHARACTER_SAVE_DATA
 
+	UFUNCTION(BlueprintPure)
+	bool DoesPlayerHaveSavedProgress() const;
+
 	UFUNCTION(BlueprintCallable)
 	bool SavePlayerCharacterState(APlayerCharacter* Player);
 
@@ -97,10 +100,10 @@ public:
 	FORCEINLINE UUpgradesProgressStateComponent* GetUpgradesProgressStateComponent() const { return UpgradesProgressStateComponent; }
 
 	FORCEINLINE ERoundState GetRoundState() const { return RoundState; }
+	FORCEINLINE bool IsRoundGoing() const { return RoundState != ERoundState::None; }
 
 protected:
 	virtual void BeginPlay() override;
-	virtual void BeginDestroy() override;
 
 private:
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Save", meta = (AllowPrivateAccess = true))
