@@ -105,6 +105,5 @@ private:
 	void SaveAndExitConfirmation(bool bAccepted);
 
 	void CloseCurrentOpenedModal();
-
 	void OpenModalWindow(const TSubclassOf<UConfirmationModalWidget>& WidgetClass);
 };

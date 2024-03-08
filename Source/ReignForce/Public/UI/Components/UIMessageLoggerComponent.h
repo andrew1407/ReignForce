@@ -61,6 +61,15 @@ private:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "MessageLogger|Messages", meta = (AllowPrivateAccess = true))
 	FText LoggerMessageSavingSuccessText;
 
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "MessageLogger|Sounds", meta = (AllowPrivateAccess = true))
+	TObjectPtr<USoundBase> FailureMessageSound;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "MessageLogger|Sounds", meta = (AllowPrivateAccess = true))
+	TObjectPtr<USoundBase> SuccessMessageSound;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "MessageLogger|Sounds", meta = (AllowPrivateAccess = true, ClampMin = 0, UIMin = 0, Units = "Times"))
+	float MessageSoundVolume;
+
 	UPROPERTY()
 	FTimerHandle MessageCleanupTimerHandle;
 

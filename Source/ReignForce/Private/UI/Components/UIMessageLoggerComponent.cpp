@@ -2,6 +2,9 @@
 
 
 #include "UI/Components/UIMessageLoggerComponent.h"
+#include "Kismet/GameplayStatics.h"
+#include "Components/AudioComponent.h"
+
 #include "UI/MessageLogger/MessageLoggerWidget.h"
 #include "UI/MessageLogger/GameMessageType.h"
 #include "UI/MessageLogger/GameMessageWidget.h"
@@ -11,6 +14,7 @@ UUIMessageLoggerComponent::UUIMessageLoggerComponent(const FObjectInitializer& O
 {
 	WidgetZOrder = 1;
     MessageCleanup = 1;
+    MessageSoundVolume = 1;
 
 	ErrorLoggerMessageSavingDuringRoundText = FText::FromString(TEXT("Can't save game progress during round."));
 	ErrorLoggerMessageSavingOnPlayerDeadText = FText::FromString(TEXT("Can't save game progress if player's dead."));
@@ -59,7 +63,15 @@ bool UUIMessageLoggerComponent::AddErrorLoggerMessageSavingDuringRound()
     if (!IsValid(MessageLoggerWidget)) return false;
 	UGameMessageWidget* Message = MessageLoggerWidget->AddMessageByType(ErrorLoggerMessageSavingDuringRoundText, EGameMessageType::Failed);
     bool bCreated = IsValid(Message);
-    if (bCreated) SetCleanupMessageTimer(Message);
+    if (!bCreated) return bCreated;
+
+    SetCleanupMessageTimer(Message);
+    if (IsValid(FailureMessageSound))
+    {
+        constexpr float PitchMultiplier = 1;
+        UGameplayStatics::SpawnSound2D(GetWorld(), FailureMessageSound, MessageSoundVolume, PitchMultiplier);
+    }
+
     return bCreated;
 }
 
@@ -68,7 +80,15 @@ bool UUIMessageLoggerComponent::AddErrorLoggerMessageSavingOnPlayerDead()
     if (!IsValid(MessageLoggerWidget)) return false;
 	UGameMessageWidget* Message = MessageLoggerWidget->AddMessageByType(ErrorLoggerMessageSavingOnPlayerDeadText, EGameMessageType::Failed);
     bool bCreated = IsValid(Message);
-    if (bCreated) SetCleanupMessageTimer(Message);
+    if (!bCreated) return bCreated;
+
+    SetCleanupMessageTimer(Message);
+    if (IsValid(FailureMessageSound))
+    {
+        constexpr float PitchMultiplier = 1;
+        UGameplayStatics::SpawnSound2D(GetWorld(), FailureMessageSound, MessageSoundVolume, PitchMultiplier);
+    }
+
     return bCreated;
 }
 
@@ -77,7 +97,15 @@ bool UUIMessageLoggerComponent::AddLoggerMessageSavingSuccess()
     if (!IsValid(MessageLoggerWidget)) return false;
 	UGameMessageWidget* Message = MessageLoggerWidget->AddMessageByType(LoggerMessageSavingSuccessText, EGameMessageType::Success);
     bool bCreated = IsValid(Message);
-    if (bCreated) SetCleanupMessageTimer(Message);
+    if (!bCreated) return bCreated;
+
+    SetCleanupMessageTimer(Message);
+    if (IsValid(SuccessMessageSound))
+    {
+        constexpr float PitchMultiplier = 1;
+        UGameplayStatics::SpawnSound2D(GetWorld(), SuccessMessageSound, MessageSoundVolume, PitchMultiplier);
+    }
+
     return bCreated;
 }
 

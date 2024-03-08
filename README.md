@@ -10,7 +10,7 @@ There's two game modes to handle reinforcement learning using **[AICommandsStrat
 
 2. **[AIModelsGameMode](./Source/ReignForce/Public/GameModes/AIModelsGameMode.h)** loads and then connects to pre-trained model(s) of ONNX format (uses NNE plugin to load runtime models).
 
-There's [three behavioral patterns](./Source/ReignForce/Public/ReinforcementLearning/TemperamentType.h) (temperament types) to estimate enemy AI action for a reward, and each of them has its own estimator for it:
+There are [three behavioral patterns](./Source/ReignForce/Public/ReinforcementLearning/TemperamentType.h) (temperament types) to estimate enemy AI action for a reward, and each of them has its own estimator for it:
 
 - [Agressive](./Source/ReignForce/Private//ReinforcementLearning/RewardEstimators/RewardEstimatorAgressive.cpp)
 - [Retreat](./Source/ReignForce/Private//ReinforcementLearning/RewardEstimators/RewardEstimatorRetreat.cpp)

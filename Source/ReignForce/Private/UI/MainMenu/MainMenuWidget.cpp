@@ -3,14 +3,15 @@
 
 #include "UI/MainMenu/MainMenuWidget.h"
 #include "GameFramework/PlayerController.h"
-#include "Kismet/KismetSystemLibrary.h"
-#include "Kismet/GameplayStatics.h"
 #include "Components/Button.h"
 
+#include "Kismet/KismetSystemLibrary.h"
+#include "Kismet/GameplayStatics.h"
+
 #include "UI/Modals/ConfirmationModalWidget.h"
+#include "GameStates/ShooterGameState.h"
 #include "GameModes/ReignForceGameMode.h"
 #include "GameModes/Components/BackgroundMusicComponent.h"
-#include "GameStates/ShooterGameState.h"
 
 
 UMainMenuWidget::UMainMenuWidget(const FObjectInitializer& ObjectInitializer) : Super(ObjectInitializer)
@@ -23,7 +24,6 @@ void UMainMenuWidget::NativeConstruct()
     Super::NativeConstruct();
 
     bool bPlayerHasLoadedSavesState = GetHasLoadedSavesState();
-
     if (IsValid(ContinuePlayingButton))
     {
         ContinuePlayingButton->OnClicked.AddDynamic(this, &UMainMenuWidget::OnContinuePlayingClick);

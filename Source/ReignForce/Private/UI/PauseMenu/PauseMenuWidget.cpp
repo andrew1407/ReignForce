@@ -9,10 +9,11 @@
 #include "Kismet/GameplayStatics.h"
 
 #include "GameStates/ShooterGameState.h"
+#include "UI/Modals/ConfirmationModalWidget.h"
+
 #include "PlayerCharacter/PlayerCharacter.h"
 #include "PlayerCharacter/ShooterPlayerController.h"
 #include "PlayerCharacter/PlayerInteractionMode.h"
-#include "UI/Modals/ConfirmationModalWidget.h"
 
 
 UPauseMenuWidget::UPauseMenuWidget(const FObjectInitializer& ObjectInitializer) : Super(ObjectInitializer)
@@ -25,11 +26,20 @@ void UPauseMenuWidget::NativeConstruct()
 {
     Super::NativeConstruct();
 
-    if (IsValid(SaveProgressButton)) SaveProgressButton->OnClicked.AddDynamic(this, &UPauseMenuWidget::OnSaveProgress);
-    if (IsValid(RestartButton)) RestartButton->OnClicked.AddDynamic(this, &UPauseMenuWidget::OnRestartClick);
-    if (IsValid(GoToMenuButton)) GoToMenuButton->OnClicked.AddDynamic(this, &UPauseMenuWidget::OnGoToMenuClick);
-    if (IsValid(ExitButton)) ExitButton->OnClicked.AddDynamic(this, &UPauseMenuWidget::OnExitClick);
-    if (IsValid(SaveAndExitButton)) SaveAndExitButton->OnClicked.AddDynamic(this, &UPauseMenuWidget::OnSaveAndExit);
+    if (IsValid(SaveProgressButton))
+        SaveProgressButton->OnClicked.AddDynamic(this, &UPauseMenuWidget::OnSaveProgress);
+
+    if (IsValid(RestartButton))
+        RestartButton->OnClicked.AddDynamic(this, &UPauseMenuWidget::OnRestartClick);
+
+    if (IsValid(GoToMenuButton))
+        GoToMenuButton->OnClicked.AddDynamic(this, &UPauseMenuWidget::OnGoToMenuClick);
+
+    if (IsValid(ExitButton))
+        ExitButton->OnClicked.AddDynamic(this, &UPauseMenuWidget::OnExitClick);
+
+    if (IsValid(SaveAndExitButton))
+        SaveAndExitButton->OnClicked.AddDynamic(this, &UPauseMenuWidget::OnSaveAndExit);
 
     if (IsValid(ContinueButton)) ContinueButton->SetFocus();
 }

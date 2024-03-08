@@ -124,6 +124,15 @@ private:
 	UPROPERTY(BlueprintReadOnly, Category = "Round", meta = (AllowPrivateAccess = true))
 	ERoundState RoundState;
 
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Round|Sounds", meta = (AllowPrivateAccess = true))
+	TArray<TObjectPtr<USoundBase>> RoundWinSounds;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Round|Sounds", meta = (AllowPrivateAccess = true))
+	TArray<TObjectPtr<USoundBase>> RoundLooseSounds;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Round|Sounds", meta = (AllowPrivateAccess = true, ClampMin = 0, UIMin = 0, Units = "Times"))
+	float RoundSoundVolume;
+
 	UFUNCTION()
 	void EquipEnemyShooter(AShooterCharacter* Shooter);
 
@@ -132,6 +141,9 @@ private:
 
 	UFUNCTION()
 	void AddSkillsForRoundWin(bool bPlayerWin);
+
+	UFUNCTION()
+	void PlaySoundOnRoundEnded(bool bPlayerWin);
 
 	UFUNCTION()
 	void OnEnemyPerished(AShooterCharacter* Enemy, AActor* Cause);

@@ -4,6 +4,7 @@
 #include "GameStates/ShooterGameState.h"
 #include "Kismet/GameplayStatics.h"
 #include "GameFramework/PlayerController.h"
+#include "Components/AudioComponent.h"
 
 #include "ShooterSaveGame.h"
 #include "GameStates/Components/UpgradesProgressStateComponent.h"
@@ -32,13 +33,13 @@ namespace
 AShooterGameState::AShooterGameState(const FObjectInitializer& ObjectInitializer) : Super(ObjectInitializer)
 {
 	CharacterStateSlot = TEXT("ShooterSaveSlot");
+	RoundState = ERoundState::None;
+	RoundSoundVolume = 1;
 
 	EnemySpawnerComponent = CreateDefaultSubobject<UEnemySpawnerComponent>(GET_MEMBER_NAME_CHECKED(AShooterGameState, EnemySpawnerComponent));
 	EnemyEquipSystem = CreateDefaultSubobject<UEnemyEquipSystem>(GET_MEMBER_NAME_CHECKED(AShooterGameState, EnemyEquipSystem));
 	UpgradesProgressStateComponent = CreateDefaultSubobject<UUpgradesProgressStateComponent>(GET_MEMBER_NAME_CHECKED(AShooterGameState, UpgradesProgressStateComponent));
 	RoundDifficultyProgression = CreateDefaultSubobject<URoundDifficultyProgression>(GET_MEMBER_NAME_CHECKED(AShooterGameState, RoundDifficultyProgression));
-
-	RoundState = ERoundState::None;
 }
 
 void AShooterGameState::BeginPlay()
@@ -46,6 +47,7 @@ void AShooterGameState::BeginPlay()
 	Super::BeginPlay();
 
 	OnRoundEnded.AddDynamic(this, &AShooterGameState::AddSkillsForRoundWin);
+	OnRoundEnded.AddDynamic(this, &AShooterGameState::PlaySoundOnRoundEnded);
 }
 
 bool AShooterGameState::DoesPlayerHaveSavedProgress() const
@@ -264,6 +266,16 @@ void AShooterGameState::AddSkillsForRoundWin(bool bPlayerWin)
 	if (UpgradesProgressStateComponent->IsFullOfSkills()) return;
 	const int32 SkillsReward = RoundDifficultyProgression->GetSkillsRewardForRoundWin();
 	bool bAccured = UpgradesProgressStateComponent->AddSkills(SkillsReward);
+}
+
+void AShooterGameState::PlaySoundOnRoundEnded(bool bPlayerWin)
+{
+	TArray<TObjectPtr<USoundBase>>& Sounds = bPlayerWin ? RoundWinSounds : RoundLooseSounds;
+	if (Sounds.IsEmpty()) return;
+	TObjectPtr<USoundBase>& Sound = Sounds[FMath::RandRange(0, Sounds.Num() - 1)];
+	if (!IsValid(Sound)) return;
+	constexpr float PitchMultiplier = 1;
+	UGameplayStatics::SpawnSound2D(GetWorld(), Sound, RoundSoundVolume, PitchMultiplier);
 }
 
 void AShooterGameState::OnEnemyPerished(AShooterCharacter* Enemy, AActor* Cause)

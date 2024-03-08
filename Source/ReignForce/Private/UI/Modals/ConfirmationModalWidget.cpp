@@ -4,6 +4,7 @@
 #include "UI/Modals/ConfirmationModalWidget.h"
 #include "Components/Button.h"
 #include "Components/TextBlock.h"
+#include "Kismet/GameplayStatics.h"
 
 
 UConfirmationModalWidget::UConfirmationModalWidget(const FObjectInitializer& ObjectInitializer) : Super(ObjectInitializer)
@@ -52,4 +53,3 @@ void UConfirmationModalWidget::OnCancel()
     constexpr bool bAccepcted = false;
     OnActionResponse.ExecuteIfBound(bAccepcted);
 }
-
