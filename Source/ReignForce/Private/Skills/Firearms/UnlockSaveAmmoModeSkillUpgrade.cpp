@@ -6,6 +6,7 @@
 #include "ShooterCharacter/Stats/ShooterSkillsSystem.h"
 #include "ShooterCharacter/Stats/ShooterSkillsProgression.h"
 #include "ShooterCharacter/Stats/ShooterStatsComponent.h"
+#include "Weapons/Components/WeaponSlotsSystem.h"
 
 
 UUnlockSaveAmmoModeSkillUpgrade::UUnlockSaveAmmoModeSkillUpgrade(const FObjectInitializer& ObjectInitializer) : Super(ObjectInitializer)
@@ -35,4 +36,20 @@ bool UUnlockSaveAmmoModeSkillUpgrade::IsAlreadyUpgraded_Implementation(AShooterC
     if (!bShouldBeTrue) return true;
 
     return Info.SkillsSystem->RanksProgression.bSaveAmmoMode;
+}
+
+bool UUnlockSaveAmmoModeSkillUpgrade::CanUpgrade_Implementation(AShooterCharacter* ShooterCharacter)
+{
+    bool bCanUpgrade = Super::CanUpgrade_Implementation(ShooterCharacter);
+    if (!(bCanUpgrade && IsValid(ShooterCharacter))) return false;
+
+    UShooterSkillsSystem* SkillsSystem = ShooterCharacter->GetSkillsSystem();
+    if (!IsValid(SkillsSystem)) return false;
+
+    for (const auto& Slot : SkillsSystem->AvailableSlots)
+    {
+        if (UWeaponSlotsSystem::IsFirearmsType(Slot)) return true;
+    }
+
+    return false;
 }

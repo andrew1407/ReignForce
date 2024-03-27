@@ -23,4 +23,7 @@ public:
 
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, meta = (AllowPrivateAccess = true))
 	TArray<TSoftObjectPtr<USoundBase>> SkillsMenuMusic;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, meta = (AllowPrivateAccess = true))
+	TArray<TSoftObjectPtr<USoundBase>> PauseMenuMusic;
 };

@@ -6,6 +6,7 @@
 #include "ShooterCharacter/Stats/ShooterSkillsSystem.h"
 #include "ShooterCharacter/Stats/ShooterSkillsProgression.h"
 #include "ShooterCharacter/Stats/ShooterStatsComponent.h"
+#include "Weapons/WeaponType.h"
 
 
 UWeaponSwapSpeedSkillUpgrade::UWeaponSwapSpeedSkillUpgrade(const FObjectInitializer& ObjectInitializer) : Super(ObjectInitializer)
@@ -50,3 +51,15 @@ FText UWeaponSwapSpeedSkillUpgrade::GetDescription_Implementation(AShooterCharac
     return FText::FromString(Description);
 }
 
+bool UWeaponSwapSpeedSkillUpgrade::CanUpgrade_Implementation(AShooterCharacter* ShooterCharacter)
+{
+    bool bCanUpgrade = Super::CanUpgrade_Implementation(ShooterCharacter);
+    if (!(bCanUpgrade && IsValid(ShooterCharacter))) return false;
+
+    UShooterSkillsSystem* SkillsSystem = ShooterCharacter->GetSkillsSystem();
+    if (!IsValid(SkillsSystem)) return false;
+
+    TSet<EWeaponType> AvailableSlots = SkillsSystem->AvailableSlots;
+    AvailableSlots.Remove(EWeaponType::Unarmed);
+    return !AvailableSlots.IsEmpty();
+}

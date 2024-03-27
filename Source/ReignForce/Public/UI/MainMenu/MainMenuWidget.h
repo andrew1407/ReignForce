@@ -8,6 +8,7 @@
 
 
 class UButton;
+class UTextBlock;
 class UConfirmationModalWidget;
 
 /**
@@ -38,6 +39,9 @@ protected:
 
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Menu", meta = (BindWidget))
 	TObjectPtr<UButton> ExitButton;
+
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Menu", meta = (BindWidget))
+	TObjectPtr<UTextBlock> ProjectVersion;
 
 private:
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Menu", meta = (AllowPrivateAccess = true))
@@ -71,4 +75,5 @@ private:
 	bool GetHasLoadedSavesState() const;
 	void GoToPlaygroundLevel();
 	void OpenModalWindow(const TSubclassOf<UConfirmationModalWidget>& WidgetClass);
+	void DefineCurrentProjectVersion();
 };

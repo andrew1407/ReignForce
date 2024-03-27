@@ -57,3 +57,11 @@ FText UContinuousAttackSkillUpgrade::GetDescription_Implementation(AShooterChara
         default: return BaseDescription;
     }
 }
+
+bool UContinuousAttackSkillUpgrade::CanUpgrade_Implementation(AShooterCharacter* ShooterCharacter)
+{
+    bool bCanUpgrade = Super::CanUpgrade_Implementation(ShooterCharacter);
+    if (!(bCanUpgrade && IsValid(ShooterCharacter))) return false;
+    UShooterSkillsSystem* SkillsSystem = ShooterCharacter->GetSkillsSystem();
+    return IsValid(SkillsSystem) && SkillsSystem->AvailableSlots.Contains(WeaponType);
+}

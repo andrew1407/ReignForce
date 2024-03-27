@@ -151,7 +151,6 @@ void APlayerCharacter::HandleStatsDefined(bool bSuccess)
 
 	DefineDamageHitReactions();
     UpdateActiveWeaponHUD();
-	
 }
 
 void APlayerCharacter::SetupPlayerInputComponent(UInputComponent* PlayerInputComponent)

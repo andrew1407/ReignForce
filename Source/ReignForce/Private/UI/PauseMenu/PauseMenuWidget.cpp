@@ -8,6 +8,9 @@
 #include "Kismet/KismetSystemLibrary.h"
 #include "Kismet/GameplayStatics.h"
 
+#include "GameModes/ReignForceGameMode.h"
+#include "GameModes/Components/BackgroundMusicComponent.h"
+
 #include "GameStates/ShooterGameState.h"
 #include "UI/Modals/ConfirmationModalWidget.h"
 
@@ -42,11 +45,25 @@ void UPauseMenuWidget::NativeConstruct()
         SaveAndExitButton->OnClicked.AddDynamic(this, &UPauseMenuWidget::OnSaveAndExit);
 
     if (IsValid(ContinueButton)) ContinueButton->SetFocus();
+
+    auto GameMode = GetWorld()->GetAuthGameMode<AReignForceGameMode>();
+    if (IsValid(GameMode))
+    {
+        UBackgroundMusicComponent* BackgroundMusic = GameMode->GetBackgroundMusicComponent();
+        if (IsValid(BackgroundMusic)) BackgroundMusic->ResetActivePauseMenuSound();
+    }
 }
 
 void UPauseMenuWidget::NativeDestruct()
 {
     if (IsValid(ContinueButton)) ContinueButton->OnClicked.Clear();
+
+    auto GameMode = GetWorld()->GetAuthGameMode<AReignForceGameMode>();
+    if (IsValid(GameMode))
+    {
+        UBackgroundMusicComponent* BackgroundMusic = GameMode->GetBackgroundMusicComponent();
+        if (IsValid(BackgroundMusic)) BackgroundMusic->StopActivePauseMenuSound();
+    }
 
     Super::NativeDestruct();
 }

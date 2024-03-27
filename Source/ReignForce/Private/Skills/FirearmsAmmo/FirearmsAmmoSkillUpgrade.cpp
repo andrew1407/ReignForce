@@ -63,3 +63,11 @@ FText UFirearmsAmmoSkillUpgrade::GetDescription_Implementation(AShooterCharacter
     Description.ReplaceInline(*ToReplace, *FString::FromInt(Ammo->MaxCount[Index]), ESearchCase::CaseSensitive);
     return FText::FromString(Description);
 }
+
+bool UFirearmsAmmoSkillUpgrade::CanUpgrade_Implementation(AShooterCharacter* ShooterCharacter)
+{
+    bool bCanUpgrade = Super::CanUpgrade_Implementation(ShooterCharacter);
+    if (!(bCanUpgrade && IsValid(ShooterCharacter))) return false;
+    UShooterSkillsSystem* SkillsSystem = ShooterCharacter->GetSkillsSystem();
+    return IsValid(SkillsSystem) && SkillsSystem->AvailableSlots.Contains(WeaponType);
+}

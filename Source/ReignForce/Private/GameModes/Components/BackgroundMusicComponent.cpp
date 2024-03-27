@@ -28,10 +28,12 @@ UBackgroundMusicComponent::UBackgroundMusicComponent(const FObjectInitializer& O
 	ActiveGameplayVolume = .65f;
 	ActiveMainMenuVolume = 1;
 	ActiveSkillsMenuVolume = 1;
+	ActivePauseMenuVolume = 1;
 
 	ActiveGameplaySoundIndex = INDEX_NONE;
 	ActiveMainMenuSoundIndex = INDEX_NONE;
 	ActiveSkillsMenuSoundIndex = INDEX_NONE;
+	ActivePauseMenuSoundIndex = INDEX_NONE;
 }
 
 void UBackgroundMusicComponent::BeginDestroy()
@@ -39,6 +41,7 @@ void UBackgroundMusicComponent::BeginDestroy()
 	StopActiveGameplaySound();
 	StopActiveMainMenuSound();
 	StopActiveSkillsMenuSound();
+	StopActivePauseMenuSound();
 
 	Super::BeginDestroy();
 }
@@ -95,6 +98,20 @@ void UBackgroundMusicComponent::ResetActiveSkillsMenuSound()
 	UAssetManager::GetStreamableManager().RequestAsyncLoad(ToLoad.ToSoftObjectPath(), MoveTemp(OnLoad));
 }
 
+void UBackgroundMusicComponent::ResetActivePauseMenuSound()
+{
+	if (!CanLoadMusicSound()) return;
+
+	int32 NextToPlay = FindRandomSoundFromBunch(GameMusicDataAsset->PauseMenuMusic, ActivePauseMenuSoundIndex);
+	if (!GameMusicDataAsset->PauseMenuMusic.IsValidIndex(NextToPlay)) NextToPlay = ActivePauseMenuSoundIndex;
+	if (!GameMusicDataAsset->PauseMenuMusic.IsValidIndex(NextToPlay)) return;
+	TSoftObjectPtr<USoundBase>& ToLoad = GameMusicDataAsset->PauseMenuMusic[NextToPlay];
+	if (ToLoad.IsNull()) return;
+
+	FSimpleDelegate OnLoad = FStreamableDelegate::CreateUObject(this, &UBackgroundMusicComponent::LoadActivePauseMenuSound, NextToPlay);
+	UAssetManager::GetStreamableManager().RequestAsyncLoad(ToLoad.ToSoftObjectPath(), MoveTemp(OnLoad));
+}
+
 void UBackgroundMusicComponent::SetPauseForActiveGameplaySound(bool bPause)
 {
 	if (IsValid(ActiveGameplaySound)) ActiveGameplaySound->SetPaused(bPause);
@@ -129,6 +146,13 @@ void UBackgroundMusicComponent::StopActiveSkillsMenuSound()
 	if (!IsValid(ActiveSkillsMenuSound)) return;
 	ActiveSkillsMenuSound->OnAudioFinished.RemoveDynamic(this, &UBackgroundMusicComponent::ResetActiveSkillsMenuSound);
 	ActiveSkillsMenuSound->Stop();
+}
+
+void UBackgroundMusicComponent::StopActivePauseMenuSound()
+{
+	if (!IsValid(ActivePauseMenuSound)) return;
+	ActivePauseMenuSound->OnAudioFinished.RemoveDynamic(this, &UBackgroundMusicComponent::ResetActivePauseMenuSound);
+	ActivePauseMenuSound->Stop();
 }
 
 void UBackgroundMusicComponent::LoadActiveGameplaySound(int32 NextToPlay)
@@ -190,4 +214,24 @@ void UBackgroundMusicComponent::LoadActiveSkillsMenuSound(int32 NextToPlay)
 
 	if (IsValid(ActiveSkillsMenuSound))
 		ActiveSkillsMenuSound->OnAudioFinished.AddDynamic(this, &UBackgroundMusicComponent::ResetActiveSkillsMenuSound);
+}
+
+void UBackgroundMusicComponent::LoadActivePauseMenuSound(int32 NextToPlay)
+{
+	if (!CanLoadMusicSound()) return;
+	if (!GameMusicDataAsset->PauseMenuMusic.IsValidIndex(NextToPlay)) return;
+
+	TSoftObjectPtr<USoundBase>& Loaded = GameMusicDataAsset->PauseMenuMusic[NextToPlay];
+	if (!Loaded.IsValid()) return;
+
+	constexpr float PitchMultiplier = 1;
+	UAudioComponent* NewSound = UGameplayStatics::SpawnSound2D(GetWorld(), Loaded.Get(), ActivePauseMenuVolume, PitchMultiplier);
+	ActivePauseMenuSoundIndex = NextToPlay;
+
+	if (!IsValid(NewSound)) return;
+	StopActivePauseMenuSound();
+	ActivePauseMenuSound = NewSound;
+
+	if (IsValid(ActivePauseMenuSound))
+		ActivePauseMenuSound->OnAudioFinished.AddDynamic(this, &UBackgroundMusicComponent::ResetActivePauseMenuSound);
 }

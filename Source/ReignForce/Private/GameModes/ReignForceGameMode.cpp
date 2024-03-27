@@ -93,7 +93,13 @@ void AReignForceGameMode::AtivateRoundReloadCoundown(bool bResetIfStarted)
 
 void AReignForceGameMode::HandleRoundStart(bool bStartedByPlayer)
 {
-	if (IsValid(BackgroundMusicComponent)) BackgroundMusicComponent->ResetActiveGameplaySound();
+	if (IsValid(BackgroundMusicComponent))
+	{
+		BackgroundMusicComponent->ResetActiveGameplaySound();
+		APlayerController* PlayerController = GetWorld()->GetFirstPlayerController();
+		bool bShouldPause = IsValid(PlayerController) && PlayerController->IsPaused();
+		if (bShouldPause) BackgroundMusicComponent->SetPauseForActiveGameplaySound(true);
+	}
 
 	RefillPlayerAmmo();
 	SetPlayerHealthToFull();

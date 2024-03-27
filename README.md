@@ -2,7 +2,7 @@
 
 ## Description
 
-This UE 5.3 prject is a third-person shooter game using reinforcement learning to train enemy AI.
+This UE 5.3 prject is a third-person shooter game using reinforcement learning to train enemy AI. It is a practical part of the **[master's thesis](https://ela.kpi.ua/items/944163bd-9528-4faf-b506-f0f11145addc)**.
 
 There's two game modes to handle reinforcement learning using **[AICommandsStrategy](./Source/ReignForce/Public/ReinforcementLearning/Interfaces/AICommandsStrategy.h)** interface to request a predicted command for enemy AI:
 

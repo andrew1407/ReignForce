@@ -2,9 +2,12 @@
 
 
 #include "UI/Skills/SkillUpgradeWidget.h"
+#include "Kismet/GameplayStatics.h"
 #include "Engine/AssetManager.h"
+
 #include "Components/Button.h"
 #include "Components/Image.h"
+#include "Components/AudioComponent.h"
 
 
 USkillUpgradeWidget::USkillUpgradeWidget(const FObjectInitializer& ObjectInitializer) : Super(ObjectInitializer)
@@ -18,7 +21,11 @@ void USkillUpgradeWidget::NativeConstruct()
 {
     Super::NativeConstruct();
 
-    if (IsValid(ActionButton)) ActionButton->OnClicked.AddDynamic(this, &USkillUpgradeWidget::OnActionClick);
+    if (IsValid(ActionButton))
+    {
+        ActionButton->OnClicked.AddDynamic(this, &USkillUpgradeWidget::OnActionClick);
+        ActionButton->OnHovered.AddDynamic(this, &USkillUpgradeWidget::OnActionHover);
+    }
 }
 
 void USkillUpgradeWidget::NativeDestruct()
@@ -76,7 +83,26 @@ UTexture2D* USkillUpgradeWidget::GetBaseSkillIcon() const
 
 void USkillUpgradeWidget::OnActionClick()
 {
-    if (!bSelected) SetIsSelected(true);
+    if (bSelected) return;
+
+    if (IsValid(OnClickOnActionSound))
+    {
+        constexpr float PitchMultiplier = 1;
+        constexpr float SoundVolume = 1;
+	    UGameplayStatics::SpawnSound2D(GetWorld(), OnClickOnActionSound, SoundVolume, PitchMultiplier);
+    }
+
+    SetIsSelected(true);
+}
+
+void USkillUpgradeWidget::OnActionHover()
+{
+    if (IsValid(OnHoverActionSound))
+    {
+        constexpr float PitchMultiplier = 1;
+        constexpr float SoundVolume = 1;
+	    UGameplayStatics::SpawnSound2D(GetWorld(), OnHoverActionSound, SoundVolume, PitchMultiplier);
+    }
 }
 
 void USkillUpgradeWidget::SetActionSkillImage(UTexture2D* Image)

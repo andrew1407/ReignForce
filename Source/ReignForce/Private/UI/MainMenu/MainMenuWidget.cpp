@@ -3,6 +3,10 @@
 
 #include "UI/MainMenu/MainMenuWidget.h"
 #include "GameFramework/PlayerController.h"
+#include "Modules/ModuleManager.h"
+#include "Misc/ConfigCacheIni.h"
+
+#include "Components/TextBlock.h"
 #include "Components/Button.h"
 
 #include "Kismet/KismetSystemLibrary.h"
@@ -22,6 +26,8 @@ UMainMenuWidget::UMainMenuWidget(const FObjectInitializer& ObjectInitializer) : 
 void UMainMenuWidget::NativeConstruct()
 {
     Super::NativeConstruct();
+
+    DefineCurrentProjectVersion();
 
     bool bPlayerHasLoadedSavesState = GetHasLoadedSavesState();
     if (IsValid(ContinuePlayingButton))
@@ -143,4 +149,20 @@ void UMainMenuWidget::OpenModalWindow(const TSubclassOf<UConfirmationModalWidget
     CloseCurrentOpenedModal();
     CurrentOpenedModal = CreateWidget<UConfirmationModalWidget>(GetWorld(), WidgetClass);
     if (IsValid(CurrentOpenedModal)) CurrentOpenedModal->AddToViewport();
+}
+
+void UMainMenuWidget::DefineCurrentProjectVersion()
+{
+    if (!IsValid(ProjectVersion)) return;
+
+    FString Version;
+    GConfig->GetString(
+        TEXT("/Script/EngineSettings.GeneralProjectSettings"),
+        TEXT("ProjectVersion"),
+        Version,
+        GGameIni
+    );
+    
+    const FText TextContent = FText::FromString(TEXT("v") + Version);
+    ProjectVersion->SetText(TextContent);
 }

@@ -34,6 +34,9 @@ public:
 	void ResetActiveSkillsMenuSound();
 
 	UFUNCTION(BlueprintCallable)
+	void ResetActivePauseMenuSound();
+
+	UFUNCTION(BlueprintCallable)
 	void SetPauseForActiveGameplaySound(bool bPause);
 
 	UFUNCTION(BlueprintCallable)
@@ -51,9 +54,13 @@ public:
 	UFUNCTION(BlueprintCallable)
 	void StopActiveSkillsMenuSound();
 
+	UFUNCTION(BlueprintCallable)
+	void StopActivePauseMenuSound();
+
 	FORCEINLINE UAudioComponent* GetActiveGameplaySound() const { return ActiveGameplaySound; }
 	FORCEINLINE UAudioComponent* GetActiveMainMenuSound() const { return ActiveMainMenuSound; }
 	FORCEINLINE UAudioComponent* GetActiveSkillsMenuSound() const { return ActiveSkillsMenuSound; }
+	FORCEINLINE UAudioComponent* GetActivePauseMenuSound() const { return ActivePauseMenuSound; }
 
 protected:
 	virtual void BeginDestroy() override;
@@ -71,6 +78,9 @@ private:
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Music", meta = (AllowPrivateAccess = true, ClampMin = 0, UIMin = 0, Units = "Times"))
 	float ActiveSkillsMenuVolume;
 
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Music", meta = (AllowPrivateAccess = true, ClampMin = 0, UIMin = 0, Units = "Times"))
+	float ActivePauseMenuVolume;
+
 	UPROPERTY(BlueprintReadOnly, meta = (AllowPrivateAccess = true))
 	TObjectPtr<UAudioComponent> ActiveGameplaySound;
 
@@ -81,6 +91,9 @@ private:
 	TObjectPtr<UAudioComponent> ActiveSkillsMenuSound;
 
 	UPROPERTY(BlueprintReadOnly, meta = (AllowPrivateAccess = true))
+	TObjectPtr<UAudioComponent> ActivePauseMenuSound;
+
+	UPROPERTY(BlueprintReadOnly, meta = (AllowPrivateAccess = true))
 	int32 ActiveGameplaySoundIndex;
 
 	UPROPERTY(BlueprintReadOnly, meta = (AllowPrivateAccess = true))
@@ -89,7 +102,11 @@ private:
 	UPROPERTY(BlueprintReadOnly, meta = (AllowPrivateAccess = true))
 	int32 ActiveSkillsMenuSoundIndex;
 
+	UPROPERTY(BlueprintReadOnly, meta = (AllowPrivateAccess = true))
+	int32 ActivePauseMenuSoundIndex;
+
 	void LoadActiveGameplaySound(int32 NextToPlay);
 	void LoadActiveMainMenuSound(int32 NextToPlay);
 	void LoadActiveSkillsMenuSound(int32 NextToPlay);
+	void LoadActivePauseMenuSound(int32 NextToPlay);
 };

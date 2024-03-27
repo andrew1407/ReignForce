@@ -2,8 +2,11 @@
 
 
 #include "UI/Skills/SkillsProgressionWidget.h"
+#include "Kismet/GameplayStatics.h"
+
 #include "Components/PanelWidget.h"
 #include "Components/Button.h"
+#include "Components/AudioComponent.h"
 
 #include "UI/Skills/DataAssets/SkillsDataAsset.h"
 #include "UI/Skills/SkillDescriptionWidget.h"
@@ -189,6 +192,8 @@ void USkillsProgressionWidget::UnlockUpgradeStageForSelectedSkill()
     if (!Stages) return OnFinished();
     const auto [AlreadyUpgraded, StageProgress] = GetStagesStatus(*Stages, Character);
 
+	PlayOnUpgradeSound(StageProgress);
+
     if (StageProgress == Skill->GetProgressState()) FillDescription(Skill, *Stages);
     else Skill->LoadProgressState(StageProgress, Skill->IsSelected());
 }
@@ -214,7 +219,8 @@ void USkillsProgressionWidget::HandleOnSkillSelected(USkillUpgradeWidget* Skill,
 bool USkillsProgressionWidget::CheckIfCanUpgrade(UShooterSkillUpgrade* SkillUpgrade, APlayerCharacter* Character)
 {
     if (!(IsValid(Character) && IsValid(SkillUpgrade))) return false;
-    if (SkillUpgrade->IsAlreadyUpgraded(Character)) return false;
+    bool bAllowedToUpgrade = SkillUpgrade->CanUpgrade(Character) && !SkillUpgrade->IsAlreadyUpgraded(Character);
+    if (!bAllowedToUpgrade) return false;
     if (!ProgressState.IsValid()) return false;
     return ProgressState->CanTake(SkillUpgrade->GetSkillCost());
 }
@@ -258,4 +264,20 @@ TPair<int32, EStageProgress> USkillsProgressionWidget::GetStagesStatus(const FSk
     else if (AlreadyUpgraded == Total) StageProgress = EStageProgress::Completed;
 
     return { AlreadyUpgraded, StageProgress };
+}
+
+void USkillsProgressionWidget::PlayOnUpgradeSound(EStageProgress StageProgress)
+{
+    if ((ProgressState.IsValid() && !IsValid(SkillDescription))) return;
+
+    ESkillUpgradeActionType UpgradeType = ESkillUpgradeActionType::SingleSkill;
+    if (ProgressState->IsFullyUpgraded()) UpgradeType = ESkillUpgradeActionType::Fully;
+    else if (StageProgress == EStageProgress::Completed) UpgradeType = ESkillUpgradeActionType::Group;
+
+    USoundBase* UpgradeSound = SkillDescription->GetUpgradeActionSound(UpgradeType);
+    if (!IsValid(UpgradeSound)) return;
+
+    constexpr float PitchMultiplier = 1;
+    constexpr float Volume = 1;
+	UGameplayStatics::SpawnSound2D(GetWorld(), UpgradeSound, Volume, PitchMultiplier);
 }

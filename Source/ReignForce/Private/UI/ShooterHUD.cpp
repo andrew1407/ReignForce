@@ -2,7 +2,10 @@
 
 
 #include "UI/ShooterHUD.h"
+#include "Kismet/GameplayStatics.h"
+
 #include "Components/Button.h"
+#include "Components/AudioComponent.h"
 
 #include "GameModes/ReignForceGameMode.h"
 #include "GameModes/Components/BackgroundMusicComponent.h"
@@ -133,6 +136,13 @@ bool AShooterHUD::OpenSkillsProgressionMenu()
     SkillsProgressionWidget->AddToViewport();
     SetSkillsMenuMusicPlayState(true);
 
+    if (IsValid(SkillsProgressionWidgetSound))
+    {
+        constexpr float PitchMultiplier = 1;
+        constexpr float SoundVolume = 1;
+	    UGameplayStatics::SpawnSound2D(GetWorld(), SkillsProgressionWidgetSound, SoundVolume, PitchMultiplier);
+    }
+
     return true;
 }
 
@@ -166,6 +176,14 @@ bool AShooterHUD::OpenPauseMenu()
 
     PauseMenuWidget->AddToViewport();
     SetPauseMenuMusicPlayState(true);
+
+    if (IsValid(PauseMenuWidgetSound))
+    {
+        constexpr float PitchMultiplier = 1;
+        constexpr float SoundVolume = 1;
+	    UGameplayStatics::SpawnSound2D(GetWorld(), PauseMenuWidgetSound, SoundVolume, PitchMultiplier);
+    }
+
     return true;
 }
 

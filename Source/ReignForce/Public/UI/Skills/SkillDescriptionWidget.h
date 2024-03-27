@@ -15,6 +15,14 @@ class UPanelWidget;
 
 class USkillStageInfo;
 
+UENUM(BlueprintType)
+enum class ESkillUpgradeActionType: uint8
+{
+    SingleSkill UMETA(DisplayName="SingleSkill"),
+    Group UMETA(DisplayName="Group"),
+    Fully UMETA(DisplayName="Fully"),
+};
+
 USTRUCT(BlueprintType)
 struct FSkillStageDescriptionDetails
 {
@@ -67,6 +75,9 @@ public:
 
 	UFUNCTION(BlueprintPure)
 	bool GetUpgradeButtonEnabled() const;
+	
+	UFUNCTION(BlueprintPure)
+	USoundBase* GetUpgradeActionSound(ESkillUpgradeActionType SkillUpgradeActionType) const;
 
 	FORCEINLINE UButton* GetUpgradeSkillButton() const { return UpgradeSkillButton; }
 
@@ -91,4 +102,13 @@ protected:
 private:
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Description|Stages", meta = (AllowPrivateAccess = true))
 	TSubclassOf<USkillStageInfo> StageInfoClass;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "UpgradeAction|Sounds", meta = (AllowPrivateAccess = true))
+	TObjectPtr<USoundBase> SigleSkillUpgradedSound;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "UpgradeAction|Sounds", meta = (AllowPrivateAccess = true))
+	TObjectPtr<USoundBase> GroupUpgradedSound;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "UpgradeAction|Sounds", meta = (AllowPrivateAccess = true))
+	TObjectPtr<USoundBase> FullyUpgradedSound;
 };

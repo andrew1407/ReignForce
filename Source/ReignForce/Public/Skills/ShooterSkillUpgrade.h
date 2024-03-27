@@ -47,17 +47,22 @@ public:
 	UFUNCTION(BlueprintNativeEvent, Category = "ShooterSkillUpgrade")
     bool UpgradeShooter(AShooterCharacter* ShooterCharacter);
 
-    virtual bool UpgradeShooter_Implementation(AShooterCharacter* ShooterCharacter) { return false; }
+    FORCEINLINE virtual bool UpgradeShooter_Implementation(AShooterCharacter* ShooterCharacter) { return false; }
 
     UFUNCTION(BlueprintNativeEvent, Category = "ShooterSkillUpgrade")
     bool IsAlreadyUpgraded(AShooterCharacter* ShooterCharacter);
 
-    virtual bool IsAlreadyUpgraded_Implementation(AShooterCharacter* ShooterCharacter) { return false; }
+    FORCEINLINE virtual bool IsAlreadyUpgraded_Implementation(AShooterCharacter* ShooterCharacter) { return false; }
 
     UFUNCTION(BlueprintNativeEvent, Category = "ShooterSkillUpgrade")
     FText GetDescription(AShooterCharacter* ShooterCharacter);
 
-    virtual FText GetDescription_Implementation(AShooterCharacter* ShooterCharacter) { return BaseDescription; }
+    FORCEINLINE virtual FText GetDescription_Implementation(AShooterCharacter* ShooterCharacter) { return BaseDescription; }
+
+    UFUNCTION(BlueprintNativeEvent, Category = "ShooterSkillUpgrade")
+    bool CanUpgrade(AShooterCharacter* ShooterCharacter);
+
+    FORCEINLINE virtual bool CanUpgrade_Implementation(AShooterCharacter* ShooterCharacter) { return !IsAlreadyUpgraded(ShooterCharacter); }
 
 protected:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Description")

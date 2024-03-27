@@ -61,6 +61,12 @@ private:
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "SkillsProgression|State", meta = (AllowPrivateAccess = true))
 	TMap<EStageProgress, FSkillProgressionStyle> ProgressStates;
 
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "SkillsProgression|Sounds", meta = (AllowPrivateAccess = true))
+	TObjectPtr<USoundBase> OnClickOnActionSound;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "SkillsProgression|Sounds", meta = (AllowPrivateAccess = true))
+	TObjectPtr<USoundBase> OnHoverActionSound;
+
 	UPROPERTY(BlueprintReadOnly, meta = (AllowPrivateAccess = true))
 	bool bSelected;
 
@@ -69,6 +75,9 @@ private:
 
 	UFUNCTION()
 	void OnActionClick();
+
+	UFUNCTION()
+	void OnActionHover();
 
 	void SetActionSkillImage(UTexture2D* Image);
 };

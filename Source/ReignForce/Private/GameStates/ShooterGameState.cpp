@@ -63,6 +63,10 @@ bool AShooterGameState::SavePlayerCharacterState(APlayerCharacter* Player)
 	auto Save = Cast<UShooterSaveGame>(UGameplayStatics::CreateSaveGameObject(UShooterSaveGame::StaticClass()));
 	if (!IsValid(Save)) return false;
 
+	Save->ShooterPosition = Player->GetActorLocation();
+	auto PlayerController = Player->GetController<APlayerController>();
+	if (IsValid(PlayerController)) Save->CameraRotation = PlayerController->GetControlRotation();
+
 	Save->RanksProgression = Player->GetSkillsSystem()->RanksProgression;
 	Save->AvailableSlots = Player->GetSkillsSystem()->AvailableSlots;
 	Save->WeaponModels = Player->GetStatsComponent()->WeaponModels;
@@ -78,6 +82,12 @@ bool AShooterGameState::LoadPlayerCharacterState(APlayerCharacter* Player)
 
 	auto Save = Cast<UShooterSaveGame>(UGameplayStatics::LoadGameFromSlot(CharacterStateSlot, SLOT_STATE_INDEX));
 	if (!IsValid(Save)) return false;
+
+	bool bHasPreviouslySavedPosition = !Save->ShooterPosition.IsZero();
+	if (bHasPreviouslySavedPosition) Player->SetActorLocation(Save->ShooterPosition);
+
+	auto PlayerController = Player->GetController<APlayerController>();
+	if (IsValid(PlayerController)) PlayerController->SetControlRotation(Save->CameraRotation);
 
 	Player->GetSkillsSystem()->RanksProgression = Save->RanksProgression;
 	Player->GetSkillsSystem()->AvailableSlots = Save->AvailableSlots;

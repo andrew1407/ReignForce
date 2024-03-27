@@ -20,4 +20,5 @@ public:
 
     virtual bool UpgradeShooter_Implementation(AShooterCharacter* ShooterCharacter) override;
     virtual bool IsAlreadyUpgraded_Implementation(AShooterCharacter* ShooterCharacter) override;
+	virtual bool CanUpgrade_Implementation(AShooterCharacter* ShooterCharacter) override;
 };

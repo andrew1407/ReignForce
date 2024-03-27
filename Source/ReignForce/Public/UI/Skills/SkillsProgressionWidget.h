@@ -98,4 +98,5 @@ private:
 	bool CheckIfCanUpgrade(UShooterSkillUpgrade* SkillUpgrade, APlayerCharacter* Character);
 	TPair<USkillUpgradeWidget*, UShooterSkillUpgrade*> GetCurrentSkillState(APlayerCharacter* Character);
 	TPair<int32, EStageProgress> GetStagesStatus(const FSkillUpgradeStages& Stages, APlayerCharacter* Character) const;
+	void PlayOnUpgradeSound(EStageProgress StageProgress);
 };

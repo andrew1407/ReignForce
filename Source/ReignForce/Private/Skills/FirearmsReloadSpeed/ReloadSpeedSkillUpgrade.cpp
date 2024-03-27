@@ -6,6 +6,7 @@
 #include "ShooterCharacter/Stats/ShooterSkillsSystem.h"
 #include "ShooterCharacter/Stats/ShooterSkillsProgression.h"
 #include "ShooterCharacter/Stats/ShooterStatsComponent.h"
+#include "Weapons/Components/WeaponSlotsSystem.h"
 
 
 UReloadSpeedSkillUpgrade::UReloadSpeedSkillUpgrade(const FObjectInitializer& ObjectInitializer) : Super(ObjectInitializer)
@@ -50,4 +51,20 @@ FText UReloadSpeedSkillUpgrade::GetDescription_Implementation(AShooterCharacter*
 
     Description.ReplaceInline(*ToReplace, *FString::SanitizeFloat(IncreaseRate), ESearchCase::CaseSensitive);
     return FText::FromString(Description);
+}
+
+bool UReloadSpeedSkillUpgrade::CanUpgrade_Implementation(AShooterCharacter* ShooterCharacter)
+{
+    bool bCanUpgrade = Super::CanUpgrade_Implementation(ShooterCharacter);
+    if (!(bCanUpgrade && IsValid(ShooterCharacter))) return false;
+
+    UShooterSkillsSystem* SkillsSystem = ShooterCharacter->GetSkillsSystem();
+    if (!IsValid(SkillsSystem)) return false;
+
+    for (const auto& Slot : SkillsSystem->AvailableSlots)
+    {
+        if (UWeaponSlotsSystem::IsFirearmsType(Slot)) return true;
+    }
+
+    return false;
 }

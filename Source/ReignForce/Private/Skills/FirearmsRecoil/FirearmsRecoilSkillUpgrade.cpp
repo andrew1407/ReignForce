@@ -63,3 +63,11 @@ FText UFirearmsRecoilSkillUpgrade::GetDescription_Implementation(AShooterCharact
     Description.ReplaceInline(*ToReplace, *ValuesBlock, ESearchCase::CaseSensitive);
     return FText::FromString(Description);
 }
+
+bool UFirearmsRecoilSkillUpgrade::CanUpgrade_Implementation(AShooterCharacter* ShooterCharacter)
+{
+    bool bCanUpgrade = Super::CanUpgrade_Implementation(ShooterCharacter);
+    if (!(bCanUpgrade && IsValid(ShooterCharacter))) return false;
+    UShooterSkillsSystem* SkillsSystem = ShooterCharacter->GetSkillsSystem();
+    return IsValid(SkillsSystem) && SkillsSystem->AvailableSlots.Contains(WeaponType);
+}

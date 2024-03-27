@@ -161,11 +161,17 @@ private:
 
 	#pragma region MENUS
 
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Menu|Sounds", meta = (AllowPrivateAccess = true))
+	TObjectPtr<USoundBase> SkillsProgressionWidgetSound;
+
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Menu|Skills", meta = (AllowPrivateAccess = true))
 	TSubclassOf<USkillsProgressionWidget> SkillsProgressionWidgetClass;
 
 	UPROPERTY(BlueprintReadOnly, Category = "Menu|Skills", meta = (AllowPrivateAccess = true))
 	TObjectPtr<USkillsProgressionWidget> SkillsProgressionWidget;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Menu|Sounds", meta = (AllowPrivateAccess = true))
+	TObjectPtr<USoundBase> PauseMenuWidgetSound;
 
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Menu|Skills", meta = (AllowPrivateAccess = true))
 	TSubclassOf<UPauseMenuWidget> PauseMenuWidgetClass;

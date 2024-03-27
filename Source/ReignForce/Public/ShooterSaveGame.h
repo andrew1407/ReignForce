@@ -22,6 +22,12 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Charater")
 	FRanksProgression RanksProgression;
 
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Charater|Position")
+	FVector ShooterPosition;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Charater|Position")
+	FRotator CameraRotation;
+
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Charater|Skills")
 	FPlayerProgressionBalance PlayerProgressionBalance;
 

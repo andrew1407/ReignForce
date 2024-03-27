@@ -99,11 +99,21 @@ void USkillDescriptionWidget::SetUpgradeButtonVisibility(bool bState)
 
 void USkillDescriptionWidget::SetUpgradeButtonEnabled(bool bState)
 {
-    if (!IsValid(UpgradeSkillButton)) return;
-    UpgradeSkillButton->SetIsEnabled(bState);
+    if (IsValid(UpgradeSkillButton)) UpgradeSkillButton->SetIsEnabled(bState);
 }
 
 bool USkillDescriptionWidget::GetUpgradeButtonEnabled() const
 {
     return IsValid(UpgradeSkillButton) && UpgradeSkillButton->GetIsEnabled();
+}
+
+USoundBase* USkillDescriptionWidget::GetUpgradeActionSound(ESkillUpgradeActionType SkillUpgradeActionType) const
+{
+    switch (SkillUpgradeActionType)
+    {
+        case ESkillUpgradeActionType::SingleSkill: return SigleSkillUpgradedSound;
+        case ESkillUpgradeActionType::Group: return GroupUpgradedSound;
+        case ESkillUpgradeActionType::Fully: return FullyUpgradedSound;
+        default: return nullptr;
+    };
 }
