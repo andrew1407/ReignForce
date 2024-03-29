@@ -14,7 +14,9 @@
 
 #include "Enemy/ShooterAIController.h"
 #include "PlayerCharacter/PlayerCharacter.h"
+
 #include "Weapons/Components/WeaponSlotsSystem.h"
+#include "Weapons/WeaponType.h"
 
 
 // Sets default values for this component's properties
@@ -196,7 +198,8 @@ bool UEnemyEquipSystem::CheckSlotAvailability(UShooterSkillsSystem* SkillsSystem
     }
     else if (Slot == EWeaponType::Pistol)
     {
-        return !SkillsSystem->AvailableSlots.Contains(EWeaponType::Unarmed);
+        const uint8 ToCompare = SkillsSystem->AvailableSlots.Contains(EWeaponType::Unarmed) ? 1 : 0;
+        return SkillsSystem->AvailableSlots.Num() > ToCompare;
     }
 
     return true;

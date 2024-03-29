@@ -16,7 +16,6 @@
 #include "PlayerCharacter/PlayerCharacter.h"
 #include "ShooterCharacter/Stats/ShooterSkillsSystem.h"
 #include "ShooterCharacter/Stats/ShooterStatsComponent.h"
-#include "Weapons/Components/WeaponSlotsSystem.h"
 
 #include "Enemy/EnemyCharacter.h"
 #include "Enemy/ShooterAIController.h"
@@ -35,6 +34,7 @@ AShooterGameState::AShooterGameState(const FObjectInitializer& ObjectInitializer
 	CharacterStateSlot = TEXT("ShooterSaveSlot");
 	RoundState = ERoundState::None;
 	RoundSoundVolume = 1;
+	PlayerSlotFromSave = EWeaponType::None;
 
 	EnemySpawnerComponent = CreateDefaultSubobject<UEnemySpawnerComponent>(GET_MEMBER_NAME_CHECKED(AShooterGameState, EnemySpawnerComponent));
 	EnemyEquipSystem = CreateDefaultSubobject<UEnemyEquipSystem>(GET_MEMBER_NAME_CHECKED(AShooterGameState, EnemyEquipSystem));
@@ -69,8 +69,11 @@ bool AShooterGameState::SavePlayerCharacterState(APlayerCharacter* Player)
 
 	Save->RanksProgression = Player->GetSkillsSystem()->RanksProgression;
 	Save->AvailableSlots = Player->GetSkillsSystem()->AvailableSlots;
+	Save->SelectedWeapon = Player->GetSelectedWeaponType();
 	Save->WeaponModels = Player->GetStatsComponent()->WeaponModels;
 	Save->PlayerProgressionBalance = GetCurrentProgress();
+
+	PlayerSlotFromSave = Save->SelectedWeapon;
 
 	return UGameplayStatics::SaveGameToSlot(Save, CharacterStateSlot, SLOT_STATE_INDEX);
 }
@@ -92,6 +95,7 @@ bool AShooterGameState::LoadPlayerCharacterState(APlayerCharacter* Player)
 	Player->GetSkillsSystem()->RanksProgression = Save->RanksProgression;
 	Player->GetSkillsSystem()->AvailableSlots = Save->AvailableSlots;
 	Player->GetStatsComponent()->WeaponModels = Save->WeaponModels;
+	PlayerSlotFromSave = Save->SelectedWeapon;
 
 	if (IsValid(UpgradesProgressStateComponent))
 	{

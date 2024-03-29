@@ -149,6 +149,13 @@ void APlayerCharacter::HandleStatsDefined(bool bSuccess)
 {
 	if (!bSuccess) return;
 
+	auto GameState = GetWorld()->GetGameState<AShooterGameState>();
+	if (IsValid(GameState) && IsValid(GetWeaponSlotsSystem()))
+	{
+		const EWeaponType SavedSlot = GameState->GetWeaponSlotFromLastSave();
+		GetWeaponSlotsSystem()->AttachToActiveDirectly(SavedSlot);
+	}
+
 	DefineDamageHitReactions();
     UpdateActiveWeaponHUD();
 }
@@ -356,6 +363,8 @@ void APlayerCharacter::LookAction(const FInputActionValue& Value)
 
 void APlayerCharacter::SwitchWeaponAction(const FInputActionValue& Value)
 {
+	if (!GetIsStatsDefined()) return;
+
 	const auto SlotVector = Value.Get<FVector2D>();
     EWeaponType* Slot = WeaponSlotInputs.Find(SlotVector);
     if (Slot) SwitchWeapon(*Slot);
@@ -369,6 +378,8 @@ void APlayerCharacter::SwitchAimFocusAction()
 
 void APlayerCharacter::ReloadWeaponAction()
 {
+	if (!GetIsStatsDefined()) return;
+
 	TryPerformReload(false);
 }
 

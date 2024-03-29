@@ -6,7 +6,7 @@
 #include "UI/MessageLogger/GameMessageWidget.h"
 
 
-UGameMessageWidget* UMessageLoggerWidget::AddMessageByType(const FText& Message, EGameMessageType MessageType)
+UGameMessageWidget* UMessageLoggerWidget::AddMessageByType(const FText& Message, EGameMessageType MessageType, bool bClearBeforeAdd)
 {
     if (!IsValid(MessageContainer)) return nullptr;
 
@@ -16,12 +16,19 @@ UGameMessageWidget* UMessageLoggerWidget::AddMessageByType(const FText& Message,
     auto GameMessageWidget = CreateWidget<UGameMessageWidget>(GetWorld(), *TemplatePtr);
     if (!IsValid(GameMessageWidget)) return nullptr;
     GameMessageWidget->SetMessageText(Message);
-    
+
+    if (bClearBeforeAdd) ClearLog();
+    MessageContainer->AddChild(GameMessageWidget);
+
+    return GameMessageWidget;
+}
+
+void UMessageLoggerWidget::ClearLog()
+{
+    if (!IsValid(MessageContainer)) return;
+
     for (UWidget* Widget : MessageContainer->GetAllChildren())
     {
         if (Widget->IsA(UGameMessageWidget::StaticClass())) Widget->RemoveFromParent();
     }
-
-    MessageContainer->AddChild(GameMessageWidget);
-    return GameMessageWidget;
 }

@@ -21,7 +21,10 @@ class REIGNFORCE_API UMessageLoggerWidget : public UUserWidget
 
 public:
 	UFUNCTION(BlueprintCallable)
-	UGameMessageWidget* AddMessageByType(const FText& Message, EGameMessageType MessageType);
+	UGameMessageWidget* AddMessageByType(const FText& Message, EGameMessageType MessageType, bool bClearBeforeAdd = false);
+
+	UFUNCTION(BlueprintCallable)
+	void ClearLog();
 
 protected:
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Messages", meta = (BindWidget))

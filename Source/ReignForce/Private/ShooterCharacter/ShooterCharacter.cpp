@@ -90,6 +90,7 @@ AShooterCharacter::AShooterCharacter(const FObjectInitializer& ObjectInitializer
 	TeamId = ETeamID::None;
 	RanksProgressionSource = ERanksProgressionSource::Default;
 
+	bStatsDefined = false;
 	bShouldAttack = false;
 	bInvincible = false;
 }
@@ -232,7 +233,12 @@ EShooterState AShooterCharacter::GetCombatShooterState() const
 
 void AShooterCharacter::DefineStats()
 {
-	auto OnFailed = [this] { OnStatsDefined.Broadcast(false); };
+	auto OnFailed = [this]
+	{
+		bStatsDefined = false;
+		OnStatsDefined.Broadcast(bStatsDefined);
+	};
+
 	if (!IsShooterComponentsValid()) return OnFailed();
 
 	constexpr bool bSetFullHealth = true;
@@ -263,7 +269,11 @@ void AShooterCharacter::DefineStats()
 		}
 	}
 
-	if (ModelPaths.IsEmpty()) return OnStatsDefined.Broadcast(true);
+	if (ModelPaths.IsEmpty())
+	{
+		bStatsDefined = true;
+		return OnStatsDefined.Broadcast(bStatsDefined);
+	}
 
 	UAssetManager::GetStreamableManager().RequestAsyncLoad(ModelPaths, [this, LoadedModels = MoveTemp(LoadedModels)]
 	{
@@ -278,7 +288,8 @@ void AShooterCharacter::DefineStats()
 			RefillAmmo(WeaponType);
 		}
 
-		OnStatsDefined.Broadcast(true);
+		bStatsDefined = true;
+		OnStatsDefined.Broadcast(bStatsDefined);
 	});
 }
 
@@ -522,6 +533,7 @@ void AShooterCharacter::SetFullAmmoForAllAvailableFirearms()
 void AShooterCharacter::ApplyAttachWeaponAction(bool bEquipAction)
 {
 	if (!IsValid(WeaponSlotsSystem)) return;
+
 	if (!bEquipAction)
 		WeaponSlotsSystem->AttachWeaponToSlot(WeaponSlotsSystem->GetActiveWeaponSlot());
 	else if (WeaponSlotsSystem->SetReservedToActive())

@@ -197,6 +197,7 @@ public:
 	FORCEINLINE UDamageTakerComponent* GetDamageTakerComponent() const { return DamageTakerComponent; }
 	FORCEINLINE UReactionsComponent* GetReactionsComponent() const { return ReactionsComponent; }
 
+	FORCEINLINE bool GetIsStatsDefined() const { return bStatsDefined; }
 	FORCEINLINE bool GetShouldAttackState() const { return bShouldAttack; }
 	FORCEINLINE ERanksProgressionSource GetRanksProgressionSource() const { return RanksProgressionSource; }
 
@@ -251,6 +252,9 @@ private:
 	TObjectPtr<UReactionsComponent> ReactionsComponent;
 
 	#pragma endregion
+
+	UPROPERTY(BlueprintReadOnly, meta = (AllowPrivateAccess = true))
+	bool bStatsDefined;
 	
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Combat|Fight", meta = (AllowPrivateAccess = true))
 	TObjectPtr<UBoxComponent> RightFist;

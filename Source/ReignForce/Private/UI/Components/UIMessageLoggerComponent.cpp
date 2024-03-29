@@ -61,7 +61,9 @@ bool UUIMessageLoggerComponent::SetGameMessageLoggerVisibility(bool bVisible)
 bool UUIMessageLoggerComponent::AddErrorLoggerMessageSavingDuringRound()
 {
     if (!IsValid(MessageLoggerWidget)) return false;
-	UGameMessageWidget* Message = MessageLoggerWidget->AddMessageByType(ErrorLoggerMessageSavingDuringRoundText, EGameMessageType::Failed);
+
+    constexpr bool bClearBeforeAdd = true;
+	UGameMessageWidget* Message = MessageLoggerWidget->AddMessageByType(ErrorLoggerMessageSavingDuringRoundText, EGameMessageType::Failed, bClearBeforeAdd);
     bool bCreated = IsValid(Message);
     if (!bCreated) return bCreated;
 
@@ -78,7 +80,9 @@ bool UUIMessageLoggerComponent::AddErrorLoggerMessageSavingDuringRound()
 bool UUIMessageLoggerComponent::AddErrorLoggerMessageSavingOnPlayerDead()
 {
     if (!IsValid(MessageLoggerWidget)) return false;
-	UGameMessageWidget* Message = MessageLoggerWidget->AddMessageByType(ErrorLoggerMessageSavingOnPlayerDeadText, EGameMessageType::Failed);
+
+    constexpr bool bClearBeforeAdd = true;
+	UGameMessageWidget* Message = MessageLoggerWidget->AddMessageByType(ErrorLoggerMessageSavingOnPlayerDeadText, EGameMessageType::Failed, bClearBeforeAdd);
     bool bCreated = IsValid(Message);
     if (!bCreated) return bCreated;
 
@@ -95,7 +99,9 @@ bool UUIMessageLoggerComponent::AddErrorLoggerMessageSavingOnPlayerDead()
 bool UUIMessageLoggerComponent::AddLoggerMessageSavingSuccess()
 {
     if (!IsValid(MessageLoggerWidget)) return false;
-	UGameMessageWidget* Message = MessageLoggerWidget->AddMessageByType(LoggerMessageSavingSuccessText, EGameMessageType::Success);
+    
+    constexpr bool bClearBeforeAdd = true;
+	UGameMessageWidget* Message = MessageLoggerWidget->AddMessageByType(LoggerMessageSavingSuccessText, EGameMessageType::Success, bClearBeforeAdd);
     bool bCreated = IsValid(Message);
     if (!bCreated) return bCreated;
 

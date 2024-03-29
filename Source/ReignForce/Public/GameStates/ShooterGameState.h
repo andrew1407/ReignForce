@@ -6,6 +6,7 @@
 #include "GameFramework/GameStateBase.h"
 #include "GameStates/Components/PlayerProgressionBalance.h"
 #include "GameStates/RoundState.h"
+#include "Weapons/WeaponType.h"
 #include "ShooterGameState.generated.h"
 
 
@@ -57,6 +58,9 @@ public:
 
 	UFUNCTION(BlueprintCallable)
 	bool ClearPlayerCharacterState();
+
+	UFUNCTION(BlueprintPure)
+	EWeaponType GetWeaponSlotFromLastSave() const { return PlayerSlotFromSave; }
 
 	UFUNCTION(BlueprintPure)
 	FPlayerProgressionBalance GetCurrentProgress() const;
@@ -132,6 +136,9 @@ private:
 
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Round|Sounds", meta = (AllowPrivateAccess = true, ClampMin = 0, UIMin = 0, Units = "Times"))
 	float RoundSoundVolume;
+
+	UPROPERTY(BlueprintReadOnly, meta = (AllowPrivateAccess = true))
+	EWeaponType PlayerSlotFromSave;
 
 	UFUNCTION()
 	void EquipEnemyShooter(AShooterCharacter* Shooter);
