@@ -38,10 +38,7 @@ UBackgroundMusicComponent::UBackgroundMusicComponent(const FObjectInitializer& O
 
 void UBackgroundMusicComponent::BeginDestroy()
 {
-	StopActiveGameplaySound();
-	StopActiveMainMenuSound();
-	StopActiveSkillsMenuSound();
-	StopActivePauseMenuSound();
+	StopAllActiveMusic();
 
 	Super::BeginDestroy();
 }
@@ -153,6 +150,14 @@ void UBackgroundMusicComponent::StopActivePauseMenuSound()
 	if (!IsValid(ActivePauseMenuSound)) return;
 	ActivePauseMenuSound->OnAudioFinished.RemoveDynamic(this, &UBackgroundMusicComponent::ResetActivePauseMenuSound);
 	ActivePauseMenuSound->Stop();
+}
+
+void UBackgroundMusicComponent::StopAllActiveMusic()
+{
+	StopActiveGameplaySound();
+	StopActiveMainMenuSound();
+	StopActiveSkillsMenuSound();
+	StopActivePauseMenuSound();
 }
 
 void UBackgroundMusicComponent::LoadActiveGameplaySound(int32 NextToPlay)

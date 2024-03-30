@@ -186,7 +186,7 @@ bool UEnemyEquipSystem::CheckSlotAvailability(UShooterSkillsSystem* SkillsSystem
 {
     if (!IsValid(SkillsSystem) || Slot == EWeaponType::None) return true;
 
-    if (Slot == EWeaponType::Rifle)
+    if (UWeaponSlotsSystem::IsFirearmsType(Slot))
     {
         const EWeaponType FirearmsSlots[] = { EWeaponType::Pistol, EWeaponType::Rifle };
         for (const auto& ToCheck : FirearmsSlots)
@@ -195,11 +195,6 @@ bool UEnemyEquipSystem::CheckSlotAvailability(UShooterSkillsSystem* SkillsSystem
             if (bSlotAvailable) return true;
         }
         return false;
-    }
-    else if (Slot == EWeaponType::Pistol)
-    {
-        const uint8 ToCompare = SkillsSystem->AvailableSlots.Contains(EWeaponType::Unarmed) ? 1 : 0;
-        return SkillsSystem->AvailableSlots.Num() > ToCompare;
     }
 
     return true;

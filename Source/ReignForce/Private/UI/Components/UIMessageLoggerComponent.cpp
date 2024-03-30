@@ -67,7 +67,7 @@ bool UUIMessageLoggerComponent::AddErrorLoggerMessageSavingDuringRound()
     bool bCreated = IsValid(Message);
     if (!bCreated) return bCreated;
 
-    SetCleanupMessageTimer(Message);
+    Message->SetDestroyTimeout(MessageCleanup);
     if (IsValid(FailureMessageSound))
     {
         constexpr float PitchMultiplier = 1;
@@ -86,7 +86,7 @@ bool UUIMessageLoggerComponent::AddErrorLoggerMessageSavingOnPlayerDead()
     bool bCreated = IsValid(Message);
     if (!bCreated) return bCreated;
 
-    SetCleanupMessageTimer(Message);
+    Message->SetDestroyTimeout(MessageCleanup);
     if (IsValid(FailureMessageSound))
     {
         constexpr float PitchMultiplier = 1;
@@ -105,7 +105,7 @@ bool UUIMessageLoggerComponent::AddLoggerMessageSavingSuccess()
     bool bCreated = IsValid(Message);
     if (!bCreated) return bCreated;
 
-    SetCleanupMessageTimer(Message);
+    Message->SetDestroyTimeout(MessageCleanup);
     if (IsValid(SuccessMessageSound))
     {
         constexpr float PitchMultiplier = 1;
@@ -115,21 +115,7 @@ bool UUIMessageLoggerComponent::AddLoggerMessageSavingSuccess()
     return bCreated;
 }
 
-void UUIMessageLoggerComponent::SetCleanupMessageTimer(UGameMessageWidget* Message)
+void UUIMessageLoggerComponent::ClearLogger()
 {
-    if (!IsValid(MessageLoggerWidget)) return;
-
-    UWorld* LevelWorld = GetWorld();
-    bool bEnvValid = IsValid(this) && IsValid(LevelWorld);
-    if (!bEnvValid) return;
-
-    FTimerManager& TimerManager = LevelWorld->GetTimerManager();
-    if (MessageCleanupTimerHandle.IsValid() && TimerManager.IsTimerActive(MessageCleanupTimerHandle))
-        TimerManager.ClearTimer(MessageCleanupTimerHandle);
-
-    TimerManager.SetTimer(MessageCleanupTimerHandle, [this, Message, LevelWorld]
-    {
-        bool bEnvValid = IsValid(this) && IsValid(LevelWorld);
-        if (bEnvValid && IsValid(Message)) Message->RemoveFromParent();
-    }, MessageCleanup, false);
+    if (IsValid(MessageLoggerWidget)) MessageLoggerWidget->ClearLog();
 }

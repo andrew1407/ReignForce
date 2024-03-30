@@ -21,7 +21,19 @@ public:
 	UFUNCTION(BlueprintCallable)
 	void SetMessageText(const FText& ToSet);
 
+	UFUNCTION(BlueprintCallable)
+	bool SetDestroyTimeout(float Seconds = 1);
+
+	UFUNCTION(BlueprintCallable)
+	bool CancelDestroyTimeout();
+
 protected:
+	virtual void NativeDestruct() override;
+
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Message", meta = (BindWidget))
 	TObjectPtr<UTextBlock> Message;
+
+private:
+	UPROPERTY()
+	FTimerHandle CleanupTimer;
 };

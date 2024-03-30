@@ -47,6 +47,19 @@ void UMainMenuWidget::NativeConstruct()
         ExitButton->OnClicked.AddDynamic(this, &UMainMenuWidget::OnExitClick);
 }
 
+
+void UMainMenuWidget::NativeDestruct()
+{
+    auto GameMode = GetWorld()->GetAuthGameMode<AReignForceGameMode>();
+    if (IsValid(GameMode))
+    {
+        UBackgroundMusicComponent* BackgroundMusic = GameMode->GetBackgroundMusicComponent();
+        if (IsValid(BackgroundMusic)) BackgroundMusic->StopAllActiveMusic();
+    }
+
+    Super::NativeDestruct();
+}
+
 void UMainMenuWidget::CloseCurrentOpenedModal()
 {
     if (!IsCurrentModalOpened()) return;
@@ -118,7 +131,7 @@ void UMainMenuWidget::GracefulShutdown()
     if (IsValid(GameMode))
     {
         UBackgroundMusicComponent* BackgroundMusic = GameMode->GetBackgroundMusicComponent();
-        if (IsValid(BackgroundMusic)) BackgroundMusic->StopActiveMainMenuSound();
+        if (IsValid(BackgroundMusic)) BackgroundMusic->StopAllActiveMusic();
     }
 
     // Specify the quit preference (e.g., Quit, Restart, etc.)

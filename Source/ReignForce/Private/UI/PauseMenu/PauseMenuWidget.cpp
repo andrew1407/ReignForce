@@ -62,7 +62,7 @@ void UPauseMenuWidget::NativeDestruct()
     if (IsValid(GameMode))
     {
         UBackgroundMusicComponent* BackgroundMusic = GameMode->GetBackgroundMusicComponent();
-        if (IsValid(BackgroundMusic)) BackgroundMusic->StopActivePauseMenuSound();
+        if (IsValid(BackgroundMusic)) BackgroundMusic->StopAllActiveMusic();
     }
 
     Super::NativeDestruct();
@@ -168,12 +168,7 @@ void UPauseMenuWidget::GoToMenuClickConfirmation(bool bAccepted)
 
 void UPauseMenuWidget::ExitClickConfirmation(bool bAccepted)
 {
-    if (!bAccepted)
-    {
-        CloseCurrentOpenedModal();
-        if (IsValid(ExitButton)) ExitButton->SetFocus();
-        return;
-    }
+    if (!bAccepted) return CloseCurrentOpenedModal();
 
     // Specify the quit preference (e.g., Quit, Restart, etc.)
     TEnumAsByte<EQuitPreference::Type> QuitPreference = EQuitPreference::Quit;

@@ -19,6 +19,7 @@ class URoundProgressWidget;
 class UStartRoundWidget;
 
 class UUIMessageLoggerComponent;
+class UUpgradesProgressStateComponent;
 
 /**
  * 
@@ -164,6 +165,9 @@ private:
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Menu|Sounds", meta = (AllowPrivateAccess = true))
 	TObjectPtr<USoundBase> SkillsProgressionWidgetSound;
 
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Menu|Sounds", meta = (AllowPrivateAccess = true))
+	TObjectPtr<USoundBase> SkillsProgressionWidgetAlternativeSound;
+
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Menu|Skills", meta = (AllowPrivateAccess = true))
 	TSubclassOf<USkillsProgressionWidget> SkillsProgressionWidgetClass;
 
@@ -217,4 +221,6 @@ private:
 
 	void SetSkillsMenuMusicPlayState(bool bState);
 	void SetPauseMenuMusicPlayState(bool bState);
+	UUpgradesProgressStateComponent* GetPlayerProgressComponent() const;
+	USoundBase* GetSkillsProgressionSound() const;
 };

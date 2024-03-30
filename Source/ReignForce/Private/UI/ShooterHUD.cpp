@@ -41,11 +41,11 @@ void AShooterHUD::BeginPlay()
 	auto GameState = GetWorld()->GetGameState<AShooterGameState>();
     if (IsValid(GameState))
     {
-        UUpgradesProgressStateComponent* UpgradesProgressStateComponent = GameState->GetUpgradesProgressStateComponent();
-        if (IsValid(UpgradesProgressStateComponent))
+        UUpgradesProgressStateComponent* PlayerProgressComponent = GetPlayerProgressComponent();
+        if (IsValid(PlayerProgressComponent))
         {
-            UpgradesProgressStateComponent->OnSkillsAmountChanged.AddDynamic(this, &AShooterHUD::UpdateSkillsCounter);
-            UpgradesProgressStateComponent->OnUpgradesUnlocked.AddDynamic(this, &AShooterHUD::UpdateUnlockedProgress);
+            PlayerProgressComponent->OnSkillsAmountChanged.AddDynamic(this, &AShooterHUD::UpdateSkillsCounter);
+            PlayerProgressComponent->OnUpgradesUnlocked.AddDynamic(this, &AShooterHUD::UpdateUnlockedProgress);
         }
     }
 }
@@ -136,12 +136,15 @@ bool AShooterHUD::OpenSkillsProgressionMenu()
     SkillsProgressionWidget->AddToViewport();
     SetSkillsMenuMusicPlayState(true);
 
-    if (IsValid(SkillsProgressionWidgetSound))
+    USoundBase* SkillsProgressionSound = GetSkillsProgressionSound();
+    if (IsValid(SkillsProgressionSound))
     {
         constexpr float PitchMultiplier = 1;
         constexpr float SoundVolume = 1;
-	    UGameplayStatics::SpawnSound2D(GetWorld(), SkillsProgressionWidgetSound, SoundVolume, PitchMultiplier);
+	    UGameplayStatics::SpawnSound2D(GetWorld(), SkillsProgressionSound, SoundVolume, PitchMultiplier);
     }
+
+    if (IsValid(MessageLoggerComponent)) MessageLoggerComponent->ClearLogger();
 
     return true;
 }
@@ -183,6 +186,8 @@ bool AShooterHUD::OpenPauseMenu()
         constexpr float SoundVolume = 1;
 	    UGameplayStatics::SpawnSound2D(GetWorld(), PauseMenuWidgetSound, SoundVolume, PitchMultiplier);
     }
+
+    if (IsValid(MessageLoggerComponent)) MessageLoggerComponent->ClearLogger();
 
     return true;
 }
@@ -311,4 +316,20 @@ void AShooterHUD::SetPauseMenuMusicPlayState(bool bState)
     UBackgroundMusicComponent* MusicComponent = GameMode->GetBackgroundMusicComponent();
     if (!IsValid(MusicComponent)) return;
     MusicComponent->SetPauseForActiveGameplaySound(bState);
+}
+
+UUpgradesProgressStateComponent* AShooterHUD::GetPlayerProgressComponent() const
+{
+    auto GameState = GetWorld()->GetGameState<AShooterGameState>();
+    return IsValid(GameState) ? GameState->GetUpgradesProgressStateComponent() : nullptr;
+}
+
+USoundBase* AShooterHUD::GetSkillsProgressionSound() const
+{
+    UUpgradesProgressStateComponent* PlayerProgressComponent = GetPlayerProgressComponent();
+    if (!IsValid(PlayerProgressComponent)) return nullptr;
+    constexpr float ChanceCoef = .4f;
+    const float AlternativeSoundChance = ChanceCoef * PlayerProgressComponent->GetUpgradesUnlocked() / PlayerProgressComponent->GetMaxUpgrades();
+    bool bSelectAlternative = AlternativeSoundChance >= FMath::FRand();
+    return bSelectAlternative ? SkillsProgressionWidgetAlternativeSound : SkillsProgressionWidgetSound;
 }

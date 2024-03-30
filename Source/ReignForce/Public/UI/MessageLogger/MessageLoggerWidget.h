@@ -26,6 +26,9 @@ public:
 	UFUNCTION(BlueprintCallable)
 	void ClearLog();
 
+	UFUNCTION(BlueprintPure)
+	bool HasMessageInLog(UGameMessageWidget* Message) const;
+
 protected:
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Messages", meta = (BindWidget))
 	TObjectPtr<UPanelWidget> MessageContainer;

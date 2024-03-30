@@ -32,3 +32,9 @@ void UMessageLoggerWidget::ClearLog()
         if (Widget->IsA(UGameMessageWidget::StaticClass())) Widget->RemoveFromParent();
     }
 }
+
+bool UMessageLoggerWidget::HasMessageInLog(UGameMessageWidget* Message) const
+{
+    if (!(IsValid(MessageContainer) && IsValid(Message))) return false;
+    return MessageContainer->HasChild(Message);
+}

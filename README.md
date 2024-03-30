@@ -1,5 +1,9 @@
 # Reign Force
 
+<p align="center">
+  <a target="blank"><img src="./Doc/Resources/Icons/icon.ico" width="200" alt="Reign Force logo" /></a>
+</p>
+
 ## Description
 
 This UE 5.3 prject is a third-person shooter game using reinforcement learning to train enemy AI. It is a practical part of the **[master's thesis](https://ela.kpi.ua/items/944163bd-9528-4faf-b506-f0f11145addc)**.

@@ -36,6 +36,9 @@ public:
 	UFUNCTION(BlueprintCallable)
 	bool AddLoggerMessageSavingSuccess();
 
+	UFUNCTION(BlueprintCallable)
+	void ClearLogger();
+
 protected:
 	virtual void BeginDestroy() override;
 
@@ -72,6 +75,4 @@ private:
 
 	UPROPERTY()
 	FTimerHandle MessageCleanupTimerHandle;
-
-	void SetCleanupMessageTimer(UGameMessageWidget* Message);
 };

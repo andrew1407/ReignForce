@@ -57,6 +57,9 @@ public:
 	UFUNCTION(BlueprintCallable)
 	void StopActivePauseMenuSound();
 
+	UFUNCTION(BlueprintCallable)
+	void StopAllActiveMusic();
+
 	FORCEINLINE UAudioComponent* GetActiveGameplaySound() const { return ActiveGameplaySound; }
 	FORCEINLINE UAudioComponent* GetActiveMainMenuSound() const { return ActiveMainMenuSound; }
 	FORCEINLINE UAudioComponent* GetActiveSkillsMenuSound() const { return ActiveSkillsMenuSound; }
