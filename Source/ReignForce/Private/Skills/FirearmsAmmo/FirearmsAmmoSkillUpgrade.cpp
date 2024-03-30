@@ -25,9 +25,9 @@ bool UFirearmsAmmoSkillUpgrade::UpgradeShooter_Implementation(AShooterCharacter*
     const FAmmoCapacity* Ammo = AmmoStats.Find(WeaponType);
     if (!(Ammo && Ammo->MaxCount.IsValidIndex(Index))) return false;
 
-    int32* Capaticy = Info.SkillsSystem->RanksProgression.AmmoCapaticy.Find(WeaponType);
-    if (!Capaticy) return false;
-    *Capaticy = Index;
+    int32* Capacity = Info.SkillsSystem->RanksProgression.AmmoCapacity.Find(WeaponType);
+    if (!Capacity) return false;
+    *Capacity = Index;
 
     constexpr uint8 DefaultFailureValue = 0;
     const int32 AmmoCapacityUpgrade = Info.SkillsSystem->GetAmmoCapacityOrDefault(WeaponType, DefaultFailureValue);
@@ -43,7 +43,7 @@ bool UFirearmsAmmoSkillUpgrade::IsAlreadyUpgraded_Implementation(AShooterCharact
 {
     FShooterSkillComponents Info = ExtractSkillComponents(ShooterCharacter);
     if (!Info.IsValid()) return false;
-    int32* CurrentPtr = Info.SkillsSystem->RanksProgression.AmmoCapaticy.Find(WeaponType);
+    int32* CurrentPtr = Info.SkillsSystem->RanksProgression.AmmoCapacity.Find(WeaponType);
     if (!CurrentPtr) return false;
     return (*CurrentPtr) >= Index;
 }

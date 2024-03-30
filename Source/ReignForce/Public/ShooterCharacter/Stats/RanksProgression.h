@@ -48,7 +48,7 @@ struct FRanksProgression
     TMap<EWeaponType, int32> WeaponAttacks;
 
     UPROPERTY(EditAnywhere, BlueprintReadWrite)
-    TMap<EWeaponType, int32> AmmoCapaticy;
+    TMap<EWeaponType, int32> AmmoCapacity;
 
     UPROPERTY(EditAnywhere, BlueprintReadWrite)
     TMap<EWeaponType, bool> ContiniousAttackModes;

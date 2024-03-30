@@ -92,7 +92,6 @@ void USkillDescriptionWidget::SetSkillUpdateToSpend(int32 ToSpend)
 void USkillDescriptionWidget::SetUpgradeButtonVisibility(bool bState)
 {
     if (!IsValid(UpgradeSkillButton)) return;
-
     const ESlateVisibility Buttonisibility = bState ? ESlateVisibility::Visible : ESlateVisibility::Hidden;
     UpgradeSkillButton->SetVisibility(Buttonisibility);
 }

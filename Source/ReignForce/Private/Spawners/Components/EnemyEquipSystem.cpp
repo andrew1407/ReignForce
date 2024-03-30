@@ -19,6 +19,34 @@
 #include "Weapons/WeaponType.h"
 
 
+namespace
+{
+    void GenerateDeviatedRankForWeaponTypeCollection(TMap<EWeaponType, int32>& Collection, int32 RanksCount, const TMap<EWeaponType, int32>& PlayerRanks, const FRankDeviation& Deviation = {})
+    {
+        for (const auto &[Key, _] : Collection)
+        {
+            const int32* PlayerRankPtr = PlayerRanks.Find(Key);
+            const int32 DeviatedRank = PlayerRankPtr ? Deviation.Apply(*PlayerRankPtr, 0, RanksCount) : FMath::RandRange(0, RanksCount - 1);
+            Collection[Key] = DeviatedRank;
+        }
+    }
+
+    void SetRankValueToAllWeaponTypeCollection(TMap<EWeaponType, int32>& Collection, int32 Rank)
+    {
+        for (const auto &[Key, _] : Collection) Collection[Key] = Rank;
+    }
+}
+
+int32 FRankDeviation::Apply(int32 Rank, int32 LowerBound, int32 UpperBound) const
+{
+    return bApplyDeviation ? FMath::Clamp(FMath::RandRange(Rank - Left, Rank + Right), LowerBound, UpperBound) : Rank;
+}
+
+int32 FRankDeviation::operator()(int32 Rank, int32 LowerBound, int32 UpperBound) const
+{
+    return Apply(Rank, LowerBound, UpperBound);
+}
+
 // Sets default values for this component's properties
 UEnemyEquipSystem::UEnemyEquipSystem(const FObjectInitializer& ObjectInitializer) : Super(ObjectInitializer)
 {
@@ -46,6 +74,8 @@ UEnemyEquipSystem::UEnemyEquipSystem(const FObjectInitializer& ObjectInitializer
         { ETemperamentType::Moderate, .3f },
         { ETemperamentType::Retreat, .1f },
     };
+
+    MaxHealthDeviation = FRankDeviation(2, 0);
 }
 
 void UEnemyEquipSystem::ProvideWithAvailableWeapons_Implementation(AShooterCharacter* ShooterCharacter)
@@ -95,38 +125,17 @@ void UEnemyEquipSystem::ProvideWithRanksProgression_Implementation(AShooterChara
     if (!IsValid(PlayerSkills)) return;
     const FRanksProgression& PlayerRanks = PlayerSkills->RanksProgression;
 
-    const TArray<int8> SkillDeviation = { -1, 0, 1 };
-    auto AddDev = [&] (int32 Rank) { return Rank + SkillDeviation[FMath::RandRange(0, SkillDeviation.Num() - 1)]; };
-    auto GenerateRank = [&] (int32 Rank, int32 Num) { return FMath::Clamp(AddDev(Rank), 0, Num); };
+    EnemyRanks.WeaponReload = WeaponReloadSpeedDeviation(PlayerRanks.WeaponReload, 0, Progression->WeaponReloadSpeed.Num());
+    EnemyRanks.WeaponSwap = WeaponSwapSpeedDeviation(PlayerRanks.WeaponSwap, 0, Progression->WeaponSwappingSpeed.Num());
+    EnemyRanks.Aiming = AimingSpeedDeviation(PlayerRanks.Aiming, 0, Progression->AimingSpeed.Num());
+    EnemyRanks.Health = MaxHealthDeviation(PlayerRanks.Health, 0, Progression->MaxHealth.Num());
 
-    EnemyRanks.WeaponReload = GenerateRank(PlayerRanks.WeaponReload, Progression->WeaponReloadSpeed.Num());
-    EnemyRanks.WeaponSwap = GenerateRank(PlayerRanks.WeaponSwap, Progression->WeaponSwappingSpeed.Num());
-    EnemyRanks.Aiming = GenerateRank(PlayerRanks.Aiming, Progression->AimingSpeed.Num());
-    EnemyRanks.Health = GenerateRank(PlayerRanks.Health, Progression->MaxHealth.Num());
+    GenerateDeviatedRankForWeaponTypeCollection(EnemyRanks.WeaponAttacks, Progression->WeaponAttacks.Num(), PlayerRanks.WeaponAttacks, DefaultDeviation);
+    GenerateDeviatedRankForWeaponTypeCollection(EnemyRanks.WeaponRecoilModifiers, Progression->WeaponRecoilModifiers.Num(), PlayerRanks.WeaponRecoilModifiers, DefaultDeviation);
 
-    for (const auto &[Key, _] : EnemyRanks.WeaponAttacks)
-    {
-        const int32 Num = Progression->WeaponAttacks.Num();
-        const int32* PlayerRankPtr = PlayerRanks.WeaponAttacks.Find(Key);
-        int32 Rank = PlayerRankPtr ? GenerateRank(*PlayerRankPtr, Num) : FMath::RandRange(0, Num - 1);
-        EnemyRanks.WeaponAttacks[Key] = Rank;
-    }
-
-    for (const auto &[Key, _] : EnemyRanks.AmmoCapaticy)
-    {
-        const int32 Num = Progression->AmmoStats.Num();
-        const int32* PlayerRankPtr = PlayerRanks.AmmoCapaticy.Find(Key);
-        int32 Rank = PlayerRankPtr ? GenerateRank(*PlayerRankPtr, Num) : FMath::RandRange(0, Num - 1);
-        EnemyRanks.AmmoCapaticy[Key] = Rank;
-    }
-
-    for (const auto &[Key, _] : EnemyRanks.WeaponRecoilModifiers)
-    {
-        const int32 Num = Progression->WeaponRecoilModifiers.Num();
-        const int32* PlayerRankPtr = PlayerRanks.WeaponRecoilModifiers.Find(Key);
-        int32 Rank = PlayerRankPtr ? GenerateRank(*PlayerRankPtr, Num) : FMath::RandRange(0, Num - 1);
-        EnemyRanks.WeaponRecoilModifiers[Key] = Rank;
-    }
+    constexpr uint8 DefaultAmmoCapacityRank = 0;
+    SetRankValueToAllWeaponTypeCollection(EnemyRanks.AmmoCapacity, DefaultAmmoCapacityRank);
+    // GenerateDeviatedRankForWeaponTypeCollection(EnemyRanks.AmmoCapacity, Progression->AmmoStats.Num(), PlayerRanks.AmmoCapacity, DefaultDeviation);
 }
 
 void UEnemyEquipSystem::AdjustBehavior_Implementation(AShooterCharacter* ShooterCharacter)

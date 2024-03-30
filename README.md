@@ -1,7 +1,7 @@
 # Reign Force
 
 <p align="center">
-  <a target="blank"><img src="./Doc/Resources/Icons/icon.ico" width="200" alt="Reign Force logo" /></a>
+  <a target="blank"><img src="./Doc/Resources/Icons/icon.ico" width="140" alt="Reign Force logo" /></a>
 </p>
 
 ## Description

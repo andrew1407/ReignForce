@@ -168,6 +168,9 @@ private:
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Menu|Sounds", meta = (AllowPrivateAccess = true))
 	TObjectPtr<USoundBase> SkillsProgressionWidgetAlternativeSound;
 
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Menu|Sounds", meta = (AllowPrivateAccess = true, ClampMin = 0, UIMin = 0, ClampMax = 1, UIMax = 1, Units = "Times"))
+	float AlternativeSkillsProgressionSoundChance;
+
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Menu|Skills", meta = (AllowPrivateAccess = true))
 	TSubclassOf<USkillsProgressionWidget> SkillsProgressionWidgetClass;
 

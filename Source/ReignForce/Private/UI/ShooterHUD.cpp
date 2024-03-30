@@ -30,6 +30,8 @@
 AShooterHUD::AShooterHUD(const FObjectInitializer& ObjectInitializer) : Super(ObjectInitializer)
 {
 	MessageLoggerComponent = CreateDefaultSubobject<UUIMessageLoggerComponent>(GET_MEMBER_NAME_CHECKED(AShooterHUD, MessageLoggerComponent));
+
+    AlternativeSkillsProgressionSoundChance = .3f;
 }
 
 void AShooterHUD::BeginPlay()
@@ -328,8 +330,10 @@ USoundBase* AShooterHUD::GetSkillsProgressionSound() const
 {
     UUpgradesProgressStateComponent* PlayerProgressComponent = GetPlayerProgressComponent();
     if (!IsValid(PlayerProgressComponent)) return nullptr;
-    constexpr float ChanceCoef = .4f;
-    const float AlternativeSoundChance = ChanceCoef * PlayerProgressComponent->GetUpgradesUnlocked() / PlayerProgressComponent->GetMaxUpgrades();
+    
+    float AlternativeSoundChance = PlayerProgressComponent->GetUpgradesUnlocked() / PlayerProgressComponent->GetMaxUpgrades();
+    AlternativeSoundChance *= AlternativeSkillsProgressionSoundChance;
+
     bool bSelectAlternative = AlternativeSoundChance >= FMath::FRand();
     return bSelectAlternative ? SkillsProgressionWidgetAlternativeSound : SkillsProgressionWidgetSound;
 }

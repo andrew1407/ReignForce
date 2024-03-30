@@ -37,7 +37,7 @@ void UShooterSkillsSystem::InitializeDefaultRanks()
 		RanksProgression.WeaponAttacks.FindOrAdd(Key, 0);
 
 	for (const auto& [Key, _] : ProgressionAsset->AmmoStats)
-		RanksProgression.AmmoCapaticy.FindOrAdd(Key, 0);
+		RanksProgression.AmmoCapacity.FindOrAdd(Key, 0);
 
 	for (const auto& [Key, _] : ProgressionAsset->WeaponRecoilModifiers)
 		RanksProgression.WeaponRecoilModifiers.FindOrAdd(Key, 0);
@@ -100,7 +100,7 @@ int32 UShooterSkillsSystem::GetAmmoCapacityOrDefault(EWeaponType WeaponType, flo
 {
 	if (!IsProgressionAssetValid()) return Default;
 	const FAmmoCapacity* AmmoCapacity  = ProgressionAsset->AmmoStats.Find(WeaponType);
-	const int32* Rank = RanksProgression.AmmoCapaticy.Find(WeaponType);
+	const int32* Rank = RanksProgression.AmmoCapacity.Find(WeaponType);
 	if (!(AmmoCapacity && Rank)) return Default;
 	const TArray<int32>& Ammo = AmmoCapacity->MaxCount;
 	return Ammo.IsValidIndex(*Rank) ? Ammo[*Rank] : Default;

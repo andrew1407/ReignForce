@@ -29,6 +29,24 @@ struct FWeaponAvailability
     bool bApplyExtraCheck = false;
 };
 
+USTRUCT(BlueprintType)
+struct FRankDeviation
+{
+    GENERATED_USTRUCT_BODY()
+
+    UPROPERTY(EditAnywhere, BlueprintReadWrite, meta = (EditCondition = "bApplyDeviation", EditConditionHides))
+    int32 Left = 1;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, meta = (EditCondition = "bApplyDeviation", EditConditionHides))
+    int32 Right = 1;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite)
+    bool bApplyDeviation = true;
+
+    int32 Apply(int32 Rank, int32 LowerBound = 0, int32 UpperBound = MAX_int32) const;
+	int32 operator()(int32 Rank, int32 LowerBound = 0, int32 UpperBound = MAX_int32) const;
+};
+
 UCLASS( ClassGroup=(Custom), meta=(BlueprintSpawnableComponent) )
 class REIGNFORCE_API UEnemyEquipSystem : public UActorComponent, public IShooterCharacterEquipper
 {
@@ -52,6 +70,25 @@ private:
 
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Temperament", meta = (AllowPrivateAccess = true))
 	TMap<ETemperamentType, float> TemperamentDistributions;
+
+	#pragma region RANK_DEVIATIONS
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Deviation", meta = (AllowPrivateAccess = true))
+	FRankDeviation DefaultDeviation;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Deviation", meta = (AllowPrivateAccess = true))
+	FRankDeviation WeaponReloadSpeedDeviation;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Deviation", meta = (AllowPrivateAccess = true))
+	FRankDeviation WeaponSwapSpeedDeviation;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Deviation", meta = (AllowPrivateAccess = true))
+	FRankDeviation AimingSpeedDeviation;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Deviation", meta = (AllowPrivateAccess = true))
+	FRankDeviation MaxHealthDeviation;
+
+	#pragma endregion
 
 	APlayerCharacter* GetPlayerCharacter() const;
 	bool CheckSlotAvailability(UShooterSkillsSystem* SkillsSystem, EWeaponType Slot) const;
