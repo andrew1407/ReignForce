@@ -1,7 +1,9 @@
 # Reign Force
 
 <p align="center">
-  <a target="blank"><img src="./Doc/Resources/Icons/icon.ico" width="140" alt="Reign Force logo" /></a>
+  <a href="https://github.com/andrew1407/ReignForce/releases">
+    <img src="./Doc/Resources/Icons/icon.ico" width="140" alt="Reign Force Logo" />
+  </a>
 </p>
 
 ## Description
