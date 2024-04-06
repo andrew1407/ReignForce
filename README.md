@@ -26,7 +26,7 @@ The game modes and temperament types can be switched and set up in Unreal Editor
 
 ![Project scheme](./Doc/Resources/project-components.png)
 
-To train the model the project is presented as a thick client using WebSocket protocol. It connects to the Python WebSocket server (see more [here](./TrainigServer/)).
+To train the model the project is presented as a thick client using WebSocket protocol. It connects to the Python WebSocket server (see more [here](./TrainingServer/)).
 
 ## Scripts
 
