@@ -318,6 +318,8 @@ void AShooterHUD::SetPauseMenuMusicPlayState(bool bState)
     UBackgroundMusicComponent* MusicComponent = GameMode->GetBackgroundMusicComponent();
     if (!IsValid(MusicComponent)) return;
     MusicComponent->SetPauseForActiveGameplaySound(bState);
+    if (bState) MusicComponent->ResetActivePauseMenuSound();
+    else MusicComponent->StopActivePauseMenuSound();
 }
 
 UUpgradesProgressStateComponent* AShooterHUD::GetPlayerProgressComponent() const

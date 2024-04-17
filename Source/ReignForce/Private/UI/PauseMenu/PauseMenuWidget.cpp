@@ -45,25 +45,11 @@ void UPauseMenuWidget::NativeConstruct()
         SaveAndExitButton->OnClicked.AddDynamic(this, &UPauseMenuWidget::OnSaveAndExit);
 
     if (IsValid(ContinueButton)) ContinueButton->SetFocus();
-
-    auto GameMode = GetWorld()->GetAuthGameMode<AReignForceGameMode>();
-    if (IsValid(GameMode))
-    {
-        UBackgroundMusicComponent* BackgroundMusic = GameMode->GetBackgroundMusicComponent();
-        if (IsValid(BackgroundMusic)) BackgroundMusic->ResetActivePauseMenuSound();
-    }
 }
 
 void UPauseMenuWidget::NativeDestruct()
 {
     if (IsValid(ContinueButton)) ContinueButton->OnClicked.Clear();
-
-    auto GameMode = GetWorld()->GetAuthGameMode<AReignForceGameMode>();
-    if (IsValid(GameMode))
-    {
-        UBackgroundMusicComponent* BackgroundMusic = GameMode->GetBackgroundMusicComponent();
-        if (IsValid(BackgroundMusic)) BackgroundMusic->StopAllActiveMusic();
-    }
 
     Super::NativeDestruct();
 }
@@ -169,6 +155,13 @@ void UPauseMenuWidget::GoToMenuClickConfirmation(bool bAccepted)
 void UPauseMenuWidget::ExitClickConfirmation(bool bAccepted)
 {
     if (!bAccepted) return CloseCurrentOpenedModal();
+
+    auto GameMode = GetWorld()->GetAuthGameMode<AReignForceGameMode>();
+    if (IsValid(GameMode))
+    {
+        UBackgroundMusicComponent* BackgroundMusic = GameMode->GetBackgroundMusicComponent();
+        if (IsValid(BackgroundMusic)) BackgroundMusic->StopAllActiveMusic();
+    }
 
     // Specify the quit preference (e.g., Quit, Restart, etc.)
     TEnumAsByte<EQuitPreference::Type> QuitPreference = EQuitPreference::Quit;
