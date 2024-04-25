@@ -3,8 +3,8 @@
 call "%~dp0\config.bat"
 call "%~dp0\run.bat" pbs
 
-set CLIENT_CONFIG=%1
-if not defined CLIENT_CONFIG set CLIENT_CONFIG=Shipping
+set "CLIENT_CONFIG=%1"
+if not defined CLIENT_CONFIG set "CLIENT_CONFIG=Shipping"
 
 set ARCHIVE_PATH=%PROJECT_PATH%\Build\Archived
 set STAGE_PATH=%PROJECT_PATH%\Build\Stage
