@@ -41,6 +41,10 @@ struct FCharacterInputActions
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
 	TObjectPtr<UInputAction> SwitchWeaponAction;
 
+	/** Axis: negative - previous available weapon slot, positive - next one (gamepad bumpers) */
+	UPROPERTY(EditAnywhere, BlueprintReadWrite)
+	TObjectPtr<UInputAction> CycleWeaponAction;
+
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
 	TObjectPtr<UInputAction> ReloadWeaponAction;
 
