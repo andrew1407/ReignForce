@@ -14,6 +14,17 @@ namespace
 {
     constexpr float MIN_MOVE_DEVIATION = .05f;
     constexpr float START_MOVE_SPEED = 10;
+
+    /**
+     * Stretches the direction circle onto the blend space square: diagonal samples sit in its corners,
+     * so a full speed diagonal move (.7, .7) plays the diagonal run instead of half blending into idle (legs sliding)
+     */
+    FVector2D ToBlendSpaceDirection(const FVector2D& Direction)
+    {
+        const float MaxAxis = FMath::Max(FMath::Abs(Direction.X), FMath::Abs(Direction.Y));
+        if (MaxAxis <= KINDA_SMALL_NUMBER) return Direction;
+        return Direction * (Direction.Size() / MaxAxis);
+    }
 }
 
 UShooterAnimInstance::UShooterAnimInstance(const FObjectInitializer& ObjectInitializer) : Super(ObjectInitializer)
@@ -56,7 +67,7 @@ void UShooterAnimInstance::UpdateCharacterParams()
     Velocity = Character->GetVelocity();
     Speed = Velocity.Length();
     SpeedXY = FVector2D(Velocity.X, Velocity.Y).Length();
-    MovementDirection = Character->GetMovementDirection();
+    MovementDirection = ToBlendSpaceDirection(Character->GetMovementDirection());
     Pitch = Character->GetAimOffsetPitch();
 }
 
