@@ -576,6 +576,7 @@ bool AShooterCharacter::TryPerformShot(bool bCheckIfHasAmmo)
 		if (CombatSystem->GetAimingState()) Recoil /= CombatSystem->GetAimRecoilReducer();
 		AddControllerPitchInput(-Recoil.X);
 		AddControllerYawInput(FMath::RandRange(-Recoil.Y, Recoil.Y));
+		OnShotFired(Recoil, Weapon->GetRecoil());
 	}
 
 	CombatSystem->ActivateRateOfFireDelay(WeaponType, Weapon->GetRateOfFire());

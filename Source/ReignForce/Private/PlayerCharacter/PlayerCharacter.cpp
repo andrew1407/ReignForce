@@ -71,6 +71,11 @@ APlayerCharacter::APlayerCharacter(const FObjectInitializer& ObjectInitializer) 
 		{ FVector2D(-0.f, -1), EWeaponType::Pistol },
 		{ FVector2D(-1, -0.f), EWeaponType::Melee },
 	};
+
+	MeleeSwingVibration = { .2f, .1f, false, true };
+	MeleeHitVibration = { .75f, .18f, true, true };
+	ShotVibration = { .6f, .08f, true, true };
+	MinShotVibrationScale = .2f;
 }
 
 void APlayerCharacter::BeginPlay()
@@ -210,6 +215,9 @@ void APlayerCharacter::SetupPlayerInputComponent(UInputComponent* PlayerInputCom
 
 	if (Inputs.SwitchWeaponAction)
 		EnhancedInputComponent->BindAction(Inputs.SwitchWeaponAction, ETriggerEvent::Started, this, &APlayerCharacter::SwitchWeaponAction);
+
+	if (Inputs.CycleWeaponAction)
+		EnhancedInputComponent->BindAction(Inputs.CycleWeaponAction, ETriggerEvent::Started, this, &APlayerCharacter::CycleWeaponAction);
 	
 	if (Inputs.ReloadWeaponAction)
 		EnhancedInputComponent->BindAction(Inputs.ReloadWeaponAction, ETriggerEvent::Started, this, &APlayerCharacter::ReloadWeaponAction);
@@ -373,6 +381,40 @@ void APlayerCharacter::SwitchWeaponAction(const FInputActionValue& Value)
     if (Slot) SwitchWeapon(*Slot);
 }
 
+void APlayerCharacter::CycleWeaponAction(const FInputActionValue& Value)
+{
+	if (!GetIsStatsDefined() || !IsShooterComponentsValid()) return;
+
+	const float Direction = Value.Get<float>();
+	if (FMath::IsNearlyZero(Direction)) return;
+	constexpr bool bClockwise = true;
+	const EWeaponType Slot = FindNextWeaponSlot(Direction > 0 ? bClockwise : !bClockwise);
+	if (Slot != GetWeaponSlotsSystem()->GetActiveWeaponSlot()) SwitchWeapon(Slot);
+}
+
+EWeaponType APlayerCharacter::FindNextWeaponSlot(bool bClockwise) const
+{
+	// Same order as the slots cross (arrows): up - fists, right - rifle, down - pistol, left - machete
+	static const EWeaponType Order[] = { EWeaponType::Unarmed, EWeaponType::Rifle, EWeaponType::Pistol, EWeaponType::Melee };
+	constexpr int32 Count = UE_ARRAY_COUNT(Order);
+
+	const EWeaponType Active = GetWeaponSlotsSystem()->GetActiveWeaponSlot();
+	int32 Current = 0;
+	for (int32 i = 0; i < Count; ++i)
+		if (Order[i] == Active) Current = i;
+
+	// Locked (not unlocked by skills) or empty slots are skipped
+	const int32 Step = bClockwise ? 1 : -1;
+	for (int32 Offset = 1; Offset < Count; ++Offset)
+	{
+		const EWeaponType Slot = Order[(Current + Step * Offset + Count) % Count];
+		bool bAvailable = Slot == EWeaponType::Unarmed
+			|| (GetSkillsSystem()->AvailableSlots.Contains(Slot) && !GetWeaponSlotsSystem()->HasFreeSlot(Slot));
+		if (bAvailable) return Slot;
+	}
+	return Active;
+}
+
 void APlayerCharacter::SwitchAimFocusAction()
 {
 	if (IsDead()) return;
@@ -452,6 +494,44 @@ void APlayerCharacter::PlayCancelActionSound()
 	constexpr float Volume = 1;
 	constexpr float Pitch = 1;
 	UGameplayStatics::PlaySound2D(GetWorld(), CancelActionSound, Volume, Pitch);
+}
+
+bool APlayerCharacter::TryActivateMeleeCollision(bool bState, int32 Index)
+{
+	bool bActivated = Super::TryActivateMeleeCollision(bState, Index);
+	// Every punch & machete swing is felt slightly
+	if (bActivated && bState) PlayVibration(MeleeSwingVibration);
+	return bActivated;
+}
+
+void APlayerCharacter::ReactOnDamageCaused_Implementation(float Damage, EWeaponType WeaponType, AActor* HitTarget, int32 Index)
+{
+	Super::ReactOnDamageCaused_Implementation(Damage, WeaponType, HitTarget, Index);
+
+	bool bMeleeHit = WeaponType == EWeaponType::Unarmed || WeaponType == EWeaponType::Melee;
+	if (bMeleeHit && Cast<AShooterCharacter>(HitTarget)) PlayVibration(MeleeHitVibration);
+}
+
+void APlayerCharacter::OnShotFired(const FVector2D& Recoil, const FVector2D& WeaponRecoil)
+{
+	Super::OnShotFired(Recoil, WeaponRecoil);
+
+	// Reduced recoil (upgrades, aiming) gives a quieter shot rumble
+	const float WeaponKick = WeaponRecoil.Size();
+	const float RecoilScale = WeaponKick > KINDA_SMALL_NUMBER ? Recoil.Size() / WeaponKick : 1;
+	PlayVibration(ShotVibration, FMath::Clamp(RecoilScale, MinShotVibrationScale, 1.f));
+}
+
+void APlayerCharacter::PlayVibration(const FGamepadVibration& Vibration, float Scale) const
+{
+	auto PlayerController = GetController<APlayerController>();
+	if (!IsValid(PlayerController) || Vibration.Intensity <= 0 || Vibration.Duration <= 0) return;
+	PlayerController->PlayDynamicForceFeedback(
+		Vibration.Intensity * Scale,
+		Vibration.Duration,
+		Vibration.bLargeMotors, Vibration.bSmallMotors, // left
+		Vibration.bLargeMotors, Vibration.bSmallMotors // right
+	);
 }
 
 void APlayerCharacter::UpdateHealthBar(float Update, float Current, float Before, EPointsModifierType Modifier)

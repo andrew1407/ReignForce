@@ -230,6 +230,9 @@ protected:
 
 	virtual void ReactOnDamageCaused_Implementation(float Damage, EWeaponType WeaponType, AActor* HitTarget, int32 Index);
 
+	/** Called when a firearms shot is fired with the applied (reduced by skills & aiming) and the weapon base recoil */
+	virtual void OnShotFired(const FVector2D& Recoil, const FVector2D& WeaponRecoil) {}
+
 private:
 	#pragma region COMPONENTS
 

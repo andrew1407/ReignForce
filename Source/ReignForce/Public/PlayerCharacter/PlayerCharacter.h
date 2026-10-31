@@ -6,6 +6,7 @@
 #include "ShooterCharacter/ShooterCharacter.h"
 #include "Logging/LogMacros.h"
 #include "ShooterCharacter/CharacterInputActions.h"
+#include "PlayerCharacter/GamepadVibration.h"
 #include "PlayerCharacter.generated.h"
 
 
@@ -49,6 +50,7 @@ public:
 	virtual bool RefillAmmo(EWeaponType WeaponType) override;
 	virtual bool TryPerformShot(bool bCheckIfHasAmmo) override;
 	virtual bool SetFullAmmoForWeapon(EWeaponType WeaponType) override;
+	virtual bool TryActivateMeleeCollision(bool bState, int32 Index = 0) override;
 
 	/** Returns CameraBoom subobject **/
 	FORCEINLINE USpringArmComponent* GetCameraBoom() const { return CameraBoom; }
@@ -65,6 +67,8 @@ protected:
 	virtual void BeginPlay() override;
 	virtual float TakeDamage(float DamageAmount, FDamageEvent const& DamageEvent, AController* EventInstigator, AActor* DamageCauser) override;
     virtual void OnWeaponActionUnavailable_Implementation() override;
+	virtual void ReactOnDamageCaused_Implementation(float Damage, EWeaponType WeaponType, AActor* HitTarget, int32 Index) override;
+	virtual void OnShotFired(const FVector2D& Recoil, const FVector2D& WeaponRecoil) override;
 
 	UFUNCTION()
 	void HandleStatsDefined(bool bSuccess);
@@ -93,12 +97,32 @@ private:
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Sounds", meta = (AllowPrivateAccess = true))
 	TObjectPtr<USoundBase> CancelActionSound;
 
+	#pragma region GAMEPAD_VIBRATION
+
+	/** Slight rumble when a punch or a machete swing is performed */
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Input|Vibration", meta = (AllowPrivateAccess = true))
+	FGamepadVibration MeleeSwingVibration;
+
+	/** Stronger rumble when a punch or a machete swing hits an enemy */
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Input|Vibration", meta = (AllowPrivateAccess = true))
+	FGamepadVibration MeleeHitVibration;
+
+	/** Shot rumble at the full weapon recoil, it gets quieter as the recoil is reduced (skills, aiming) */
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Input|Vibration", meta = (AllowPrivateAccess = true))
+	FGamepadVibration ShotVibration;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Input|Vibration", meta = (AllowPrivateAccess = true, ClampMin = 0, UIMin = 0, ClampMax = 1, UIMax = 1))
+	float MinShotVibrationScale;
+
+	#pragma endregion
+
 	#pragma region ACTION_HANDLERS
 
 	void MoveAction(const FInputActionValue& Value);
 	void LookAction(const FInputActionValue& Value);
 
 	void SwitchWeaponAction(const FInputActionValue& Value);
+	void CycleWeaponAction(const FInputActionValue& Value);
 	void SwitchAimFocusAction();
 	void ReloadWeaponAction();
 	
@@ -114,6 +138,8 @@ private:
 	void UpdateHealthBar(float Update, float Current, float Before, EPointsModifierType Modifier);
 
 	void PlayCancelActionSound();
+	void PlayVibration(const FGamepadVibration& Vibration, float Scale = 1) const;
+	EWeaponType FindNextWeaponSlot(bool bClockwise) const;
 	void UpdateActiveWeaponHUD();
 	void HandleAimTrace();
 };
