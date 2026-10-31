@@ -7,6 +7,7 @@
 #include "Components/AudioComponent.h"
 
 #include "ShooterSaveGame.h"
+#include "GameModes/LevelLoadingSubsystem.h"
 #include "GameStates/Components/UpgradesProgressStateComponent.h"
 #include "GameStates/Components/RoundDifficultyProgression.h"
 
@@ -200,7 +201,7 @@ void AShooterGameState::RestartLevel()
 {
 	UWorld* Level = GetWorld();
 	constexpr bool bAbsolute = false;
-	UGameplayStatics::OpenLevel(Level, *GetNameSafe(Level), bAbsolute);
+	ULevelLoadingSubsystem::OpenLevel(Level, *GetNameSafe(Level), bAbsolute);
 }
 
 bool AShooterGameState::EndRound(bool bWithSuccess)

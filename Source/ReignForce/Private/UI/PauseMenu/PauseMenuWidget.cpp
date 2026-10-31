@@ -9,6 +9,7 @@
 #include "Kismet/GameplayStatics.h"
 
 #include "GameModes/ReignForceGameMode.h"
+#include "GameModes/LevelLoadingSubsystem.h"
 #include "GameModes/Components/BackgroundMusicComponent.h"
 
 #include "GameStates/ShooterGameState.h"
@@ -175,7 +176,8 @@ void UPauseMenuWidget::GoToMenuClickConfirmation(bool bAccepted)
     if (MenuLevelName.IsNone()) return;
     if (bSaveOnGoToMenu) OnSaveProgress();
     constexpr bool bAbsolute = true;
-	UGameplayStatics::OpenLevel(GetWorld(), MenuLevelName, bAbsolute);
+	// Level is streamed in behind the loading screen
+	ULevelLoadingSubsystem::OpenLevel(this, MenuLevelName, bAbsolute);
 }
 
 void UPauseMenuWidget::ExitClickConfirmation(bool bAccepted)
