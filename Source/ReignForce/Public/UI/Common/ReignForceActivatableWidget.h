@@ -9,6 +9,8 @@
 
 
 class UButton;
+class UTextBlock;
+class UVerticalBox;
 class UGameSettingsWidget;
 
 DECLARE_DYNAMIC_MULTICAST_DELEGATE(FOnMenuCloseRequested);
@@ -77,6 +79,21 @@ protected:
 
 	/** Clones the template button style & label into a new button placed next to the template (same panel) */
 	UButton* CreateButtonLike(UButton* Template, const FText& Label, FName Name, int32 IndexOffset = 0);
+
+	#pragma region NATIVE_LAYOUT
+
+	/** Template button label font of the given size (engine default bold font without a template) */
+	static FSlateFontInfo MakeFont(const UButton* StyleTemplate, int32 Size);
+
+	/** Button with the template style (brushes, sounds, colors) holding the content */
+	UButton* MakeButton(UButton* StyleTemplate, UWidget* Content, FName Name);
+
+	UTextBlock* MakeText(const FText& Text, const FSlateFontInfo& Font, const FSlateColor& Color);
+
+	/** Dimmed fullscreen background with a centered titled column (menu content is added to it) */
+	UVerticalBox* ConstructMenuColumn(const FText& Title, const FSlateFontInfo& TitleFont, float Width, const FLinearColor& Background);
+
+	#pragma endregion
 
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Focus", meta = (ClampMin = 1, UIMin = 1))
 	float FocusedButtonScale;

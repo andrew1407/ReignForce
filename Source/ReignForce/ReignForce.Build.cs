@@ -27,7 +27,7 @@ public class ReignForce : ModuleRules
 			"DeveloperSettings",
 		});
 
-		PrivateDependencyModuleNames.AddRange(new string[] { "AIModule", "NavigationSystem", "MoviePlayer", "PhysicsCore" });
+		PrivateDependencyModuleNames.AddRange(new string[] { "AIModule", "NavigationSystem", "MoviePlayer", "PhysicsCore", "GameplayTags" });
 
 		if (Target.bBuildEditor)
 		{

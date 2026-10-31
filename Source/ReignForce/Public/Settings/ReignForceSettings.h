@@ -11,6 +11,7 @@ class USoundMix;
 class USoundClass;
 class UTexture2D;
 class UImpactEffectsDataAsset;
+class UInputMappingContext;
 
 /**
  * Project wide assets used by the game systems (Project Settings -> Game -> Reign Force)
@@ -52,4 +53,8 @@ public:
 	/** Surface hit particles & marks (bullet holes, blade cuts) */
 	UPROPERTY(Config, EditAnywhere, Category = "Weapons")
 	TSoftObjectPtr<UImpactEffectsDataAsset> ImpactEffects;
+
+	/** Gameplay input context which keyboard & mouse mappings are listed in the controls menu for remapping */
+	UPROPERTY(Config, EditAnywhere, Category = "Input")
+	TSoftObjectPtr<UInputMappingContext> RemappableInputContext;
 };

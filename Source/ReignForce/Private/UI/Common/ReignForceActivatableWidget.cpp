@@ -4,10 +4,17 @@
 #include "UI/Common/ReignForceActivatableWidget.h"
 #include "Framework/Application/SlateApplication.h"
 #include "Blueprint/WidgetTree.h"
+#include "Styling/CoreStyle.h"
 
+#include "Components/Border.h"
 #include "Components/Button.h"
+#include "Components/ButtonSlot.h"
 #include "Components/PanelWidget.h"
+#include "Components/SizeBox.h"
 #include "Components/TextBlock.h"
+#include "Components/VerticalBox.h"
+#include "Components/VerticalBoxSlot.h"
+#include "CommonTextBlock.h"
 
 #include "UI/Settings/GameSettingsWidget.h"
 
@@ -134,6 +141,67 @@ UButton* UReignForceActivatableWidget::CreateButtonLike(UButton* Template, const
     const int32 Index = FMath::Clamp(Parent->GetChildIndex(Template) + IndexOffset, 0, Parent->GetChildrenCount());
     Parent->InsertChildAt(Index, Button, Template->Slot);
     return Button;
+}
+
+FSlateFontInfo UReignForceActivatableWidget::MakeFont(const UButton* StyleTemplate, int32 Size)
+{
+    auto TemplateLabel = IsValid(StyleTemplate) ? Cast<UTextBlock>(StyleTemplate->GetChildAt(0)) : nullptr;
+    FSlateFontInfo Font = IsValid(TemplateLabel) ? TemplateLabel->GetFont() : FCoreStyle::GetDefaultFontStyle("Bold", Size);
+    Font.Size = Size;
+    return Font;
+}
+
+UButton* UReignForceActivatableWidget::MakeButton(UButton* StyleTemplate, UWidget* Content, FName Name)
+{
+    auto Button = WidgetTree->ConstructWidget<UButton>(UButton::StaticClass(), Name);
+    if (IsValid(StyleTemplate))
+    {
+        Button->SetStyle(StyleTemplate->GetStyle());
+        Button->SetColorAndOpacity(StyleTemplate->GetColorAndOpacity());
+        Button->SetBackgroundColor(StyleTemplate->GetBackgroundColor());
+    }
+    if (UButtonSlot* ContentSlot = Cast<UButtonSlot>(Button->AddChild(Content)))
+    {
+        ContentSlot->SetPadding(FMargin(18, 6));
+        ContentSlot->SetHorizontalAlignment(Content->IsA<UTextBlock>() ? HAlign_Center : HAlign_Fill);
+        ContentSlot->SetVerticalAlignment(VAlign_Center);
+    }
+    return Button;
+}
+
+UTextBlock* UReignForceActivatableWidget::MakeText(const FText& Text, const FSlateFontInfo& Font, const FSlateColor& Color)
+{
+    auto TextBlock = WidgetTree->ConstructWidget<UCommonTextBlock>(UCommonTextBlock::StaticClass());
+    TextBlock->SetText(Text);
+    TextBlock->SetFont(Font);
+    TextBlock->SetColorAndOpacity(Color);
+    TextBlock->SetShadowOffset(FVector2D(1));
+    TextBlock->SetShadowColorAndOpacity(FLinearColor(0, 0, 0, .6f));
+    return TextBlock;
+}
+
+UVerticalBox* UReignForceActivatableWidget::ConstructMenuColumn(const FText& Title, const FSlateFontInfo& TitleFont, float Width, const FLinearColor& Background)
+{
+    auto BackgroundBorder = WidgetTree->ConstructWidget<UBorder>(UBorder::StaticClass(), TEXT("Background"));
+    BackgroundBorder->SetBrushColor(Background);
+    BackgroundBorder->SetHorizontalAlignment(HAlign_Center);
+    BackgroundBorder->SetVerticalAlignment(VAlign_Center);
+    WidgetTree->RootWidget = BackgroundBorder;
+
+    auto Frame = WidgetTree->ConstructWidget<USizeBox>(USizeBox::StaticClass(), TEXT("Frame"));
+    Frame->SetWidthOverride(Width);
+    BackgroundBorder->SetContent(Frame);
+
+    auto Column = WidgetTree->ConstructWidget<UVerticalBox>(UVerticalBox::StaticClass(), TEXT("Column"));
+    Frame->SetContent(Column);
+
+    UTextBlock* TitleText = MakeText(Title, TitleFont, FLinearColor::White);
+    if (UVerticalBoxSlot* TitleSlot = Column->AddChildToVerticalBox(TitleText))
+    {
+        TitleSlot->SetHorizontalAlignment(HAlign_Center);
+        TitleSlot->SetPadding(FMargin(0, 0, 0, 24));
+    }
+    return Column;
 }
 
 void UReignForceActivatableWidget::HandleButtonHovered()
