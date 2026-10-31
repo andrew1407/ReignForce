@@ -57,4 +57,8 @@ public:
 	/** Gameplay input context which keyboard & mouse mappings are listed in the controls menu for remapping */
 	UPROPERTY(Config, EditAnywhere, Category = "Input")
 	TSoftObjectPtr<UInputMappingContext> RemappableInputContext;
+
+	/** Controller image of the gamepad controls scheme menu */
+	UPROPERTY(Config, EditAnywhere, Category = "Input")
+	TSoftObjectPtr<UTexture2D> GamepadSchemeImage;
 };
