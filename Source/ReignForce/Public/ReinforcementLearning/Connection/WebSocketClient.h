@@ -23,10 +23,10 @@ struct FClientConnectionOptions
 	FString Host;
 
     UPROPERTY(EditAnywhere, BlueprintReadWrite, meta = (ClampMin = 0, UIMin = 0))
-	int32 Port;
+	int32 Port = 0;
 
     UPROPERTY(EditAnywhere, BlueprintReadWrite, meta = (ClampMin = 0, UIMin = 0, Units = "Seconds"))
-	float ConnectionTimeout;
+	float ConnectionTimeout = 0.f;
 
     UPROPERTY(BlueprintReadWrite)
 	FOnClientResponse OnClientResponse;

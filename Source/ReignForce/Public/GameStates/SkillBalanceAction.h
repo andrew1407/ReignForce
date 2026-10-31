@@ -1,5 +1,8 @@
 #pragma once
 
+#include "CoreMinimal.h"
+#include "SkillBalanceAction.generated.h"
+
 UENUM(BlueprintType)
 enum class ESkillBalanceAction : uint8
 {

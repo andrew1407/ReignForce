@@ -17,7 +17,7 @@
 #include "Weapons/Components/CombatSystem.h"
 
 
-void UContinuousAttackAnimNotify::Notify(USkeletalMeshComponent* MeshComp, UAnimSequenceBase* Animation)
+void UContinuousAttackAnimNotify::Notify(USkeletalMeshComponent* MeshComp, UAnimSequenceBase* Animation, const FAnimNotifyEventReference& EventReference)
 {
     auto Character = Cast<AShooterCharacter>(MeshComp->GetOwner());
     if (!IsValid(Character) || Character->IsDead()) return;

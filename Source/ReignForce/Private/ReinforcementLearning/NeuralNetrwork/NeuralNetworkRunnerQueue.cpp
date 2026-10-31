@@ -66,10 +66,10 @@ bool UNeuralNetworkRunnerQueue::HandleNextInQueue()
 			return OnFailure();
 		}
 
-		int32 Status = ModelInstance->RunSync(InputBindings, OutputBindings);
+		UE::NNE::EResultStatus Status = ModelInstance->RunSync(InputBindings, OutputBindings);
 		AsyncTask(ENamedThreads::GameThread, [this, Status, QueueOptions, Outputs = MoveTemp(Outputs)]
 		{
-			bool bSuccess = Status == 0;
+			bool bSuccess = Status == UE::NNE::EResultStatus::Ok;
 			QueueOptions.OnResult.ExecuteIfBound(Outputs, this, QueueOptions.Querier, bSuccess);
 
 			bModelRunning = false;

@@ -1,5 +1,8 @@
 #pragma once
 
+#include "CoreMinimal.h"
+#include "PointsModifierType.generated.h"
+
 UENUM(BlueprintType)
 enum class EPointsModifierType : uint8
 {

@@ -20,7 +20,7 @@ struct FUpgradesProgressStateStyle
 	TSoftObjectPtr<UTexture2D> Image;
 
     UPROPERTY(EditAnywhere, BlueprintReadWrite)
-	FLinearColor Color;
+	FLinearColor Color = FLinearColor(ForceInit);
 };
 
 /**

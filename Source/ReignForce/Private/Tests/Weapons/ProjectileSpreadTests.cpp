@@ -12,7 +12,7 @@ namespace
 }
 
 DEFINE_SPEC(FProjectileSpreadTests, "ReignForce.ProjectileSpread",
-    EAutomationTestFlags::ApplicationContextMask | EAutomationTestFlags::ProductFilter | EAutomationTestFlags::HighPriority);
+    EAutomationTestFlags_ApplicationContextMask | EAutomationTestFlags::ProductFilter | EAutomationTestFlags::HighPriority);
 
 void FProjectileSpreadTests::Define()
 {

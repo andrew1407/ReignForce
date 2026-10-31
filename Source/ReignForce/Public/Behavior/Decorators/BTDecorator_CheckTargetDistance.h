@@ -16,10 +16,10 @@ struct FDistanceBounds
     GENERATED_USTRUCT_BODY()
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
-	float Lower;
+	float Lower = 0.f;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
-	float Upper;
+	float Upper = 0.f;
 };
 
 /**

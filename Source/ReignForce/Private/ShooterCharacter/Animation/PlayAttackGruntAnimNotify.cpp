@@ -8,7 +8,7 @@
 #include "ShooterCharacter/ShooterCharacter.h"
 
 
-void UPlayAttackGruntAnimNotify::Notify(USkeletalMeshComponent* MeshComp, UAnimSequenceBase* Animation)
+void UPlayAttackGruntAnimNotify::Notify(USkeletalMeshComponent* MeshComp, UAnimSequenceBase* Animation, const FAnimNotifyEventReference& EventReference)
 {
     auto Character = Cast<AShooterCharacter>(MeshComp->GetOwner());
     if (!IsValid(Character)) return;

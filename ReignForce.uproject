@@ -1,6 +1,6 @@
 {
 	"FileVersion": 3,
-	"EngineAssociation": "5.3",
+	"EngineAssociation": "5.8",
 	"Category": "Third-Person Shooter",
 	"Description": "Third-Person Shooter with reinforcement learning enemies' AI approach",
 	"Modules": [
@@ -25,22 +25,8 @@
 			]
 		},
 		{
-			"Name": "NNE",
-			"Enabled": true,
-			"SupportedTargetPlatforms": [
-				"Win64",
-				"Linux",
-				"Mac"
-			]
-		},
-		{
-			"Name": "NNERuntimeORTCpu",
-			"Enabled": true,
-			"SupportedTargetPlatforms": [
-				"Win64",
-				"Linux",
-				"Mac"
-			]
+			"Name": "NNERuntimeORT",
+			"Enabled": true
 		}
 	]
 }

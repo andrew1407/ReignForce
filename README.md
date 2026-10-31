@@ -8,13 +8,13 @@
 
 ## Description
 
-This UE 5.3 prject is a third-person shooter game using reinforcement learning to train enemy AI. It is a practical part of the **[master's thesis](https://ela.kpi.ua/items/944163bd-9528-4faf-b506-f0f11145addc)**.
+This UE 5.8 project is a third-person shooter game using reinforcement learning to train enemy AI. It is a practical part of the **[master's thesis](https://ela.kpi.ua/items/944163bd-9528-4faf-b506-f0f11145addc)**.
 
 There's two game modes to handle reinforcement learning using **[AICommandsStrategy](./Source/ReignForce/Public/ReinforcementLearning/Interfaces/AICommandsStrategy.h)** interface to request a predicted command for enemy AI:
 
 1. **[AILearningGameMode](./Source/ReignForce/Public/GameModes/AILearningGameMode.h)** uses WebSocket connection to train model on a server during gameplay collecting and operating gained episodic data experience bunches.
 
-2. **[AIModelsGameMode](./Source/ReignForce/Public/GameModes/AIModelsGameMode.h)** loads and then connects to pre-trained model(s) of ONNX format (uses NNE plugin to load runtime models).
+2. **[AIModelsGameMode](./Source/ReignForce/Public/GameModes/AIModelsGameMode.h)** loads and then connects to pre-trained model(s) of ONNX format (uses the Neural Network Engine (NNE) with the ONNX Runtime CPU backend to load runtime models).
 
 There are [three behavioral patterns](./Source/ReignForce/Public/ReinforcementLearning/TemperamentType.h) (temperament types) to estimate enemy AI action for a reward, and each of them has its own estimator for it:
 
@@ -30,51 +30,25 @@ To train the model the project is presented as a thick client using WebSocket pr
 
 ## Scripts
 
-The project contains three .bat scripts for Windows platforms for a process automation in the **[ScriptsWin](./ScriptsWin)** folder. All main configurable parameters are present in teh **[config.bat](./ScriptsWin/config.bat)** script.
-
-1. To run project compilation use **[run.bat](./ScriptsWin/run.bat)**:
+Process automation lives in the **[Scripts](./Scripts)** folder: a single cross-platform **[ue.py](./Scripts/ue.py)** (Windows, Linux, macOS) plus thin launchers that run it with the engine's bundled Python, so nothing extra has to be installed. The engine is detected from the `.uproject` `EngineAssociation` (Epic launcher manifest / registry / `Install.ini`); set the `UE_ROOT` env var or pass `--engine <dir>` to override it.
 
 ```batch
-.\ScriptsWin\run.bat <mode>
+.\Scripts\ue.bat <command> [options]    :: Windows
 ```
 
-or (from the ScriptsWin dir):
-
-```batch
-.\run.bat <mode>
+```sh
+./Scripts/ue.sh <command> [options]     # Linux / macOS
 ```
 
-It can take one optional argument for unreal run mode. By default it runs editor dev. build.
-
-2. To run tests use **[test.bat](./ScriptsWin/test.bat)**:
-
-```batch
-.\ScriptsWin\test.bat <testname> <skipbuild>
-```
-
-or (from the ScriptsWin dir):
-
-```batch
-.\test.bat <testname> <skipbuild>
-```
-
-It can take one optional argument for unreal run mode:
-+ Test context name; by default runs all; besides exact test name the script argument takes **"projectonly"** option to run ReignForce tests only (this tests are contained in the **[tests](./Source/ReignForce/Private/Tests/)** dir);
-+ Skip build flag; by default accomplishes the build; by passing **"skipbuild"** trigger test only (without build) otherwise the script runs build before tests; 
-
-3. To build game use **[build_game.bat](./ScriptsWin/build_game.bat)**:
-
-```batch
-.\ScriptsWin\build_game.bat <mode>
-```
-
-or (from the ScriptsWin dir):
-
-```batch
-.\build_game.bat <mode>
-```
-
-An optional flag here is a build mode which is set as **"Shipping"** by default; can be defined as **"Development"** as well.
+| Command | Description |
+| --- | --- |
+| `info` | Prints the detected project & engine. |
+| `build [editor\|game] [-c CONFIG]` | Compiles the editor (default) or game target; config defaults to **Development**. |
+| `editor` | Opens the project in Unreal Editor. |
+| `test [FILTER] [--skip-build]` | Builds the editor target and runs automation tests headless. `FILTER`: **project** (default, ReignForce tests from the **[tests](./Source/ReignForce/Private/Tests/)** dir), **all**, or a test name prefix. Report & log go to `Build/Tests`; the exit code reflects failed tests. |
+| `package [-c CONFIG]` | Builds, cooks, stages, paks and archives the game to `Build/Archived` (config defaults to **Shipping**). |
+| `graph [NODE] [-c CONFIG]` | Runs the **[BuildGraph](./Scripts/BuildGraph.xml)** pipeline: `CompileEditor`, `CompileGame`, `Cook`, `Package` (default), `Test` or `All`. Completed nodes are reused on re-runs. |
+| `python [ARGS...]` | Runs the engine's bundled Python. |
 
 ## Gameplay
 

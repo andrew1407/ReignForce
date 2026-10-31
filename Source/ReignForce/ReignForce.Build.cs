@@ -23,5 +23,10 @@ public class ReignForce : ModuleRules
 		});
 
 		PrivateDependencyModuleNames.AddRange(new string[] { "AIModule", "NavigationSystem" });
+
+		if (Target.bBuildEditor)
+		{
+			PrivateDependencyModuleNames.Add("UnrealEd");	// Automation tests PIE session control
+		}
 	}
 }

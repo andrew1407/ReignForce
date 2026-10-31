@@ -1,5 +1,8 @@
 #pragma once
 
+#include "CoreMinimal.h"
+#include "StageProgress.generated.h"
+
 UENUM(BlueprintType)
 enum class EStageProgress: uint8
 {

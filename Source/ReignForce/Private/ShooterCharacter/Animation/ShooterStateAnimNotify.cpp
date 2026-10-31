@@ -15,7 +15,7 @@ UShooterStateAnimNotify::UShooterStateAnimNotify(const FObjectInitializer& Objec
     ShooterState = EShooterState::Idle;
 }
 
-void UShooterStateAnimNotify::Notify(USkeletalMeshComponent* MeshComp, UAnimSequenceBase* Animation)
+void UShooterStateAnimNotify::Notify(USkeletalMeshComponent* MeshComp, UAnimSequenceBase* Animation, const FAnimNotifyEventReference& EventReference)
 {
     auto Character = Cast<AShooterCharacter>(MeshComp->GetOwner());
     if (!IsValid(Character) || Character->IsDead()) return;

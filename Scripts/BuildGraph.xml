@@ -1,0 +1,47 @@
+<?xml version='1.0' ?>
+<!--
+	Project build pipeline, shared by the project scripts (run it via `ue graph [Node]`).
+	Every node is skipped when its outputs are up to date in the local temp storage,
+	so re-running e.g. Package after a content-only change doesn't recompile.
+-->
+<BuildGraph xmlns="http://www.epicgames.com/BuildGraph" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.epicgames.com/BuildGraph ../../Engine/Build/Graph/Schema.xsd" >
+
+	<Option Name="ProjectFile" DefaultValue="" Description="Path to the .uproject"/>
+	<Option Name="ProjectName" DefaultValue="" Description="Project (and primary module) name"/>
+	<Option Name="ProjectDir" DefaultValue="" Description="Project root dir"/>
+	<Option Name="Platform" DefaultValue="Win64" Description="Target platform (Win64, Linux, Mac)"/>
+	<Option Name="CookPlatform" DefaultValue="Windows" Description="Cook platform (Windows, Linux, Mac)"/>
+	<Option Name="Config" DefaultValue="Shipping" Description="Game configuration"/>
+	<Option Name="EditorCmd" DefaultValue="" Description="Headless editor executable used for tests"/>
+	<Option Name="TestFilter" DefaultValue="$(ProjectName)" Description="Automation tests prefix"/>
+
+	<Error Message="ProjectFile & ProjectName are required (use the ue script)" If="'$(ProjectFile)' == '' Or '$(ProjectName)' == ''"/>
+
+	<Agent Name="Compile" Type="$(Platform)">
+		<Node Name="CompileEditor">
+			<Compile Target="ShaderCompileWorker" Platform="$(Platform)" Configuration="Development"/>
+			<Compile Target="$(ProjectName)Editor" Platform="$(Platform)" Configuration="Development" Project="$(ProjectFile)"/>
+		</Node>
+		<Node Name="CompileGame">
+			<Compile Target="$(ProjectName)" Platform="$(Platform)" Configuration="$(Config)" Project="$(ProjectFile)"/>
+		</Node>
+	</Agent>
+
+	<Agent Name="Content" Type="$(Platform)">
+		<Node Name="Cook" Requires="CompileEditor">
+			<Cook Project="$(ProjectFile)" Platform="$(CookPlatform)" Arguments="-allmaps"/>
+		</Node>
+		<Node Name="Package" Requires="CompileGame;Cook">
+			<Command Name="BuildCookRun" Arguments="-project=&quot;$(ProjectFile)&quot; -platform=$(Platform) -clientconfig=$(Config) -skipbuild -skipcook -stage -pak -archive -archivedirectory=&quot;$(ProjectDir)/Build/Archived&quot; -stagingdirectory=&quot;$(ProjectDir)/Build/Stage&quot;"/>
+		</Node>
+	</Agent>
+
+	<Agent Name="Tests" Type="$(Platform)">
+		<Node Name="Test" Requires="CompileEditor">
+			<Spawn Exe="$(EditorCmd)" Arguments="&quot;$(ProjectFile)&quot; -ExecCmds=&quot;Automation RunTests $(TestFilter)&quot; -TestExit=&quot;Automation Test Queue Empty&quot; -ReportExportPath=&quot;$(ProjectDir)/Build/Tests&quot; -unattended -nopause -nullrhi -nosplash -nosound -log"/>
+		</Node>
+	</Agent>
+
+	<Aggregate Name="All" Requires="Package;Test"/>
+
+</BuildGraph>

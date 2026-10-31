@@ -13,7 +13,7 @@ UEquipWeaponAnimNotify::UEquipWeaponAnimNotify(const FObjectInitializer& ObjectI
     bEquipAction = true;
 }
 
-void UEquipWeaponAnimNotify::Notify(USkeletalMeshComponent* MeshComp, UAnimSequenceBase* Animation)
+void UEquipWeaponAnimNotify::Notify(USkeletalMeshComponent* MeshComp, UAnimSequenceBase* Animation, const FAnimNotifyEventReference& EventReference)
 {
     auto Character = Cast<AShooterCharacter>(MeshComp->GetOwner());
     if (!IsValid(Character)) return;
