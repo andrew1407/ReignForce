@@ -10,6 +10,7 @@
 class USoundMix;
 class USoundClass;
 class UTexture2D;
+class UImpactEffectsDataAsset;
 
 /**
  * Project wide assets used by the game systems (Project Settings -> Game -> Reign Force)
@@ -47,4 +48,8 @@ public:
 
 	UPROPERTY(Config, EditAnywhere, Category = "Loading", meta = (ClampMin = 0, UIMin = 0, Units = "Seconds"))
 	float MinLoadingScreenDisplayTime;
+
+	/** Surface hit particles & marks (bullet holes, blade cuts) */
+	UPROPERTY(Config, EditAnywhere, Category = "Weapons")
+	TSoftObjectPtr<UImpactEffectsDataAsset> ImpactEffects;
 };

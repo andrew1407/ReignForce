@@ -13,6 +13,8 @@
 #include "Particles/ParticleSystem.h"
 #include "Particles/ParticleSystemComponent.h"
 
+#include "Weapons/ImpactEffectsLibrary.h"
+
 
 AFirearmsWeapon::AFirearmsWeapon(const FObjectInitializer& ObjectInitializer) : Super(ObjectInitializer)
 {
@@ -68,7 +70,9 @@ bool AFirearmsWeapon::Fire(const FVector& Direction, const FRotator& Rotation, c
     }
     else
     {
-        SpawnHitEffect(HitResult);
+        // Surface debris & bullet hole, the generic hit effect is kept for surfaces without own ones
+        bool bSurfaceEffect = UImpactEffectsLibrary::SpawnSurfaceImpact(this, HitResult, GetType());
+        if (!bSurfaceEffect) SpawnHitEffect(HitResult);
         PlayHitSound(HitResult);
     }
     const float DamageTaken = HitActor->TakeDamage(Damage, FDamageEvent(), nullptr, this);

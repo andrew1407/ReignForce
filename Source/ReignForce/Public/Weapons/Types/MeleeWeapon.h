@@ -10,6 +10,7 @@
 class UBoxComponent;
 class UAudioComponent;
 class UParticleSystem;
+class UParticleSystemComponent;
 
 class UCooldown;
 
@@ -29,6 +30,7 @@ public:
 
     virtual FVector GetAimingPosition_Implementation() const override;
 	virtual void NotifyActorBeginOverlap(AActor* OtherActor) override;
+	virtual void Tick(float DeltaSeconds) override;
 
 	UFUNCTION(BlueprintCallable)
 	void EnableCollision(int32 Index = 0);
@@ -67,6 +69,15 @@ private:
 	UPROPERTY(BlueprintReadOnly, meta = (AllowPrivateAccess = true))
 	TObjectPtr<UCooldown> Cooldown;
 
+	/** Blade marks & debris on non-target surfaces (walls, ground, crates) hit during a swing */
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Attack|Visual", meta = (AllowPrivateAccess = true))
+	bool bMarkSurfaces;
+
+	/** Swing collision location of the previous frame, the blade is swept from it */
+	FVector LastSwingLocation;
+	bool bSurfaceHitDuringSwing;
+
+	void TraceSwingSurfaceHit();
 	UAudioComponent* PlayOnHitSound() const;
 	UParticleSystemComponent* SpawnHitTargetEffect() const;
 };
