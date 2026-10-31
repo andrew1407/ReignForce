@@ -6,6 +6,7 @@
 #include "Sound/SoundClass.h"
 #include "Engine/Texture2D.h"
 #include "Weapons/ImpactEffectsDataAsset.h"
+#include "InputMappingContext.h"
 
 
 UReignForceSettings::UReignForceSettings(const FObjectInitializer& ObjectInitializer) : Super(ObjectInitializer)
@@ -18,4 +19,6 @@ UReignForceSettings::UReignForceSettings(const FObjectInitializer& ObjectInitial
     MinLoadingScreenDisplayTime = .5f;
 
     ImpactEffects = TSoftObjectPtr<UImpactEffectsDataAsset>(FSoftObjectPath(TEXT("/Game/Core/Weapons/Impacts/DA_ImpactEffects.DA_ImpactEffects")));
+
+    RemappableInputContext = TSoftObjectPtr<UInputMappingContext>(FSoftObjectPath(TEXT("/Game/ThirdPerson/Input/IMC_Default.IMC_Default")));
 }

@@ -3,21 +3,18 @@
 
 #include "UI/Settings/GameSettingsWidget.h"
 #include "Blueprint/WidgetTree.h"
-#include "Styling/CoreStyle.h"
 #include "Kismet/KismetSystemLibrary.h"
 #include "Framework/Application/SlateApplication.h"
 
-#include "Components/Border.h"
 #include "Components/Button.h"
-#include "Components/ButtonSlot.h"
 #include "Components/HorizontalBox.h"
 #include "Components/HorizontalBoxSlot.h"
-#include "Components/SizeBox.h"
+#include "Components/TextBlock.h"
 #include "Components/VerticalBox.h"
 #include "Components/VerticalBoxSlot.h"
-#include "CommonTextBlock.h"
 
 #include "Settings/ReignForceGameUserSettings.h"
+#include "UI/Settings/KeyBindingsWidget.h"
 
 
 namespace
@@ -26,14 +23,6 @@ namespace
     constexpr int32 SENSITIVITY_PERCENT_STEP = 10;
 
     FText Percent(int32 Value) { return FText::FromString(FString::Printf(TEXT("%d%%"), Value)); }
-
-    FSlateFontInfo MakeFont(const UButton* Template, int32 Size)
-    {
-        auto TemplateLabel = IsValid(Template) ? Cast<UTextBlock>(Template->GetChildAt(0)) : nullptr;
-        FSlateFontInfo Font = IsValid(TemplateLabel) ? TemplateLabel->GetFont() : FCoreStyle::GetDefaultFontStyle("Bold", Size);
-        Font.Size = Size;
-        return Font;
-    }
 }
 
 UGameSettingsWidget::UGameSettingsWidget(const FObjectInitializer& ObjectInitializer) : Super(ObjectInitializer)
@@ -42,6 +31,7 @@ UGameSettingsWidget::UGameSettingsWidget(const FObjectInitializer& ObjectInitial
     BackgroundColor = FLinearColor(0, 0, 0, .85f);
     bBuilt = false;
     FocusedButtonScale = 1.05f;
+    KeyBindingsMenuClass = UKeyBindingsWidget::StaticClass();
 }
 
 TSharedRef<SWidget> UGameSettingsWidget::RebuildWidget()
@@ -63,26 +53,9 @@ void UGameSettingsWidget::Setup(UButton* StyleTemplate)
     const FSlateFontInfo RowFont = MakeFont(StyleTemplate, 22);
     const FSlateFontInfo HintFont = MakeFont(StyleTemplate, 14);
     const FSlateColor TextColor = FLinearColor::White;
+    ButtonsStyleTemplate = StyleTemplate;
 
-    auto Background = WidgetTree->ConstructWidget<UBorder>(UBorder::StaticClass(), TEXT("Background"));
-    Background->SetBrushColor(BackgroundColor);
-    Background->SetHorizontalAlignment(HAlign_Center);
-    Background->SetVerticalAlignment(VAlign_Center);
-    WidgetTree->RootWidget = Background;
-
-    auto Frame = WidgetTree->ConstructWidget<USizeBox>(USizeBox::StaticClass(), TEXT("Frame"));
-    Frame->SetWidthOverride(MenuWidth);
-    Background->SetContent(Frame);
-
-    auto Column = WidgetTree->ConstructWidget<UVerticalBox>(UVerticalBox::StaticClass(), TEXT("Column"));
-    Frame->SetContent(Column);
-
-    UTextBlock* Title = MakeText(FText::FromString(TEXT("Settings")), TitleFont, TextColor);
-    if (UVerticalBoxSlot* TitleSlot = Column->AddChildToVerticalBox(Title))
-    {
-        TitleSlot->SetHorizontalAlignment(HAlign_Center);
-        TitleSlot->SetPadding(FMargin(0, 0, 0, 24));
-    }
+    UVerticalBox* Column = ConstructMenuColumn(FText::FromString(TEXT("Settings")), TitleFont, MenuWidth, BackgroundColor);
 
     for (int32 RowIndex = 0; RowIndex < Rows.Num(); ++RowIndex)
     {
@@ -114,6 +87,17 @@ void UGameSettingsWidget::Setup(UButton* StyleTemplate)
         RegisterFocusableButton(Button);
         RefreshRowText(RowIndex);
     }
+
+    // Key bindings are a separate menu, changed keys are applied right away
+    auto ControlsContent = WidgetTree->ConstructWidget<UHorizontalBox>(UHorizontalBox::StaticClass());
+    if (UHorizontalBoxSlot* LabelSlot = ControlsContent->AddChildToHorizontalBox(MakeText(FText::FromString(TEXT("Keyboard & mouse controls")), RowFont, TextColor)))
+        LabelSlot->SetSize(FSlateChildSize(ESlateSizeRule::Fill));
+    ControlsContent->AddChildToHorizontalBox(MakeText(FText::FromString(TEXT("...")), RowFont, TextColor));
+    ControlsButton = MakeButton(StyleTemplate, ControlsContent, TEXT("ControlsButton"));
+    ControlsButton->OnClicked.AddDynamic(this, &UGameSettingsWidget::HandleControlsClicked);
+    RegisterFocusableButton(ControlsButton);
+    if (UVerticalBoxSlot* ControlsSlot = Column->AddChildToVerticalBox(ControlsButton))
+        ControlsSlot->SetPadding(FMargin(0, 16, 0, 4));
 
     auto Actions = WidgetTree->ConstructWidget<UHorizontalBox>(UHorizontalBox::StaticClass(), TEXT("Actions"));
     ApplyButton = MakeButton(StyleTemplate, MakeText(FText::FromString(TEXT("Apply")), RowFont, TextColor), TEXT("ApplyButton"));
@@ -182,6 +166,15 @@ void UGameSettingsWidget::HandleApplyClicked()
         Settings->ApplyAudioSettings(this);
     }
     RequestClose();
+}
+
+void UGameSettingsWidget::HandleControlsClicked()
+{
+    if (!IsValid(KeyBindingsMenuClass)) return;
+    auto KeyBindings = CreateWidget<UKeyBindingsWidget>(GetOwningPlayer(), KeyBindingsMenuClass);
+    if (!IsValid(KeyBindings)) return;
+    KeyBindings->Setup(ButtonsStyleTemplate.Get());
+    PushChildMenu(KeyBindings);
 }
 
 void UGameSettingsWidget::HandleBackClicked()
@@ -344,33 +337,4 @@ void UGameSettingsWidget::DiscardChanges()
     constexpr bool bForceReload = true;
     Settings->LoadSettings(bForceReload);
     Settings->ApplyAudioSettings(this);
-}
-
-UButton* UGameSettingsWidget::MakeButton(UButton* StyleTemplate, UWidget* Content, FName Name)
-{
-    auto Button = WidgetTree->ConstructWidget<UButton>(UButton::StaticClass(), Name);
-    if (IsValid(StyleTemplate))
-    {
-        Button->SetStyle(StyleTemplate->GetStyle());
-        Button->SetColorAndOpacity(StyleTemplate->GetColorAndOpacity());
-        Button->SetBackgroundColor(StyleTemplate->GetBackgroundColor());
-    }
-    if (UButtonSlot* ContentSlot = Cast<UButtonSlot>(Button->AddChild(Content)))
-    {
-        ContentSlot->SetPadding(FMargin(18, 6));
-        ContentSlot->SetHorizontalAlignment(Content->IsA<UTextBlock>() ? HAlign_Center : HAlign_Fill);
-        ContentSlot->SetVerticalAlignment(VAlign_Center);
-    }
-    return Button;
-}
-
-UTextBlock* UGameSettingsWidget::MakeText(const FText& Text, const FSlateFontInfo& Font, const FSlateColor& Color)
-{
-    auto TextBlock = WidgetTree->ConstructWidget<UCommonTextBlock>(UCommonTextBlock::StaticClass());
-    TextBlock->SetText(Text);
-    TextBlock->SetFont(Font);
-    TextBlock->SetColorAndOpacity(Color);
-    TextBlock->SetShadowOffset(FVector2D(1));
-    TextBlock->SetShadowColorAndOpacity(FLinearColor(0, 0, 0, .6f));
-    return TextBlock;
 }

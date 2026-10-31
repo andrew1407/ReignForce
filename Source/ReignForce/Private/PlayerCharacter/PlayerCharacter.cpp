@@ -91,7 +91,10 @@ void APlayerCharacter::BeginPlay()
 	{
     	//Add Input Mapping Context
 		auto Subsystem = ULocalPlayer::GetSubsystem<UEnhancedInputLocalPlayerSubsystem>(PlayerController->GetLocalPlayer());
-		if (IsValid(Subsystem) && Inputs.MappingContext) Subsystem->AddMappingContext(Inputs.MappingContext, 0);
+		// Registered with the user settings for the player remapped keys to be applied
+		FModifyContextOptions ContextOptions;
+		ContextOptions.bNotifyUserSettings = true;
+		if (IsValid(Subsystem) && Inputs.MappingContext) Subsystem->AddMappingContext(Inputs.MappingContext, 0, ContextOptions);
 	
 		ShooterHUD = PlayerController->GetHUD<AShooterHUD>();
 		if (ShooterHUD.IsValid()) ShooterHUD->CreateShooterStatsWidget();

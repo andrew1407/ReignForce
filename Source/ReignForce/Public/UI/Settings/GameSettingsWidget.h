@@ -11,9 +11,10 @@ class UButton;
 class UTextBlock;
 class UPanelWidget;
 class UReignForceGameUserSettings;
+class UKeyBindingsWidget;
 
 /**
- * Settings menu (video & audio) built natively; option rows change values with left/right navigation or a click
+ * Settings menu (video, audio & controls submenu) built natively; option rows change values with left/right navigation or a click
  */
 UCLASS()
 class REIGNFORCE_API UGameSettingsWidget : public UReignForceActivatableWidget
@@ -36,6 +37,9 @@ protected:
 
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Settings|Layout")
 	FLinearColor BackgroundColor;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Settings|Controls")
+	TSubclassOf<UKeyBindingsWidget> KeyBindingsMenuClass;
 
 private:
 	struct FOptionRow
@@ -63,6 +67,12 @@ private:
 	UPROPERTY()
 	TObjectPtr<UButton> BackButton;
 
+	UPROPERTY()
+	TObjectPtr<UButton> ControlsButton;
+
+	/** Submenus take the same buttons style */
+	TWeakObjectPtr<UButton> ButtonsStyleTemplate;
+
 	UFUNCTION()
 	UWidget* HandleOptionNavigation(EUINavigation Direction);
 
@@ -73,6 +83,9 @@ private:
 	void HandleApplyClicked();
 
 	UFUNCTION()
+	void HandleControlsClicked();
+
+	UFUNCTION()
 	void HandleBackClicked();
 
 	void ReadOptions(const UReignForceGameUserSettings* Settings);
@@ -81,7 +94,4 @@ private:
 	void RefreshRowText(int32 RowIndex);
 	int32 FindActiveRow() const;
 	void DiscardChanges();
-
-	UButton* MakeButton(UButton* StyleTemplate, UWidget* Content, FName Name);
-	UTextBlock* MakeText(const FText& Text, const FSlateFontInfo& Font, const FSlateColor& Color);
 };
