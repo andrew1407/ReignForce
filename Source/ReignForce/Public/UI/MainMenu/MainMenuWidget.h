@@ -3,7 +3,7 @@
 #pragma once
 
 #include "CoreMinimal.h"
-#include "Blueprint/UserWidget.h"
+#include "UI/Common/ReignForceActivatableWidget.h"
 #include "MainMenuWidget.generated.h"
 
 
@@ -15,7 +15,7 @@ class UConfirmationModalWidget;
  * 
  */
 UCLASS()
-class REIGNFORCE_API UMainMenuWidget : public UUserWidget
+class REIGNFORCE_API UMainMenuWidget : public UReignForceActivatableWidget
 {
 	GENERATED_BODY()
 
@@ -29,8 +29,10 @@ public:
 	bool IsCurrentModalOpened() const;
 
 protected:
+	virtual void NativeOnInitialized() override;
 	virtual void NativeConstruct() override;
 	virtual void NativeDestruct() override;
+	virtual bool HandleBackAction() override;
 
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Menu", meta = (BindWidget))
 	TObjectPtr<UButton> ContinuePlayingButton;
@@ -40,6 +42,10 @@ protected:
 
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Menu", meta = (BindWidget))
 	TObjectPtr<UButton> ExitButton;
+
+	/** Created next to the exit button when the layout has no own one */
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Menu", meta = (BindWidgetOptional))
+	TObjectPtr<UButton> SettingsButton;
 
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Menu", meta = (BindWidget))
 	TObjectPtr<UTextBlock> ProjectVersion;
@@ -65,6 +71,9 @@ private:
 
 	UFUNCTION()
 	void OnExitClick();
+
+	UFUNCTION()
+	void OnSettingsClick();
 
 	UFUNCTION()
 	void OnStartNewGameConfirmation(bool bAccepted);

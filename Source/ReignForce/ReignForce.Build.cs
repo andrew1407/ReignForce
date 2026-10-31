@@ -20,9 +20,14 @@ public class ReignForce : ModuleRules
 			"Json",					// JSON parsing 
 			"JsonUtilities",
 			"WebSockets",			// ws client connection handling
+			"UMG",
+			"Slate",
+			"CommonUI",				// Menus: activatable widgets, input routing (back & click actions)
+			"CommonInput",
+			"DeveloperSettings",
 		});
 
-		PrivateDependencyModuleNames.AddRange(new string[] { "AIModule", "NavigationSystem" });
+		PrivateDependencyModuleNames.AddRange(new string[] { "AIModule", "NavigationSystem", "MoviePlayer", "PhysicsCore" });
 
 		if (Target.bBuildEditor)
 		{

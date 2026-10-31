@@ -48,11 +48,13 @@ public:
 
 	FORCEINLINE EStageProgress GetProgressState() const { return ProgressState; }
 	FORCEINLINE bool IsSelected() const { return bSelected; }
+	FORCEINLINE UButton* GetActionButton() const { return ActionButton; }
 	FORCEINLINE TPair<EStageProgress, bool> GetCurrentState() const { return { ProgressState, bSelected }; }
 
 protected:
 	virtual void NativeConstruct() override;
 	virtual void NativeDestruct() override;
+	virtual void NativeTick(const FGeometry& MyGeometry, float InDeltaTime) override;
 
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "SkillsProgression", meta = (BindWidget))
 	TObjectPtr<UButton> ActionButton;
@@ -67,6 +69,17 @@ private:
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "SkillsProgression|Sounds", meta = (AllowPrivateAccess = true))
 	TObjectPtr<USoundBase> OnHoverActionSound;
 
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "SkillsProgression|Focus", meta = (AllowPrivateAccess = true, ClampMin = 1, UIMin = 1))
+	float FocusedScale;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "SkillsProgression|Focus", meta = (AllowPrivateAccess = true))
+	FLinearColor FocusedTint;
+
+	UPROPERTY(BlueprintReadOnly, meta = (AllowPrivateAccess = true))
+	bool bFocused;
+
+	FLinearColor DefaultActionBackground = FLinearColor::White;
+
 	UPROPERTY(BlueprintReadOnly, meta = (AllowPrivateAccess = true))
 	bool bSelected;
 
@@ -79,5 +92,6 @@ private:
 	UFUNCTION()
 	void OnActionHover();
 
+	void SetFocusHighlight(bool bState);
 	void SetActionSkillImage(UTexture2D* Image);
 };

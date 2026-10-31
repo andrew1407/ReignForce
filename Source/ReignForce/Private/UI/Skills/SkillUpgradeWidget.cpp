@@ -13,8 +13,39 @@
 USkillUpgradeWidget::USkillUpgradeWidget(const FObjectInitializer& ObjectInitializer) : Super(ObjectInitializer)
 {
     bSelected = false;
+    bFocused = false;
 	ProgressState = EStageProgress::None;
+    FocusedScale = 1.18f;
+    FocusedTint = FLinearColor(1.3f, 1.3f, 1.3f, 1);
     SetIsFocusable(true);
+}
+
+void USkillUpgradeWidget::NativeTick(const FGeometry& MyGeometry, float InDeltaTime)
+{
+    Super::NativeTick(MyGeometry, InDeltaTime);
+
+    bool bHasFocus = HasAnyUserFocus() || (IsValid(ActionButton) && ActionButton->HasAnyUserFocus());
+    if (bHasFocus != bFocused) SetFocusHighlight(bHasFocus);
+}
+
+void USkillUpgradeWidget::SetFocusHighlight(bool bState)
+{
+    bFocused = bState;
+    if (!IsValid(ActionButton)) return;
+
+    ActionButton->SetRenderTransformPivot(FVector2D(.5f));
+    ActionButton->SetRenderScale(FVector2D(bFocused ? FocusedScale : 1));
+    // Skill image is the button brush, so the background tint brightens it
+    ActionButton->SetBackgroundColor(bFocused ? DefaultActionBackground * FocusedTint : DefaultActionBackground);
+
+    // Hover sound for the keyboard & gamepad navigation (mouse hover plays it on its own)
+    bool bNavigated = bFocused && !ActionButton->IsHovered();
+    if (bNavigated && IsValid(OnHoverActionSound))
+    {
+        constexpr float PitchMultiplier = 1;
+        constexpr float SoundVolume = 1;
+	    UGameplayStatics::SpawnSound2D(GetWorld(), OnHoverActionSound, SoundVolume, PitchMultiplier);
+    }
 }
 
 void USkillUpgradeWidget::NativeConstruct()
@@ -23,6 +54,7 @@ void USkillUpgradeWidget::NativeConstruct()
 
     if (IsValid(ActionButton))
     {
+        DefaultActionBackground = ActionButton->GetBackgroundColor();
         ActionButton->OnClicked.AddDynamic(this, &USkillUpgradeWidget::OnActionClick);
         ActionButton->OnHovered.AddDynamic(this, &USkillUpgradeWidget::OnActionHover);
     }
@@ -97,6 +129,9 @@ void USkillUpgradeWidget::OnActionClick()
 
 void USkillUpgradeWidget::OnActionHover()
 {
+    // Mouse hover moves the focus as well, so gamepad & keyboard navigation continues from it
+    if (IsValid(ActionButton) && !ActionButton->HasAnyUserFocus()) ActionButton->SetFocus();
+
     if (IsValid(OnHoverActionSound))
     {
         constexpr float PitchMultiplier = 1;

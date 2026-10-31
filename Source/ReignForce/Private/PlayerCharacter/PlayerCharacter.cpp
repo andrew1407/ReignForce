@@ -41,6 +41,7 @@
 #include "GameStates/ShooterGameState.h"
 #include "GameStates/Components/UpgradesProgressStateComponent.h"
 #include "ReinforcementLearning/Interfaces/AICommandsStrategy.h"
+#include "Settings/ReignForceGameUserSettings.h"
 
 
 DEFINE_LOG_CATEGORY(LogTemplateCharacter);
@@ -354,7 +355,9 @@ void APlayerCharacter::LookAction(const FInputActionValue& Value)
 	if (!IsValid(GetController())) return;
 
 	// input is a Vector2D
-	const auto LookAxisVector = Value.Get<FVector2D>();
+	auto LookAxisVector = Value.Get<FVector2D>();
+	const UReignForceGameUserSettings* Settings = UReignForceGameUserSettings::GetReignForceGameUserSettings();
+	if (IsValid(Settings)) LookAxisVector *= Settings->GetLookSensitivity();
 
 	// add yaw and pitch input to controller
 	AddControllerYawInput(LookAxisVector.X);
@@ -388,7 +391,14 @@ void APlayerCharacter::TogglePauseMenuAction()
 	if (!ShooterHUD.IsValid()) return;
 	auto PlayerController = GetController<AShooterPlayerController>();
 
-	if (ShooterHUD->IsPauseMenuOpened())
+	// Pause input closes an opened skills menu instead of stacking the pause one over it
+	if (ShooterHUD->IsSkillsProgressionMenuOpened())
+	{
+		ShooterHUD->CloseSkillsProgressionMenu();
+		if (IsValid(PlayerController))
+			PlayerController->SetInteractionMode(EPlayerInteractionMode::GameplayInputAndNotPause);
+	}
+	else if (ShooterHUD->IsPauseMenuOpened())
 	{
 		ShooterHUD->ClosePauseMenu();
 		if (IsValid(PlayerController))
@@ -405,6 +415,7 @@ void APlayerCharacter::TogglePauseMenuAction()
 void APlayerCharacter::ToggleSkillsMenuAction()
 {
 	if (!ShooterHUD.IsValid() || IsDead()) return;
+	if (ShooterHUD->IsPauseMenuOpened()) return;
 	auto PlayerController = GetController<AShooterPlayerController>();
 
 	if (ShooterHUD->IsSkillsProgressionMenuOpened())
