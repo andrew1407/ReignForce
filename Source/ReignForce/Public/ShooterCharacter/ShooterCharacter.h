@@ -266,4 +266,5 @@ private:
 	TObjectPtr<UBoxComponent> LeftFist;
 
 	void DeactivateMelee();
+	bool CanReact() const;
 };

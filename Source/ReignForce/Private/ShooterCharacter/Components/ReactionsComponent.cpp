@@ -46,8 +46,8 @@ void UReactionsComponent::InterruptReactionSound()
 
 void UReactionsComponent::ResetReactionSound(UAudioComponent* Sound)
 {
-	InterruptReactionSound();
-	ReactionSound = Sound;
+	// A playing reaction (pain, perish scream) is never cut off: unfinished voice lines are confusing
+	if (IsValid(Sound) || !ReactionSoundPlaying()) ReactionSound = Sound;
 }
 
 UAudioComponent* UReactionsComponent::MakeOnLandedSound(const FVector& Location, const FRotator& Rotator, float ExtraVolume)
