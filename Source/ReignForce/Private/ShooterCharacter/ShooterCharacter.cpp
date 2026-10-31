@@ -329,7 +329,9 @@ float AShooterCharacter::TakeDamage(float DamageAmount, FDamageEvent const& Dama
 	if (!bLethal && IsValid(DamageTakerComponent))
 	{
 		EWeaponType DamageType = DamageTakerComponent->DefineDamage(DamageCauser, AShooterCharacter::StaticClass());
-		bool bScreamInPain = IsValid(ReactionsComponent) && ReactionsComponent->GenerateScreamInPainChance(DamageType);
+		// Skipped while the previous reaction is still voiced, so it isn't interrupted or overlapped
+		bool bScreamInPain = IsValid(ReactionsComponent) && !ReactionsComponent->ReactionSoundPlaying()
+			&& ReactionsComponent->GenerateScreamInPainChance(DamageType);
 		if (bScreamInPain)
 		{
 			UAudioComponent* Sound = ReactionsComponent->ScreamInPain(GetActorLocation(), FRotator::ZeroRotator, DamageType);
@@ -648,35 +650,35 @@ bool AShooterCharacter::TryAddWeapon(TSubclassOf<AWeapon> WeaponClass, EWeaponTy
 
 void AShooterCharacter::ReactToSeen()
 {
-	if (!IsValid(ReactionsComponent)) return;
+	if (!CanReact()) return;
 	UAudioComponent* Sound = ReactionsComponent->MakeWhenSeenSound(GetActorLocation(), FRotator::ZeroRotator);
 	ReactionsComponent->ResetReactionSound(Sound);
 }
 
 void AShooterCharacter::ReactToHeard()
 {
-	if (!IsValid(ReactionsComponent)) return;
+	if (!CanReact()) return;
 	UAudioComponent* Sound = ReactionsComponent->MakeWhenHeardSound(GetActorLocation(), FRotator::ZeroRotator);
 	ReactionsComponent->ResetReactionSound(Sound);
 }
 
 void AShooterCharacter::ReactToLostSight()
 {
-	if (!IsValid(ReactionsComponent)) return;
+	if (!CanReact()) return;
 	UAudioComponent* Sound = ReactionsComponent->MakeWhenLostSightSound(GetActorLocation(), FRotator::ZeroRotator);
 	ReactionsComponent->ResetReactionSound(Sound);
 }
 
 void AShooterCharacter::ReactJoyfully()
 {
-	if (!IsValid(ReactionsComponent)) return;
+	if (!CanReact()) return;
 	UAudioComponent* Sound = ReactionsComponent->MakeJoySound(GetActorLocation(), FRotator::ZeroRotator);
 	ReactionsComponent->ResetReactionSound(Sound);
 }
 
 void AShooterCharacter::GruntOnAttack()
 {
-	if (!IsValid(ReactionsComponent)) return;
+	if (!CanReact()) return;
 	UAudioComponent* Sound = ReactionsComponent->MakeAttackGrunt(GetActorLocation(), FRotator::ZeroRotator);
 	ReactionsComponent->ResetReactionSound(Sound);
 }
@@ -709,4 +711,11 @@ void AShooterCharacter::DeactivateMelee()
 	{
 		TryActivateMeleeCollision(false);
 	}
+}
+
+
+bool AShooterCharacter::CanReact() const
+{
+	// Reactions wait for the current one to finish instead of interrupting it
+	return !IsDead() && IsValid(ReactionsComponent) && !ReactionsComponent->ReactionSoundPlaying();
 }
