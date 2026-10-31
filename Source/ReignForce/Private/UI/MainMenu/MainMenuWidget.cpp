@@ -23,6 +23,29 @@ UMainMenuWidget::UMainMenuWidget(const FObjectInitializer& ObjectInitializer) : 
     MainGameLevelName = NAME_None;
 }
 
+void UMainMenuWidget::NativeOnInitialized()
+{
+    Super::NativeOnInitialized();
+
+    if (!IsValid(SettingsButton))
+        SettingsButton = CreateButtonLike(ExitButton, FText::FromString(TEXT("Settings")), TEXT("SettingsButton"));
+    if (IsValid(SettingsButton))
+        SettingsButton->OnClicked.AddDynamic(this, &UMainMenuWidget::OnSettingsClick);
+
+    RegisterFocusableButton(ContinuePlayingButton);
+    RegisterFocusableButton(PlayNewGameButton);
+    RegisterFocusableButton(SettingsButton);
+    RegisterFocusableButton(ExitButton);
+}
+
+bool UMainMenuWidget::HandleBackAction()
+{
+    // Back on the main menu asks to quit the game
+    if (IsCurrentModalOpened()) return false;
+    OnExitClick();
+    return true;
+}
+
 void UMainMenuWidget::NativeConstruct()
 {
     Super::NativeConstruct();
@@ -34,13 +57,13 @@ void UMainMenuWidget::NativeConstruct()
     {
         ContinuePlayingButton->OnClicked.AddDynamic(this, &UMainMenuWidget::OnContinuePlayingClick);
         ContinuePlayingButton->SetIsEnabled(bPlayerHasLoadedSavesState);
-        if (bPlayerHasLoadedSavesState) ContinuePlayingButton->SetFocus();
+        if (bPlayerHasLoadedSavesState) FocusButton(ContinuePlayingButton);
     }
 
     if (IsValid(PlayNewGameButton))
     {
         PlayNewGameButton->OnClicked.AddDynamic(this, &UMainMenuWidget::OnPlayNewGameClick);
-        if (!bPlayerHasLoadedSavesState) PlayNewGameButton->SetFocus();
+        if (!bPlayerHasLoadedSavesState) FocusButton(PlayNewGameButton);
     }
 
     if (IsValid(ExitButton))
@@ -50,6 +73,8 @@ void UMainMenuWidget::NativeConstruct()
 
 void UMainMenuWidget::NativeDestruct()
 {
+    CloseCurrentOpenedModal();
+
     auto GameMode = GetWorld()->GetAuthGameMode<AReignForceGameMode>();
     if (IsValid(GameMode))
     {
@@ -65,6 +90,7 @@ void UMainMenuWidget::CloseCurrentOpenedModal()
     if (!IsCurrentModalOpened()) return;
     CurrentOpenedModal->RemoveFromParent();
     CurrentOpenedModal = nullptr;
+    if (IsInViewport() && !IsActivated()) ActivateWidget();
 }
 
 bool UMainMenuWidget::IsCurrentModalOpened() const
@@ -103,6 +129,11 @@ void UMainMenuWidget::OnExitClick()
     CurrentOpenedModal->SetOnActionResponse(OnModalWindowWidgetActionResponse);
 }
 
+void UMainMenuWidget::OnSettingsClick()
+{
+    OpenSettingsMenu(SettingsButton);
+}
+
 void UMainMenuWidget::OnStartNewGameConfirmation(bool bAccepted)
 {
     if (bAccepted)
@@ -114,7 +145,7 @@ void UMainMenuWidget::OnStartNewGameConfirmation(bool bAccepted)
     else
     {
         CloseCurrentOpenedModal();
-        if (IsValid(PlayNewGameButton)) PlayNewGameButton->SetFocus();
+        if (IsValid(PlayNewGameButton)) FocusButton(PlayNewGameButton);
     }
 }
 
@@ -122,7 +153,7 @@ void UMainMenuWidget::OnExitConfirmation(bool bAccepted)
 {
     if (bAccepted) return GracefulShutdown();
     CloseCurrentOpenedModal();
-    if (IsValid(ExitButton)) ExitButton->SetFocus();
+    if (IsValid(ExitButton)) FocusButton(ExitButton);
 }
 
 void UMainMenuWidget::GracefulShutdown()
@@ -161,7 +192,10 @@ void UMainMenuWidget::OpenModalWindow(const TSubclassOf<UConfirmationModalWidget
     if (!IsValid(WidgetClass)) return;
     CloseCurrentOpenedModal();
     CurrentOpenedModal = CreateWidget<UConfirmationModalWidget>(GetWorld(), WidgetClass);
-    if (IsValid(CurrentOpenedModal)) CurrentOpenedModal->AddToViewport();
+    if (!IsValid(CurrentOpenedModal)) return;
+    CurrentOpenedModal->AddToViewport();
+    // The modal takes the input & focus over
+    DeactivateWidget();
 }
 
 void UMainMenuWidget::DefineCurrentProjectVersion()

@@ -112,4 +112,5 @@ private:
 	void LoadActiveMainMenuSound(int32 NextToPlay);
 	void LoadActiveSkillsMenuSound(int32 NextToPlay);
 	void LoadActivePauseMenuSound(int32 NextToPlay);
+	UAudioComponent* SpawnMusic(USoundBase* Sound, float Volume, float Pitch) const;
 };

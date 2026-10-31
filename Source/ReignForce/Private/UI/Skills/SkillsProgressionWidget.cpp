@@ -28,6 +28,12 @@ void USkillsProgressionWidget::NativeConstruct()
 
     SetDescriptionVisibility(false);
 
+    // Close button (and back action) asks the owner (HUD) to close the menu
+    if (IsValid(CloseMenuButton))
+        CloseMenuButton->OnClicked.AddUniqueDynamic(this, &UReignForceActivatableWidget::RequestClose);
+    RegisterFocusableButton(CloseMenuButton);
+    if (IsValid(SkillDescription)) RegisterFocusableButton(SkillDescription->GetUpgradeSkillButton());
+
     if (!(IsSkillsDataAssetValid() && IsValid(SkillDescription))) return;
 
     auto Character = Cast<APlayerCharacter>(GetOwningPlayerPawn());
@@ -70,6 +76,16 @@ void USkillsProgressionWidget::NativeConstruct()
         UpgradeWidget->LoadProgressState(StageProgress, bFirstChild);
         bFirstChild = false;
     }
+}
+
+UWidget* USkillsProgressionWidget::NativeGetDesiredFocusTarget() const
+{
+    // Selected skill keeps the focus, the first one is focused when the menu is opened
+    TArray<USkillUpgradeWidget*> SkillUpgrades = GetSkillUpgrades();
+    USkillUpgradeWidget* const* Selected = SkillUpgrades.FindByPredicate([] (USkillUpgradeWidget* Skill) { return Skill->IsSelected(); });
+    USkillUpgradeWidget* Target = Selected ? *Selected : (SkillUpgrades.IsEmpty() ? nullptr : SkillUpgrades[0]);
+    if (IsValid(Target) && IsValid(Target->GetActionButton())) return Target->GetActionButton();
+    return Super::NativeGetDesiredFocusTarget();
 }
 
 bool USkillsProgressionWidget::IsSkillsDataAssetValid() const

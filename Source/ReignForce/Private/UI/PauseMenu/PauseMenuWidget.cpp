@@ -25,6 +25,26 @@ UPauseMenuWidget::UPauseMenuWidget(const FObjectInitializer& ObjectInitializer) 
     bSaveOnGoToMenu = false;
 }
 
+void UPauseMenuWidget::NativeOnInitialized()
+{
+    Super::NativeOnInitialized();
+
+    if (!IsValid(SettingsButton))
+    {
+        constexpr int32 AfterRestart = 1;
+        SettingsButton = CreateButtonLike(RestartButton, FText::FromString(TEXT("Settings")), TEXT("SettingsButton"), AfterRestart);
+    }
+    if (IsValid(SettingsButton))
+        SettingsButton->OnClicked.AddDynamic(this, &UPauseMenuWidget::OnSettingsClick);
+
+    // Continue (and back action) asks the owner (HUD) to close the menu
+    if (IsValid(ContinueButton))
+        ContinueButton->OnClicked.AddDynamic(this, &UReignForceActivatableWidget::RequestClose);
+
+    for (UButton* Button : { ContinueButton, SaveProgressButton, RestartButton, SettingsButton, GoToMenuButton, ExitButton, SaveAndExitButton })
+        RegisterFocusableButton(Button);
+}
+
 void UPauseMenuWidget::NativeConstruct()
 {
     Super::NativeConstruct();
@@ -44,14 +64,20 @@ void UPauseMenuWidget::NativeConstruct()
     if (IsValid(SaveAndExitButton))
         SaveAndExitButton->OnClicked.AddDynamic(this, &UPauseMenuWidget::OnSaveAndExit);
 
-    if (IsValid(ContinueButton)) ContinueButton->SetFocus();
+    if (IsValid(ContinueButton)) FocusButton(ContinueButton);
 }
 
 void UPauseMenuWidget::NativeDestruct()
 {
-    if (IsValid(ContinueButton)) ContinueButton->OnClicked.Clear();
+    // The menu can be toggled off by the pause input while a modal is shown
+    CloseCurrentOpenedModal();
 
     Super::NativeDestruct();
+}
+
+void UPauseMenuWidget::OnSettingsClick()
+{
+    OpenSettingsMenu(SettingsButton);
 }
 
 void UPauseMenuWidget::OnSaveProgress()
@@ -113,7 +139,7 @@ void UPauseMenuWidget::SaveProgressConfirmation(bool bAccepted)
     }
 
     CloseCurrentOpenedModal();
-    if (IsValid(SaveProgressButton)) SaveProgressButton->SetFocus();
+    if (IsValid(SaveProgressButton)) FocusButton(SaveProgressButton);
 }
 
 void UPauseMenuWidget::RestartClickConfirmation(bool bAccepted)
@@ -121,7 +147,7 @@ void UPauseMenuWidget::RestartClickConfirmation(bool bAccepted)
     if (!bAccepted)
     {
         CloseCurrentOpenedModal();
-        if (IsValid(RestartButton)) RestartButton->SetFocus();
+        if (IsValid(RestartButton)) FocusButton(RestartButton);
         return;
     }
 
@@ -142,7 +168,7 @@ void UPauseMenuWidget::GoToMenuClickConfirmation(bool bAccepted)
     if (!bAccepted)
     {
         CloseCurrentOpenedModal();
-        if (IsValid(GoToMenuButton)) GoToMenuButton->SetFocus();
+        if (IsValid(GoToMenuButton)) FocusButton(GoToMenuButton);
         return;
     }
 
@@ -177,7 +203,7 @@ void UPauseMenuWidget::SaveAndExitConfirmation(bool bAccepted)
     if (!bAccepted)
     {
         CloseCurrentOpenedModal();
-        if (IsValid(SaveAndExitButton)) SaveAndExitButton->SetFocus();
+        if (IsValid(SaveAndExitButton)) FocusButton(SaveAndExitButton);
         return;
     }
 
@@ -191,6 +217,7 @@ void UPauseMenuWidget::CloseCurrentOpenedModal()
     if (!IsValid(CurrentOpenedModal)) return;
     CurrentOpenedModal->RemoveFromParent();
     CurrentOpenedModal = nullptr;
+    if (IsInViewport() && !IsActivated()) ActivateWidget();
 }
 
 void UPauseMenuWidget::OpenModalWindow(const TSubclassOf<UConfirmationModalWidget>& WidgetClass)
@@ -198,5 +225,8 @@ void UPauseMenuWidget::OpenModalWindow(const TSubclassOf<UConfirmationModalWidge
     if (!IsValid(WidgetClass)) return;
     CloseCurrentOpenedModal();
     CurrentOpenedModal = CreateWidget<UConfirmationModalWidget>(GetWorld(), WidgetClass);
-    if (IsValid(CurrentOpenedModal)) CurrentOpenedModal->AddToViewport();
+    if (!IsValid(CurrentOpenedModal)) return;
+    CurrentOpenedModal->AddToViewport();
+    // The modal takes the input & focus over
+    DeactivateWidget();
 }

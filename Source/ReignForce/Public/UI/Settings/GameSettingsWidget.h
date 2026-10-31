@@ -1,0 +1,87 @@
+// Fill out your copyright notice in the Description page of Project Settings.
+
+#pragma once
+
+#include "CoreMinimal.h"
+#include "UI/Common/ReignForceActivatableWidget.h"
+#include "GameSettingsWidget.generated.h"
+
+
+class UButton;
+class UTextBlock;
+class UPanelWidget;
+class UReignForceGameUserSettings;
+
+/**
+ * Settings menu (video & audio) built natively; option rows change values with left/right navigation or a click
+ */
+UCLASS()
+class REIGNFORCE_API UGameSettingsWidget : public UReignForceActivatableWidget
+{
+	GENERATED_BODY()
+
+public:
+	UGameSettingsWidget(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
+
+	/** Builds the menu taking buttons style from the template (should be called before adding to the viewport) */
+	UFUNCTION(BlueprintCallable)
+	void Setup(UButton* StyleTemplate);
+
+protected:
+	virtual TSharedRef<SWidget> RebuildWidget() override;
+	virtual bool HandleBackAction() override;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Settings|Layout", meta = (ClampMin = 0, UIMin = 0))
+	float MenuWidth;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Settings|Layout")
+	FLinearColor BackgroundColor;
+
+private:
+	struct FOptionRow
+	{
+		FText Label;
+		TArray<FText> Names;
+		TArray<int32> Values;
+		int32 Index = 0;
+		bool bLive = false;
+		TWeakObjectPtr<UButton> Button;
+		TWeakObjectPtr<UTextBlock> ValueText;
+
+		int32 GetValue() const { return Values.IsValidIndex(Index) ? Values[Index] : 0; }
+	};
+
+	enum EOption : int32 { WindowMode, Resolution, Quality, VSync, FrameRate, LookSensitivity, MasterVolume, MusicVolume, EffectsVolume, Count };
+
+	TArray<FOptionRow> Rows;
+	TArray<FIntPoint> Resolutions;
+	bool bBuilt;
+
+	UPROPERTY()
+	TObjectPtr<UButton> ApplyButton;
+
+	UPROPERTY()
+	TObjectPtr<UButton> BackButton;
+
+	UFUNCTION()
+	UWidget* HandleOptionNavigation(EUINavigation Direction);
+
+	UFUNCTION()
+	void HandleOptionClicked();
+
+	UFUNCTION()
+	void HandleApplyClicked();
+
+	UFUNCTION()
+	void HandleBackClicked();
+
+	void ReadOptions(const UReignForceGameUserSettings* Settings);
+	void ChangeOption(int32 RowIndex, int32 Delta, bool bWrap);
+	void PreviewOption(int32 RowIndex);
+	void RefreshRowText(int32 RowIndex);
+	int32 FindActiveRow() const;
+	void DiscardChanges();
+
+	UButton* MakeButton(UButton* StyleTemplate, UWidget* Content, FName Name);
+	UTextBlock* MakeText(const FText& Text, const FSlateFontInfo& Font, const FSlateColor& Color);
+};

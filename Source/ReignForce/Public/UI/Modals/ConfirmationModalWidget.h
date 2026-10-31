@@ -3,7 +3,7 @@
 #pragma once
 
 #include "CoreMinimal.h"
-#include "Blueprint/UserWidget.h"
+#include "UI/Common/ReignForceActivatableWidget.h"
 #include "UI/Modals/ModalFocusMode.h"
 #include "ConfirmationModalWidget.generated.h"
 
@@ -35,7 +35,7 @@ struct FModalWindowWidgetActionOptions
  * 
  */
 UCLASS()
-class REIGNFORCE_API UConfirmationModalWidget : public UUserWidget
+class REIGNFORCE_API UConfirmationModalWidget : public UReignForceActivatableWidget
 {
 	GENERATED_BODY()
 
@@ -50,6 +50,7 @@ public:
 
 protected:
 	virtual void NativeConstruct() override;
+	virtual bool HandleBackAction() override;
 
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Modal", meta = (BindWidget))
 	TObjectPtr<UTextBlock> Title;

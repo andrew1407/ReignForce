@@ -3,7 +3,7 @@
 #pragma once
 
 #include "CoreMinimal.h"
-#include "Blueprint/UserWidget.h"
+#include "UI/Common/ReignForceActivatableWidget.h"
 #include "UI/Skills/StageProgress.h"
 #include "SkillsProgressionWidget.generated.h"
 
@@ -34,7 +34,7 @@ struct FSkillUpgradeStages
  * 
  */
 UCLASS()
-class REIGNFORCE_API USkillsProgressionWidget : public UUserWidget
+class REIGNFORCE_API USkillsProgressionWidget : public UReignForceActivatableWidget
 {
 	GENERATED_BODY()
 
@@ -64,6 +64,7 @@ public:
 
 protected:
 	virtual void NativeConstruct() override;
+	virtual UWidget* NativeGetDesiredFocusTarget() const override;
 
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Skill", meta = (BindWidget))
 	TObjectPtr<USkillsCountWidget> SkillsCount;

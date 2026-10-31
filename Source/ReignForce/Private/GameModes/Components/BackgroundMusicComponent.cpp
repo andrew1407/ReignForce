@@ -6,6 +6,8 @@
 #include "Kismet/GameplayStatics.h"
 #include "Components/AudioComponent.h"
 #include "GameModes/Components/GameMusicDataAsset.h"
+#include "Settings/ReignForceSettings.h"
+#include "Sound/SoundClass.h"
 
 
 namespace
@@ -169,7 +171,7 @@ void UBackgroundMusicComponent::LoadActiveGameplaySound(int32 NextToPlay)
 	if (!Loaded.IsValid()) return;
 
 	constexpr float PitchMultiplier = 1;
-	UAudioComponent* NewSound = UGameplayStatics::SpawnSound2D(GetWorld(), Loaded.Get(), ActiveGameplayVolume, PitchMultiplier);
+	UAudioComponent* NewSound = SpawnMusic(Loaded.Get(), ActiveGameplayVolume, PitchMultiplier);
 	ActiveGameplaySoundIndex = NextToPlay;
 
 	if (!IsValid(NewSound)) return;
@@ -189,7 +191,7 @@ void UBackgroundMusicComponent::LoadActiveMainMenuSound(int32 NextToPlay)
 	if (!Loaded.IsValid()) return;
 
 	constexpr float PitchMultiplier = 1;
-	UAudioComponent* NewSound = UGameplayStatics::SpawnSound2D(GetWorld(), Loaded.Get(), ActiveMainMenuVolume, PitchMultiplier);
+	UAudioComponent* NewSound = SpawnMusic(Loaded.Get(), ActiveMainMenuVolume, PitchMultiplier);
 	ActiveMainMenuSoundIndex = NextToPlay;
 
 	if (!IsValid(NewSound)) return;
@@ -210,7 +212,7 @@ void UBackgroundMusicComponent::LoadActiveSkillsMenuSound(int32 NextToPlay)
 	if (!Loaded.IsValid()) return;
 
 	constexpr float PitchMultiplier = 1;
-	UAudioComponent* NewSound = UGameplayStatics::SpawnSound2D(GetWorld(), Loaded.Get(), ActiveSkillsMenuVolume, PitchMultiplier);
+	UAudioComponent* NewSound = SpawnMusic(Loaded.Get(), ActiveSkillsMenuVolume, PitchMultiplier);
 	ActiveSkillsMenuSoundIndex = NextToPlay;
 
 	if (!IsValid(NewSound)) return;
@@ -230,7 +232,7 @@ void UBackgroundMusicComponent::LoadActivePauseMenuSound(int32 NextToPlay)
 	if (!Loaded.IsValid()) return;
 
 	constexpr float PitchMultiplier = 1;
-	UAudioComponent* NewSound = UGameplayStatics::SpawnSound2D(GetWorld(), Loaded.Get(), ActivePauseMenuVolume, PitchMultiplier);
+	UAudioComponent* NewSound = SpawnMusic(Loaded.Get(), ActivePauseMenuVolume, PitchMultiplier);
 	ActivePauseMenuSoundIndex = NextToPlay;
 
 	if (!IsValid(NewSound)) return;
@@ -239,4 +241,19 @@ void UBackgroundMusicComponent::LoadActivePauseMenuSound(int32 NextToPlay)
 
 	if (IsValid(ActivePauseMenuSound))
 		ActivePauseMenuSound->OnAudioFinished.AddDynamic(this, &UBackgroundMusicComponent::ResetActivePauseMenuSound);
+}
+
+
+UAudioComponent* UBackgroundMusicComponent::SpawnMusic(USoundBase* Sound, float Volume, float Pitch) const
+{
+	UAudioComponent* Music = UGameplayStatics::CreateSound2D(GetWorld(), Sound, Volume, Pitch);
+	if (!IsValid(Music)) return nullptr;
+
+	// Music class is tuned apart from the game sounds by the user settings
+	const UReignForceSettings* Settings = UReignForceSettings::Get();
+	USoundClass* MusicClass = Settings ? Settings->MusicSoundClass.LoadSynchronous() : nullptr;
+	if (IsValid(MusicClass)) Music->SoundClassOverride = MusicClass;
+
+	Music->Play();
+	return Music;
 }

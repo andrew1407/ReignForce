@@ -3,7 +3,7 @@
 #pragma once
 
 #include "CoreMinimal.h"
-#include "Blueprint/UserWidget.h"
+#include "UI/Common/ReignForceActivatableWidget.h"
 #include "PauseMenuWidget.generated.h"
 
 
@@ -14,7 +14,7 @@ class UConfirmationModalWidget;
  * 
  */
 UCLASS()
-class REIGNFORCE_API UPauseMenuWidget : public UUserWidget
+class REIGNFORCE_API UPauseMenuWidget : public UReignForceActivatableWidget
 {
 	GENERATED_BODY()
 
@@ -24,6 +24,7 @@ public:
 	FORCEINLINE UButton* GetContinuePlayButton() const { return ContinueButton; }
 
 protected:
+	virtual void NativeOnInitialized() override;
 	virtual void NativeConstruct() override;
 	virtual void NativeDestruct() override;
 
@@ -44,6 +45,10 @@ protected:
 
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Menu", meta = (BindWidget))
 	TObjectPtr<UButton> ExitButton;
+
+	/** Created after the restart button when the layout has no own one */
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Menu", meta = (BindWidgetOptional))
+	TObjectPtr<UButton> SettingsButton;
 
 private:
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Menu", meta = (AllowPrivateAccess = true))
@@ -88,6 +93,9 @@ private:
 
 	UFUNCTION()
 	void OnSaveAndExit();
+
+	UFUNCTION()
+	void OnSettingsClick();
 
 	UFUNCTION()
 	void SaveProgressConfirmation(bool bAccepted);

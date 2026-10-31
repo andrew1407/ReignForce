@@ -131,9 +131,7 @@ bool AShooterHUD::OpenSkillsProgressionMenu()
     if (IsSkillsProgressionMenuOpened() || !IsValid(SkillsProgressionWidgetClass)) return false;
     SkillsProgressionWidget = CreateWidget<USkillsProgressionWidget>(GetWorld(), SkillsProgressionWidgetClass);
     if (!IsValid(SkillsProgressionWidget)) return false;
-    UButton* CloseMenuButton = SkillsProgressionWidget->GetCloseMenuButton();
-    if (IsValid(CloseMenuButton))
-        CloseMenuButton->OnClicked.AddDynamic(this, &AShooterHUD::CloseSkillsMenuAction);
+    SkillsProgressionWidget->OnCloseRequested.AddDynamic(this, &AShooterHUD::CloseSkillsMenuAction);
 
     SkillsProgressionWidget->AddToViewport();
     SetSkillsMenuMusicPlayState(true);
@@ -154,9 +152,7 @@ bool AShooterHUD::OpenSkillsProgressionMenu()
 bool AShooterHUD::CloseSkillsProgressionMenu()
 {
     if (!IsSkillsProgressionMenuOpened()) return false;
-    UButton* CloseMenuButton = SkillsProgressionWidget->GetCloseMenuButton();
-    if (IsValid(CloseMenuButton))
-        CloseMenuButton->OnClicked.RemoveDynamic(this, &AShooterHUD::CloseSkillsMenuAction);
+    SkillsProgressionWidget->OnCloseRequested.RemoveDynamic(this, &AShooterHUD::CloseSkillsMenuAction);
 
     SkillsProgressionWidget->RemoveFromParent();
     SkillsProgressionWidget = nullptr;
@@ -175,9 +171,7 @@ bool AShooterHUD::OpenPauseMenu()
     if (IsPauseMenuOpened() || !IsValid(PauseMenuWidgetClass)) return false;
     PauseMenuWidget = CreateWidget<UPauseMenuWidget>(GetWorld(), PauseMenuWidgetClass);
     if (!IsValid(PauseMenuWidget)) return false;
-    UButton* ContinueButton = PauseMenuWidget->GetContinuePlayButton();
-    if (IsValid(ContinueButton))
-        ContinueButton->OnClicked.AddDynamic(this, &AShooterHUD::ClosePauseMenuAction);
+    PauseMenuWidget->OnCloseRequested.AddDynamic(this, &AShooterHUD::ClosePauseMenuAction);
 
     PauseMenuWidget->AddToViewport();
     SetPauseMenuMusicPlayState(true);
@@ -197,9 +191,7 @@ bool AShooterHUD::OpenPauseMenu()
 bool AShooterHUD::ClosePauseMenu()
 {
     if (!IsPauseMenuOpened()) return false;
-    UButton* ContinueButton = PauseMenuWidget->GetContinuePlayButton();
-    if (IsValid(ContinueButton))
-        ContinueButton->OnClicked.RemoveDynamic(this, &AShooterHUD::ClosePauseMenuAction);
+    PauseMenuWidget->OnCloseRequested.RemoveDynamic(this, &AShooterHUD::ClosePauseMenuAction);
 
     PauseMenuWidget->RemoveFromParent();
     PauseMenuWidget = nullptr;

@@ -27,6 +27,10 @@
 		{
 			"Name": "NNERuntimeORT",
 			"Enabled": true
+		},
+		{
+			"Name": "CommonUI",
+			"Enabled": true
 		}
 	]
 }

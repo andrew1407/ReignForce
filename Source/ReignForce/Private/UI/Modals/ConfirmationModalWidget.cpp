@@ -10,23 +10,35 @@
 UConfirmationModalWidget::UConfirmationModalWidget(const FObjectInitializer& ObjectInitializer) : Super(ObjectInitializer)
 {
     ModalFocusMode = EModalFocusMode::None;
+    bIsModal = true;
 }
 
 void UConfirmationModalWidget::NativeConstruct()
 {
+    // Preferred button is registered first to get the initial (gamepad & keyboard) focus, cancel is the safe default
+    bool bAcceptFirst = ModalFocusMode == EModalFocusMode::FocusOnAccept;
+    RegisterFocusableButton(bAcceptFirst ? AcceptButton : CancelButton);
+    RegisterFocusableButton(bAcceptFirst ? CancelButton : AcceptButton);
+
     Super::NativeConstruct();
 
     if (IsValid(AcceptButton))
     {
         AcceptButton->OnClicked.AddDynamic(this, &UConfirmationModalWidget::OnAccept);
-        if (ModalFocusMode == EModalFocusMode::FocusOnAccept) AcceptButton->SetFocus();
+        if (ModalFocusMode == EModalFocusMode::FocusOnAccept) FocusButton(AcceptButton);
     }
-    
+
     if (IsValid(CancelButton))
     {
         CancelButton->OnClicked.AddDynamic(this, &UConfirmationModalWidget::OnCancel);
-        if (ModalFocusMode == EModalFocusMode::FocusOnCancel) CancelButton->SetFocus();
+        if (ModalFocusMode == EModalFocusMode::FocusOnCancel) FocusButton(CancelButton);
     }
+}
+
+bool UConfirmationModalWidget::HandleBackAction()
+{
+    OnCancel();
+    return true;
 }
 
 void UConfirmationModalWidget::SetModalOptions(const FModalWindowWidgetActionOptions& Options)
