@@ -15,6 +15,7 @@
 #include "UI/Modals/ConfirmationModalWidget.h"
 #include "GameStates/ShooterGameState.h"
 #include "GameModes/ReignForceGameMode.h"
+#include "GameModes/LevelLoadingSubsystem.h"
 #include "GameModes/Components/BackgroundMusicComponent.h"
 
 
@@ -184,7 +185,8 @@ void UMainMenuWidget::GoToPlaygroundLevel()
 {
     if (MainGameLevelName.IsNone()) return;
     constexpr bool bAbsolute = true;
-	UGameplayStatics::OpenLevel(GetWorld(), MainGameLevelName, bAbsolute);
+	// Level is streamed in behind the loading screen
+	ULevelLoadingSubsystem::OpenLevel(this, MainGameLevelName, bAbsolute);
 }
 
 void UMainMenuWidget::OpenModalWindow(const TSubclassOf<UConfirmationModalWidget>& WidgetClass)
