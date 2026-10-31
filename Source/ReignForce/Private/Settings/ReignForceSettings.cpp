@@ -21,4 +21,5 @@ UReignForceSettings::UReignForceSettings(const FObjectInitializer& ObjectInitial
     ImpactEffects = TSoftObjectPtr<UImpactEffectsDataAsset>(FSoftObjectPath(TEXT("/Game/Core/Weapons/Impacts/DA_ImpactEffects.DA_ImpactEffects")));
 
     RemappableInputContext = TSoftObjectPtr<UInputMappingContext>(FSoftObjectPath(TEXT("/Game/ThirdPerson/Input/IMC_Default.IMC_Default")));
+    GamepadSchemeImage = TSoftObjectPtr<UTexture2D>(FSoftObjectPath(TEXT("/Game/Core/UI/Settings/T_GamepadScheme.T_GamepadScheme")));
 }

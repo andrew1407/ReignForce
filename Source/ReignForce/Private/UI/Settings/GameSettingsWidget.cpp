@@ -15,6 +15,7 @@
 
 #include "Settings/ReignForceGameUserSettings.h"
 #include "UI/Settings/KeyBindingsWidget.h"
+#include "UI/Settings/GamepadSchemeWidget.h"
 
 
 namespace
@@ -32,6 +33,7 @@ UGameSettingsWidget::UGameSettingsWidget(const FObjectInitializer& ObjectInitial
     bBuilt = false;
     FocusedButtonScale = 1.05f;
     KeyBindingsMenuClass = UKeyBindingsWidget::StaticClass();
+    GamepadSchemeMenuClass = UGamepadSchemeWidget::StaticClass();
 }
 
 TSharedRef<SWidget> UGameSettingsWidget::RebuildWidget()
@@ -88,16 +90,23 @@ void UGameSettingsWidget::Setup(UButton* StyleTemplate)
         RefreshRowText(RowIndex);
     }
 
-    // Key bindings are a separate menu, changed keys are applied right away
-    auto ControlsContent = WidgetTree->ConstructWidget<UHorizontalBox>(UHorizontalBox::StaticClass());
-    if (UHorizontalBoxSlot* LabelSlot = ControlsContent->AddChildToHorizontalBox(MakeText(FText::FromString(TEXT("Keyboard & mouse controls")), RowFont, TextColor)))
-        LabelSlot->SetSize(FSlateChildSize(ESlateSizeRule::Fill));
-    ControlsContent->AddChildToHorizontalBox(MakeText(FText::FromString(TEXT("...")), RowFont, TextColor));
-    ControlsButton = MakeButton(StyleTemplate, ControlsContent, TEXT("ControlsButton"));
+    // Controls are separate menus: key bindings (changed keys are applied right away) & gamepad scheme
+    auto MakeSubmenuButton = [&] (const TCHAR* Label, FName Name, float TopPadding)
+    {
+        auto Content = WidgetTree->ConstructWidget<UHorizontalBox>(UHorizontalBox::StaticClass());
+        if (UHorizontalBoxSlot* LabelSlot = Content->AddChildToHorizontalBox(MakeText(FText::FromString(Label), RowFont, TextColor)))
+            LabelSlot->SetSize(FSlateChildSize(ESlateSizeRule::Fill));
+        Content->AddChildToHorizontalBox(MakeText(FText::FromString(TEXT("...")), RowFont, TextColor));
+        UButton* Button = MakeButton(StyleTemplate, Content, Name);
+        RegisterFocusableButton(Button);
+        if (UVerticalBoxSlot* ButtonSlot = Column->AddChildToVerticalBox(Button))
+            ButtonSlot->SetPadding(FMargin(0, TopPadding, 0, 4));
+        return Button;
+    };
+    ControlsButton = MakeSubmenuButton(TEXT("Keyboard & mouse controls"), TEXT("ControlsButton"), 16);
     ControlsButton->OnClicked.AddDynamic(this, &UGameSettingsWidget::HandleControlsClicked);
-    RegisterFocusableButton(ControlsButton);
-    if (UVerticalBoxSlot* ControlsSlot = Column->AddChildToVerticalBox(ControlsButton))
-        ControlsSlot->SetPadding(FMargin(0, 16, 0, 4));
+    GamepadSchemeButton = MakeSubmenuButton(TEXT("Gamepad controls"), TEXT("GamepadSchemeButton"), 4);
+    GamepadSchemeButton->OnClicked.AddDynamic(this, &UGameSettingsWidget::HandleGamepadSchemeClicked);
 
     auto Actions = WidgetTree->ConstructWidget<UHorizontalBox>(UHorizontalBox::StaticClass(), TEXT("Actions"));
     ApplyButton = MakeButton(StyleTemplate, MakeText(FText::FromString(TEXT("Apply")), RowFont, TextColor), TEXT("ApplyButton"));
@@ -175,6 +184,15 @@ void UGameSettingsWidget::HandleControlsClicked()
     if (!IsValid(KeyBindings)) return;
     KeyBindings->Setup(ButtonsStyleTemplate.Get());
     PushChildMenu(KeyBindings);
+}
+
+void UGameSettingsWidget::HandleGamepadSchemeClicked()
+{
+    if (!IsValid(GamepadSchemeMenuClass)) return;
+    auto GamepadScheme = CreateWidget<UGamepadSchemeWidget>(GetOwningPlayer(), GamepadSchemeMenuClass);
+    if (!IsValid(GamepadScheme)) return;
+    GamepadScheme->Setup(ButtonsStyleTemplate.Get());
+    PushChildMenu(GamepadScheme);
 }
 
 void UGameSettingsWidget::HandleBackClicked()

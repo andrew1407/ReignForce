@@ -12,6 +12,7 @@ class UTextBlock;
 class UPanelWidget;
 class UReignForceGameUserSettings;
 class UKeyBindingsWidget;
+class UGamepadSchemeWidget;
 
 /**
  * Settings menu (video, audio & controls submenu) built natively; option rows change values with left/right navigation or a click
@@ -40,6 +41,9 @@ protected:
 
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Settings|Controls")
 	TSubclassOf<UKeyBindingsWidget> KeyBindingsMenuClass;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Settings|Controls")
+	TSubclassOf<UGamepadSchemeWidget> GamepadSchemeMenuClass;
 
 private:
 	struct FOptionRow
@@ -70,6 +74,9 @@ private:
 	UPROPERTY()
 	TObjectPtr<UButton> ControlsButton;
 
+	UPROPERTY()
+	TObjectPtr<UButton> GamepadSchemeButton;
+
 	/** Submenus take the same buttons style */
 	TWeakObjectPtr<UButton> ButtonsStyleTemplate;
 
@@ -84,6 +91,9 @@ private:
 
 	UFUNCTION()
 	void HandleControlsClicked();
+
+	UFUNCTION()
+	void HandleGamepadSchemeClicked();
 
 	UFUNCTION()
 	void HandleBackClicked();
