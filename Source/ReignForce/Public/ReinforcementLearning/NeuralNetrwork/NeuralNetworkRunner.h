@@ -36,7 +36,7 @@ protected:
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Model")
 	TSoftObjectPtr<UNNEModelData> ModelData;
 
-	TUniquePtr<UE::NNE::IModelInstanceCPU> ModelInstance;
+	TSharedPtr<UE::NNE::IModelInstanceCPU> ModelInstance;
 
 	virtual bool SetupModel();
 };

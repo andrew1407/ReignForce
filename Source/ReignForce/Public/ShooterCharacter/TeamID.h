@@ -1,5 +1,8 @@
 #pragma once
 
+#include "CoreMinimal.h"
+#include "TeamID.generated.h"
+
 UENUM(BlueprintType)
 enum class ETeamID : uint8
 {

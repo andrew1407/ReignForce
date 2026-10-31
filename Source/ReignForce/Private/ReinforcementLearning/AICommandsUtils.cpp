@@ -98,7 +98,7 @@ bool UAICommandsUtils::SetNeuralModelParams(UE::NNE::IModelInstanceCPU* ModelIns
 	UE::NNE::FSymbolicTensorShape SymbolicInputTensorShape = InputTensorDescs[0].GetShape();
 	TArray<UE::NNE::FTensorShape> InputTensorShapes = { UE::NNE::FTensorShape::MakeFromSymbolic(SymbolicInputTensorShape) };
 
-	ModelInstance->SetInputTensorShapes(InputTensorShapes);
+	if (ModelInstance->SetInputTensorShapes(InputTensorShapes) != UE::NNE::EResultStatus::Ok) return false;
 
 	TConstArrayView<UE::NNE::FTensorDesc> OutputTensorDescs = ModelInstance->GetOutputTensorDescs();
 	UE::NNE::FSymbolicTensorShape SymbolicOutputTensorShape = OutputTensorDescs[0].GetShape();

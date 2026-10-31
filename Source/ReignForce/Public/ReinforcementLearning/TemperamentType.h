@@ -1,5 +1,8 @@
 #pragma once
 
+#include "CoreMinimal.h"
+#include "TemperamentType.generated.h"
+
 UENUM(BlueprintType)
 enum class ETemperamentType : uint8
 {

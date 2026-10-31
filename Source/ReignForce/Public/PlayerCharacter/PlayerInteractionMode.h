@@ -1,5 +1,8 @@
 #pragma once
 
+#include "CoreMinimal.h"
+#include "PlayerInteractionMode.generated.h"
+
 UENUM(BlueprintType)
 enum class EPlayerInteractionMode : uint8
 {

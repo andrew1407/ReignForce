@@ -32,7 +32,7 @@ struct FSkillStageDescriptionDetails
 	FText Entries;
 
     UPROPERTY(EditAnywhere, BlueprintReadWrite)
-	EStageProgress StageProgress;
+	EStageProgress StageProgress = EStageProgress::None;
 };
 
 /**

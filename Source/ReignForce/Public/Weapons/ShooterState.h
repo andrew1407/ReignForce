@@ -1,5 +1,8 @@
 #pragma once
 
+#include "CoreMinimal.h"
+#include "ShooterState.generated.h"
+
 UENUM(BlueprintType)
 enum class EShooterState : uint8
 {

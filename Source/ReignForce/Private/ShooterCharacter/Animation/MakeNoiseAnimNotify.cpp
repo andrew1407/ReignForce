@@ -14,7 +14,7 @@ UMakeNoiseAnimNotify::UMakeNoiseAnimNotify(const FObjectInitializer& ObjectIniti
     SoundToPlayVolume = 1;
 }
 
-void UMakeNoiseAnimNotify::Notify(USkeletalMeshComponent* MeshComp, UAnimSequenceBase* Animation)
+void UMakeNoiseAnimNotify::Notify(USkeletalMeshComponent* MeshComp, UAnimSequenceBase* Animation, const FAnimNotifyEventReference& EventReference)
 {
     AActor* MeshOwner = MeshComp->GetOwner();
     if (!IsValid(MeshOwner)) return;

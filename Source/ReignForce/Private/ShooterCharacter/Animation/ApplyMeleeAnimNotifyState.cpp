@@ -12,12 +12,12 @@ UApplyMeleeAnimNotifyState::UApplyMeleeAnimNotifyState(const FObjectInitializer&
     CollisionParam = 0;
 }
 
-void UApplyMeleeAnimNotifyState::NotifyBegin(USkeletalMeshComponent* MeshComp, UAnimSequenceBase* Animation, float TotalDuration)
+void UApplyMeleeAnimNotifyState::NotifyBegin(USkeletalMeshComponent* MeshComp, UAnimSequenceBase* Animation, float TotalDuration, const FAnimNotifyEventReference& EventReference)
 {
     SetCollisionState(MeshComp->GetOwner(), true);
 }
 
-void UApplyMeleeAnimNotifyState::NotifyEnd(USkeletalMeshComponent* MeshComp, UAnimSequenceBase* Animation)
+void UApplyMeleeAnimNotifyState::NotifyEnd(USkeletalMeshComponent* MeshComp, UAnimSequenceBase* Animation, const FAnimNotifyEventReference& EventReference)
 {
     SetCollisionState(MeshComp->GetOwner(), false);
 }

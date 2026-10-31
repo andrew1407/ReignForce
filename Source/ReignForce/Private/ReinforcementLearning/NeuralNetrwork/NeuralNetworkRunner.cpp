@@ -42,10 +42,10 @@ bool UNeuralNetworkRunner::SendInputs(TArray<float> Inputs, FOnONeuralModelResul
 		bool bParamsSet = UAICommandsUtils::SetNeuralModelParams(ModelInstance.Get(), InputBindings, OutputBindings, InputsCopy, Outputs);
 		if (!bParamsSet) return OnFailure();
 
-		int32 Status = ModelInstance->RunSync(InputBindings, OutputBindings);
+		UE::NNE::EResultStatus Status = ModelInstance->RunSync(InputBindings, OutputBindings);
 		AsyncTask(ENamedThreads::GameThread, [this, Querier, Status, OnONeuralModelResult, Outputs = MoveTemp(Outputs)]
 		{
-            bool bSuccess = Status == 0;
+            bool bSuccess = Status == UE::NNE::EResultStatus::Ok;
 			OnONeuralModelResult.ExecuteIfBound(Outputs, this, Querier, bSuccess);
 		});
 	});
@@ -58,8 +58,8 @@ bool UNeuralNetworkRunner::SetupModel()
 	if (!ModelData.IsValid()) return false;
 	TWeakInterfacePtr<INNERuntimeCPU> Runtime = UE::NNE::GetRuntime<INNERuntimeCPU>(TEXT("NNERuntimeORTCpu"));
 	if (!Runtime.IsValid()) return false;
-	TUniquePtr<UE::NNE::IModelCPU> Model = Runtime->CreateModel(ModelData.Get());
+	TSharedPtr<UE::NNE::IModelCPU> Model = Runtime->CreateModelCPU(ModelData.Get());
 	if (!Model.IsValid()) return false;
-	ModelInstance = Model->CreateModelInstance();
+	ModelInstance = Model->CreateModelInstanceCPU();
 	return ModelInstance.IsValid();
 }
