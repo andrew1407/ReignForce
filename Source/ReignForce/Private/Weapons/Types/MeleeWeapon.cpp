@@ -14,6 +14,7 @@
 #include "Particles/ParticleSystemComponent.h"
 
 #include "Utils/Cooldown.h"
+#include "Weapons/ImpactEffectsLibrary.h"
 
 
 AMeleeWeapon::AMeleeWeapon(const FObjectInitializer& ObjectInitializer) : Super(ObjectInitializer)
@@ -27,6 +28,46 @@ AMeleeWeapon::AMeleeWeapon(const FObjectInitializer& ObjectInitializer) : Super(
     OnHitSoundVolume = 1;
     HitTargetEffectScale = FVector(1);
     HitChance = 1;
+
+    bMarkSurfaces = true;
+    bSurfaceHitDuringSwing = false;
+    LastSwingLocation = FVector::ZeroVector;
+    // Ticks only while the damage collision is enabled (swing)
+    PrimaryActorTick.bCanEverTick = true;
+    PrimaryActorTick.bStartWithTickEnabled = false;
+}
+
+void AMeleeWeapon::Tick(float DeltaSeconds)
+{
+    Super::Tick(DeltaSeconds);
+
+    TraceSwingSurfaceHit();
+}
+
+void AMeleeWeapon::TraceSwingSurfaceHit()
+{
+    if (!(bMarkSurfaces && IsValid(DamageCollision)) || bSurfaceHitDuringSwing) return;
+
+    const FVector SwingLocation = DamageCollision->GetComponentLocation();
+    const FVector SwingStart = LastSwingLocation;
+    LastSwingLocation = SwingLocation;
+    if (SwingStart.Equals(SwingLocation)) return;
+
+    FCollisionQueryParams Params(TEXT("MeleeSurfaceTrace"), false, this);
+    Params.bReturnPhysicalMaterial = true;
+    Params.AddIgnoredActor(GetAttachParentActor());
+    FCollisionObjectQueryParams Objects;
+    Objects.AddObjectTypesToQuery(ECollisionChannel::ECC_WorldStatic);
+    Objects.AddObjectTypesToQuery(ECollisionChannel::ECC_WorldDynamic);
+    const FCollisionShape Blade = FCollisionShape::MakeBox(DamageCollision->GetScaledBoxExtent());
+
+    FHitResult Hit;
+    bool bHit = GetWorld()->SweepSingleByObjectType(Hit, SwingStart, SwingLocation, DamageCollision->GetComponentQuat(), Objects, Blade, Params);
+    if (!bHit || Cast<APawn>(Hit.GetActor()) || Cast<AWeapon>(Hit.GetActor())) return;
+
+    // A single mark per swing, the blade stretches it along the swing direction
+    bSurfaceHitDuringSwing = true;
+    UImpactEffectsLibrary::SpawnSurfaceImpact(this, Hit, GetType(), SwingLocation - SwingStart);
 }
 
 void AMeleeWeapon::BeginPlay()
@@ -69,12 +110,17 @@ void AMeleeWeapon::NotifyActorBeginOverlap(AActor* OtherActor)
 
 void AMeleeWeapon::EnableCollision(int32 Index)
 {
-    if (IsValid(DamageCollision))
-        DamageCollision->SetCollisionEnabled(ECollisionEnabled::Type::QueryAndPhysics);
+    if (!IsValid(DamageCollision)) return;
+    DamageCollision->SetCollisionEnabled(ECollisionEnabled::Type::QueryAndPhysics);
+
+    bSurfaceHitDuringSwing = false;
+    LastSwingLocation = DamageCollision->GetComponentLocation();
+    SetActorTickEnabled(bMarkSurfaces);
 }
 
 void AMeleeWeapon::DisableCollision(int32 Index)
 {
+    SetActorTickEnabled(false);
     if (IsValid(DamageCollision))
        DamageCollision->SetCollisionEnabled(ECollisionEnabled::Type::NoCollision);
 }

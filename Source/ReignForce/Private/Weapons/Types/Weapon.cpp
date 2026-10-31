@@ -29,6 +29,7 @@ bool AWeapon::Aim(FHitResult& HitResult, const FVector& Direction) const
 	const FVector End = AimLocation + Direction * Distance;
     FCollisionQueryParams TraceParams(FName(TEXT("LineTrace")), false, this); // Additional parameters for the trace
 	// TraceParams.AddIgnoredActor(this);
+	TraceParams.bReturnPhysicalMaterial = true; // Surface type of the hit defines its effects
     AActor* WeaponUser = GetAttachParentActor();
     if (IsValid(WeaponUser)) TraceParams.AddIgnoredActor(WeaponUser);
 	bool bHit = GetWorld()->LineTraceSingleByChannel(HitResult, AimLocation, End, ECollisionChannel::ECC_GameTraceChannel1, TraceParams);
