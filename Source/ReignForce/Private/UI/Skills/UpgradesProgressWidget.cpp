@@ -27,7 +27,8 @@ void UUpgradesProgressWidget::LoadProgressionState(bool bCompleted)
         if (IsValid(Text)) Text->SetColorAndOpacity(Style->Color);
     }
 
-    UAssetManager::GetStreamableManager().RequestAsyncLoad(Style->Image.ToSoftObjectPath(), [this, Style]
+    // Weak lambda: skipped if the owner is destroyed before the asset is loaded (a raw this would be used after free)
+    UAssetManager::GetStreamableManager().RequestAsyncLoad(Style->Image.ToSoftObjectPath(), FStreamableDelegate::CreateWeakLambda(this, [this, Style]
     {
         if (Style->Image.IsValid() && IsValid(Icon))
         {
@@ -35,7 +36,7 @@ void UUpgradesProgressWidget::LoadProgressionState(bool bCompleted)
             Brush.SetResourceObject(Style->Image.Get());
             Icon->SetBrush(Brush);
         }
-    });
+    }));
 }
 
 void UUpgradesProgressWidget::SetUpgradesCurrentCount(int32 Value)

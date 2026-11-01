@@ -38,5 +38,18 @@ protected:
 
 	TSharedPtr<UE::NNE::IModelInstanceCPU> ModelInstance;
 
-	virtual bool SetupModel();
+	/** The model data is being loaded or its instance created (a repeated load request is ignored meanwhile) */
+	bool bModelLoading = false;
+
+	/** Model from the loaded data (game thread: the data asset is read), nullptr on failure */
+	virtual TSharedPtr<UE::NNE::IModelCPU> CreateModel();
+
+	/**
+	 * Creates the model instance (the ONNX runtime session, the heavy part taking up to a second) on a worker thread,
+	 * so enemies requesting their models at the round start don't freeze the game; the callback comes on the game thread
+	 */
+	void CreateModelInstanceAsync(TSharedPtr<UE::NNE::IModelCPU> Model, FONeuralnModelLoaaded OnNeuralModelLoaaded);
+
+	/** Runs the model on a worker thread, the callback is invoked on the game thread (inference failures included) */
+	static void RunModelAsync(TSharedPtr<UE::NNE::IModelInstanceCPU> Instance, TArray<float> Inputs, TFunction<void(TArray<float>, bool)> OnGameThreadResult);
 };

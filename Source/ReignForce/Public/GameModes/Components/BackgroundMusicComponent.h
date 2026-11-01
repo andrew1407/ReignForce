@@ -60,6 +60,12 @@ public:
 	UFUNCTION(BlueprintCallable)
 	void StopAllActiveMusic();
 
+	/** Stops all music for good (a level is being opened): tracks still being loaded or requested later won't start */
+	UFUNCTION(BlueprintCallable)
+	void StopForLevelTravel();
+
+	FORCEINLINE bool IsStoppedForLevelTravel() const { return bStoppedForLevelTravel; }
+
 	FORCEINLINE UAudioComponent* GetActiveGameplaySound() const { return ActiveGameplaySound; }
 	FORCEINLINE UAudioComponent* GetActiveMainMenuSound() const { return ActiveMainMenuSound; }
 	FORCEINLINE UAudioComponent* GetActiveSkillsMenuSound() const { return ActiveSkillsMenuSound; }
@@ -71,6 +77,8 @@ protected:
 private:
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Music", meta = (AllowPrivateAccess = true))
 	TObjectPtr<UGameMusicDataAsset> GameMusicDataAsset;
+
+	bool bStoppedForLevelTravel = false;
 
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Music", meta = (AllowPrivateAccess = true, ClampMin = 0, UIMin = 0, Units = "Times"))
 	float ActiveGameplayVolume;

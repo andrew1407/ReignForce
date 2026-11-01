@@ -89,7 +89,8 @@ bool UShooterStatsComponent::SetWeaponMaxAmmo(EWeaponType Weapon, int32 Amount)
 bool UShooterStatsComponent::AddWeaponAmmo(EWeaponType Weapon, int32 Amount, bool IsFull)
 {
 	if (WeaponsAmmo.Contains(Weapon)) return false;
-	WeaponsAmmo.Add(Weapon, { Amount, IsFull ? Amount : 0 });
+	// FShooterAmmo is { CurrentAmount, MaxAmount }: the amount is the capacity, the current one is full or empty
+	WeaponsAmmo.Add(Weapon, { IsFull ? Amount : 0, Amount });
 	return true;
 }
 
@@ -116,7 +117,7 @@ int32 UShooterStatsComponent::GetWeaponModelOrDefault(EWeaponType WeaponType, in
 
 void UShooterStatsComponent::SetWeaponModelOf(EWeaponType Weapon, int32 Value)
 {
-	WeaponModels.FindOrAdd(Weapon, Value);
+	WeaponModels.Add(Weapon, Value);  // overwrites (FindOrAdd kept the first model: a changed one was never stored)
 }
 
 float UShooterStatsComponent::CalcHealthWithSafeBounds(float Value) const

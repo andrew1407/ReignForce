@@ -21,6 +21,7 @@
 #include "GameStates/ShooterGameState.h"
 #include "ShooterCharacter/ShooterCharacter.h"
 #include "Enemy/ShooterAIController.h"
+#include "Enemy/EnemyCharacter.h"
 
 #include "Utils/Cooldown.h"
 
@@ -84,6 +85,11 @@ bool AAILearningGameMode::RequestCommand_Implementation(APawn* Executor)
     RequestData.Event = InputDataEvent;
     RequestData.Id = Executor->GetName();
 
+    if (!PawnsInput.Contains(Executor))
+    {
+        for (auto It = PawnsInput.CreateIterator(); It; ++It)
+            if (!It.Key().IsValid()) It.RemoveCurrent();
+    }
     auto &[Step, PrevInput] = PawnsInput.FindOrAdd(Executor);
     RequestData.IsInitial = Step == 0;
     if (PrevInput.IsDone && !RequestData.IsInitial) return false;

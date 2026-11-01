@@ -6,6 +6,11 @@
   </a>
 </p>
 
+<p>
+  <a href="https://www.unrealengine.com"><img src="https://img.shields.io/badge/Unreal%20Engine-5.8-313131?logo=unrealengine&logoColor=white" alt="Unreal Engine 5.8" /></a>
+  <a href="https://github.com/Andrew1407/ReignForce/releases"><img src="https://img.shields.io/github/v/release/Andrew1407/ReignForce?label=release" alt="Release" /></a>
+</p>
+
 ## Description
 
 This UE 5.8 project is a third-person shooter game using reinforcement learning to train enemy AI. It is a practical part of the **[master's thesis](https://ela.kpi.ua/items/944163bd-9528-4faf-b506-f0f11145addc)**.
@@ -49,6 +54,16 @@ Process automation lives in the **[Scripts](./Scripts)** folder: a single cross-
 | `package [-c CONFIG]` | Builds, cooks, stages, paks and archives the game to `Build/Archived` (config defaults to **Shipping**). |
 | `graph [NODE] [-c CONFIG]` | Runs the **[BuildGraph](./Scripts/BuildGraph.xml)** pipeline: `CompileEditor`, `CompileGame`, `Cook`, `Package` (default), `Test` or `All`. Completed nodes are reused on re-runs. |
 | `python [ARGS...]` | Runs the engine's bundled Python. |
+
+## Tests
+
+Automation specs live in the **[tests](./Source/ReignForce/Private/Tests/)** dir (editor builds only), grouped by test name prefix so a level can be run alone (e.g. `.\Scripts\ue.bat test ReignForce.Unit`):
+
+| Prefix | Scope |
+| --- | --- |
+| `ReignForce.Unit` | Pure logic without a world: reward estimators, AI command model inputs & prediction, shooter stats, skills progression ranks, upgrades balance, round difficulty, locomotion blend space mapping & diagonal strafes, gamepad mapping & prompt icons, projectile spread. |
+| `ReignForce.Integration` | Gameplay objects in a PIE session of the test map: cooldown timers, character damage & death, weapon slots (weapons destroyed with their owner), AI metrics of a live character, firearms, settings menu (Apply enabled only on changes, stays open), level opening while paused (no endless loading) & music stop. |
+| `ReignForce.E2E` | Gameplay scenarios on the test map: the player runs, jumps (no running arms in the air) and moves along every diagonal (blended alike), an enemy is spawned and checked to be AI possessed, to spot the player and to stop once killed by them; a round start on the main game map is timed for hitches. |
 
 ## Gameplay
 

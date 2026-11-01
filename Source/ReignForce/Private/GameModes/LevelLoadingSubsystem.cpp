@@ -8,7 +8,8 @@
 #include "Engine/World.h"
 #include "Kismet/GameplayStatics.h"
 #include "Blueprint/WidgetBlueprintLibrary.h"
-#include "TimerManager.h"
+#include "GameFramework/GameModeBase.h"
+#include "Containers/Ticker.h"
 #include "MoviePlayer.h"
 
 #include "Styling/CoreStyle.h"
@@ -22,6 +23,7 @@
 
 #include "CommonActivatableWidget.h"
 #include "Settings/ReignForceSettings.h"
+#include "GameModes/Components/BackgroundMusicComponent.h"
 #include "UI/Loading/LoadingScreenWidget.h"
 
 
@@ -55,6 +57,8 @@ void ULevelLoadingSubsystem::Deinitialize()
         GetMoviePlayer()->OnPrepareLoadingScreen().Remove(PrepareLoadingScreenHandle);
     FCoreUObjectDelegates::PostLoadMapWithWorld.Remove(PostLoadMapHandle);
     if (GEngine) GEngine->OnTravelFailure().Remove(TravelFailureHandle);
+    if (TravelTickerHandle.IsValid()) FTSTicker::GetCoreTicker().RemoveTicker(TravelTickerHandle);
+    TravelTickerHandle.Reset();
 
     Super::Deinitialize();
 }
@@ -74,15 +78,31 @@ void ULevelLoadingSubsystem::OpenLevelAsync(FName LevelName, bool bAbsolute, con
     bPendingAbsolute = bAbsolute;
     PendingOptions = Options;
 
+    StopMusic();
     ShowLoadingWidget();
 
     // The loading screen is drawn first, then the movie player keeps it on screen while the map loads.
     // The map package isn't preloaded: only the package would stay referenced, its world was collected
-    // before the travel and the travel failed with "Failed to load package"
+    // before the travel and the travel failed with "Failed to load package".
+    // The core ticker is used, not a world timer: those don't tick while the game is paused, so a level opened
+    // from the pause menu (restart, go to menu) never travelled and the loading screen stayed forever
+    if (TravelTickerHandle.IsValid()) FTSTicker::GetCoreTicker().RemoveTicker(TravelTickerHandle);
+    TravelTickerHandle = FTSTicker::GetCoreTicker().AddTicker(FTickerDelegate::CreateWeakLambda(this, [this] (float)
+    {
+        TravelTickerHandle.Reset();
+        Travel();
+        return false;
+    }));
+}
+
+void ULevelLoadingSubsystem::StopMusic()
+{
     UGameInstance* GameInstance = GetGameInstance();
     UWorld* World = IsValid(GameInstance) ? GameInstance->GetWorld() : nullptr;
-    if (!IsValid(World)) return Travel();
-    World->GetTimerManager().SetTimerForNextTick(FTimerDelegate::CreateUObject(this, &ULevelLoadingSubsystem::Travel));
+    AGameModeBase* GameMode = IsValid(World) ? World->GetAuthGameMode() : nullptr;
+    UBackgroundMusicComponent* Music = IsValid(GameMode) ? GameMode->FindComponentByClass<UBackgroundMusicComponent>() : nullptr;
+    // No music under the loading screen: the playing tracks are stopped & the ones still being loaded won't start
+    if (IsValid(Music)) Music->StopForLevelTravel();
 }
 
 void ULevelLoadingSubsystem::ShowLoadingWidget()

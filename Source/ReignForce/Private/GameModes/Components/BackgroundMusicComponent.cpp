@@ -52,7 +52,7 @@ bool UBackgroundMusicComponent::IsDataAssetValid() const
 
 bool UBackgroundMusicComponent::CanLoadMusicSound() const
 {
-	return IsValid(this) && IsDataAssetValid();
+	return IsValid(this) && !bStoppedForLevelTravel && IsDataAssetValid();
 }
 
 void UBackgroundMusicComponent::ResetActiveGameplaySound()
@@ -160,6 +160,12 @@ void UBackgroundMusicComponent::StopAllActiveMusic()
 	StopActiveMainMenuSound();
 	StopActiveSkillsMenuSound();
 	StopActivePauseMenuSound();
+}
+
+void UBackgroundMusicComponent::StopForLevelTravel()
+{
+	bStoppedForLevelTravel = true;
+	StopAllActiveMusic();
 }
 
 void UBackgroundMusicComponent::LoadActiveGameplaySound(int32 NextToPlay)

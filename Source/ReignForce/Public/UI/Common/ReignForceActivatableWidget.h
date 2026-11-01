@@ -10,6 +10,7 @@
 
 
 class UButton;
+class UImage;
 class UTextBlock;
 class UVerticalBox;
 class USizeBox;
@@ -34,6 +35,10 @@ struct FFocusableButtonState
 
 	UPROPERTY()
 	bool bHighlighted = false;
+
+	/** Gamepad confirm button icon in front of the label, shown on the focused button while a gamepad is used */
+	UPROPERTY()
+	TWeakObjectPtr<UImage> GamepadIcon;
 };
 
 /**
@@ -154,4 +159,8 @@ private:
 
 	void UpdateButtonsHighlight();
 	bool IsButtonAvailable(const UButton* Button) const;
+
+	/** Puts a (hidden) gamepad confirm icon in front of the button content: [icon][label] */
+	UImage* AddGamepadIcon(UButton* Button);
+	bool IsGamepadUsed() const;
 };

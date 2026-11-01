@@ -118,7 +118,8 @@ bool UReactionsComponent::MakePerishScream(const FVector& Location, const FRotat
 	TSoftObjectPtr<USoundBase>& PerishSound = ReactionsAsset->PerishSounds[Index];
 
 	if (PerishSound.IsNull()) return false;
-	UAssetManager::GetStreamableManager().RequestAsyncLoad(PerishSound.ToSoftObjectPath(), [this, Index, Location, Rotator, bSetAsSoundState] ()
+	// Weak lambda: skipped if the owner is destroyed before the asset is loaded (a raw this would be used after free)
+	UAssetManager::GetStreamableManager().RequestAsyncLoad(PerishSound.ToSoftObjectPath(), FStreamableDelegate::CreateWeakLambda(this, [this, Index, Location, Rotator, bSetAsSoundState] ()
 	{
 		TSoftObjectPtr<USoundBase>& PerishSound = ReactionsAsset->PerishSounds[Index];
 		if (!PerishSound.IsValid()) return;
@@ -148,7 +149,7 @@ bool UReactionsComponent::MakePerishScream(const FVector& Location, const FRotat
 		);
 
 		if (bSetAsSoundState) ResetReactionSound(Sound);
-	});
+	}));
 	
 	return true;
 }

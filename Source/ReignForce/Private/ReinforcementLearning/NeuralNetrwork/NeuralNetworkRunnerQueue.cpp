@@ -22,7 +22,7 @@ bool UNeuralNetworkRunnerQueue::SendInputs(TArray<float> Inputs, FOnONeuralModel
     bool bWasEmpty = InputsQueue.IsEmpty();
     if (QueueSizeLimit > 0 && TasksInQueue > QueueSizeLimit) return false;
 
-	bool bAdded = InputsQueue.Enqueue({ MoveTemp(Inputs), MoveTemp(OnONeuralModelResult), Querier });
+	bool bAdded = InputsQueue.Enqueue({ MoveTemp(Inputs), MoveTemp(OnONeuralModelResult), Querier, Querier != nullptr });
 	if (!bAdded) return false;
 
     ++TasksInQueue;
@@ -43,38 +43,17 @@ bool UNeuralNetworkRunnerQueue::HandleNextInQueue()
 	}
     --TasksInQueue;
 
-	AsyncTask(ENamedThreads::AnyNormalThreadNormalTask, [this, QueueOptions = MoveTemp(QueueOptions)]
+	// Weak self: the queue may be collected (level change) while the model is running, the model instance is kept by the task
+	RunModelAsync(ModelInstance, MoveTemp(QueueOptions.Inputs), [WeakSelf = TWeakObjectPtr<UNeuralNetworkRunnerQueue>(this), OnResult = MoveTemp(QueueOptions.OnResult),
+		Querier = QueueOptions.Querier, bHasQuerier = QueueOptions.bHasQuerier] (TArray<float> Outputs, bool bSuccess)
 	{
-        auto OnFailure = [this, &QueueOptions] { QueueOptions.OnResult.ExecuteIfBound({}, this, QueueOptions.Querier, false); };
+		UNeuralNetworkRunnerQueue* Self = WeakSelf.Get();
+		if (!Self) return;
+		UObject* QuerierObject = Querier.Get();
+		if (!bHasQuerier || QuerierObject) OnResult.ExecuteIfBound(Outputs, Self, QuerierObject, bSuccess);
 
-		if (!IsModelValid())
-		{
-			bModelRunning = false;
-			return OnFailure();
-		}
-	
-		TArray<UE::NNE::FTensorBindingCPU> InputBindings;
-		TArray<UE::NNE::FTensorBindingCPU> OutputBindings;
-
-		TArray<float> InputsCopy = QueueOptions.Inputs;
-		TArray<float> Outputs;
-
-		bool IsParamsSet = UAICommandsUtils::SetNeuralModelParams(ModelInstance.Get(), InputBindings, OutputBindings, InputsCopy, Outputs);
-		if (!IsParamsSet)
-		{
-			bModelRunning = false;
-			return OnFailure();
-		}
-
-		UE::NNE::EResultStatus Status = ModelInstance->RunSync(InputBindings, OutputBindings);
-		AsyncTask(ENamedThreads::GameThread, [this, Status, QueueOptions, Outputs = MoveTemp(Outputs)]
-		{
-			bool bSuccess = Status == UE::NNE::EResultStatus::Ok;
-			QueueOptions.OnResult.ExecuteIfBound(Outputs, this, QueueOptions.Querier, bSuccess);
-
-			bModelRunning = false;
-			HandleNextInQueue();
-		});
+		Self->bModelRunning = false;
+		Self->HandleNextInQueue();
 	});
 
     return true;

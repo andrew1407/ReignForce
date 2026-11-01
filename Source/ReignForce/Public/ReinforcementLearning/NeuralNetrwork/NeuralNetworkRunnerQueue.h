@@ -11,7 +11,9 @@ struct FNNQueueOptions
 {
     TArray<float> Inputs;
 	FOnONeuralModelResult OnResult;
-	UObject* Querier = nullptr;
+	/** Weak: queued requests must not keep (or dangle on) a querier destroyed while waiting */
+	TWeakObjectPtr<UObject> Querier;
+	bool bHasQuerier = false;
 };
 
 /**

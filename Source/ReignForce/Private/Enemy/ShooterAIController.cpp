@@ -83,7 +83,8 @@ void AShooterAIController::BeginPlay()
     Super::BeginPlay();
 
     if (IsValid(PerceptionComponent))
-        PerceptionComponent->OnTargetPerceptionInfoUpdated.AddDynamic(this, &AShooterAIController::OnPerceptionInfoUpdated);
+        // Unique: the binding may already exist (serialized with the blueprint perception component), a duplicate one raised an ensure
+        PerceptionComponent->OnTargetPerceptionInfoUpdated.AddUniqueDynamic(this, &AShooterAIController::OnPerceptionInfoUpdated);
 }
 
 void AShooterAIController::BeginDestroy()
@@ -249,10 +250,12 @@ void AShooterAIController::TriggerAICommandsFetch(bool bState, AShooterCharacter
         bool bAiStrategy = UKismetSystemLibrary::DoesImplementInterface(GameMode, UAICommandsStrategy::StaticClass());
         if (!bAiStrategy) return;
         const float Frequency = IAICommandsStrategy::Execute_GetRequestFrequency(GameMode);
-        TimerManager.SetTimer(AICommandTimerHandle, [this, GameMode, ShooterSelf]
+        // Weak lambda: bound to the controller, so its timers are cleared with it (ClearAllTimersForObject) and never outlive it
+        TimerManager.SetTimer(AICommandTimerHandle, FTimerDelegate::CreateWeakLambda(this,
+            [WeakGameMode = TWeakObjectPtr<AGameModeBase>(GameMode), WeakShooter = TWeakObjectPtr<AShooterCharacter>(ShooterSelf)]
         {
-            IAICommandsStrategy::Execute_RequestCommand(GameMode, ShooterSelf);
-        }, Frequency, true, 0.0f);
+            if (WeakGameMode.IsValid() && WeakShooter.IsValid()) IAICommandsStrategy::Execute_RequestCommand(WeakGameMode.Get(), WeakShooter.Get());
+        }), Frequency, true, 0.0f);
     }
 }
 
@@ -287,12 +290,12 @@ void AShooterAIController::HandleAppliedDamage(float Damage, AShooterCharacter* 
         bool bAiStrategy = UKismetSystemLibrary::DoesImplementInterface(GameMode, UAICommandsStrategy::StaticClass());
         if (bAiStrategy) IAICommandsStrategy::Execute_RequestCommand(GameMode, ShooterSelf);
 
-        GetWorldTimerManager().SetTimerForNextTick([this]
+        GetWorldTimerManager().SetTimerForNextTick(FTimerDelegate::CreateWeakLambda(this, [this]
         {
             constexpr float CleanupDelay = .5f;
             FTimerHandle TimerHandle;
-            GetWorldTimerManager().SetTimer(TimerHandle, [this] { ResetTargetFocus(nullptr); }, CleanupDelay, false);
-        });
+            GetWorldTimerManager().SetTimer(TimerHandle, FTimerDelegate::CreateWeakLambda(this, [this] { ResetTargetFocus(nullptr); }), CleanupDelay, false);
+        }));
     }
 }
 
@@ -322,7 +325,7 @@ void AShooterAIController::ReactToSight(const FActorPerceptionUpdateInfo& Update
     {
         SetTargetVisibility(false);
         if (!LastSeenTargetPositionKey.IsNone()) Blackboard->SetValueAsVector(LastSeenTargetPositionKey, Target->GetActorLocation());
-        auto ClearFocus = [this] { ResetTargetFocus(nullptr, false); };
+        auto ClearFocus = FTimerDelegate::CreateWeakLambda(this, [this] { ResetTargetFocus(nullptr, false); });
         TimerManager.SetTimer(SightTimerHandle, ClearFocus, SightConfig->GetMaxAge(), false);
         if (PossessedShooter.IsValid()) PossessedShooter->ReactToLostSight();
     }

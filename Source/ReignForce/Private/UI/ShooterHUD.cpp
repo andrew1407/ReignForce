@@ -244,7 +244,10 @@ bool AShooterHUD::IsStartRoundWidgetOpened() const
 bool AShooterHUD::OpenStartRoundWidget()
 {
     if (IsStartRoundWidgetOpened() || !IsValid(StartRoundClass)) return false;
-    StartRoundWidget = CreateWidget<UStartRoundWidget>(GetWorld(), StartRoundClass);
+    // Owned by the player (not just the world): the prompt follows its input type (keyboard key or gamepad button icon)
+    StartRoundWidget = IsValid(PlayerOwner)
+        ? CreateWidget<UStartRoundWidget>(PlayerOwner.Get(), StartRoundClass)
+        : CreateWidget<UStartRoundWidget>(GetWorld(), StartRoundClass);
     if (!IsValid(StartRoundWidget)) return false;
     StartRoundWidget->AddToViewport();
     return true;

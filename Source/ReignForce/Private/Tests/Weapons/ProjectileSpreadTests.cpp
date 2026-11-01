@@ -11,7 +11,7 @@ namespace
     constexpr float SPREAD_DEGREE_TOLERANCE = 1e-3f; 
 }
 
-DEFINE_SPEC(FProjectileSpreadTests, "ReignForce.ProjectileSpread",
+DEFINE_SPEC(FProjectileSpreadTests, "ReignForce.Unit.ProjectileSpread",
     EAutomationTestFlags_ApplicationContextMask | EAutomationTestFlags::ProductFilter | EAutomationTestFlags::HighPriority);
 
 void FProjectileSpreadTests::Define()

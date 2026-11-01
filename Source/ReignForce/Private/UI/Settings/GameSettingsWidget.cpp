@@ -53,7 +53,6 @@ void UGameSettingsWidget::Setup(UButton* StyleTemplate)
 
     const FSlateFontInfo TitleFont = MakeFont(StyleTemplate, 44);
     const FSlateFontInfo RowFont = MakeFont(StyleTemplate, 22);
-    const FSlateFontInfo HintFont = MakeFont(StyleTemplate, 14);
     const FSlateColor TextColor = FLinearColor::White;
     ButtonsStyleTemplate = StyleTemplate;
 
@@ -154,7 +153,8 @@ void UGameSettingsWidget::Setup(UButton* StyleTemplate)
     GamepadSchemeButton->OnClicked.AddDynamic(this, &UGameSettingsWidget::HandleGamepadSchemeClicked);
 
     auto Actions = WidgetTree->ConstructWidget<UHorizontalBox>(UHorizontalBox::StaticClass(), TEXT("Actions"));
-    ApplyButton = MakeButton(StyleTemplate, MakeText(FText::FromString(TEXT("Apply")), RowFont, TextColor), TEXT("ApplyButton"));
+    ApplyLabel = MakeText(FText::FromString(TEXT("Apply")), RowFont, TextColor);
+    ApplyButton = MakeButton(StyleTemplate, ApplyLabel, TEXT("ApplyButton"));
     BackButton = MakeButton(StyleTemplate, MakeText(FText::FromString(TEXT("Back")), RowFont, TextColor), TEXT("BackButton"));
     ApplyButton->OnClicked.AddDynamic(this, &UGameSettingsWidget::HandleApplyClicked);
     BackButton->OnClicked.AddDynamic(this, &UGameSettingsWidget::HandleBackClicked);
@@ -176,20 +176,16 @@ void UGameSettingsWidget::Setup(UButton* StyleTemplate)
         ActionsSlot->SetPadding(FMargin(SCROLLED_CONTENT_INSET, 8, SCROLLED_CONTENT_INSET, 6));
 
     // The actions row is narrower & split in two, so the way to it and back is set explicitly
-    GamepadSchemeButton->SetNavigationRuleExplicit(EUINavigation::Down, ApplyButton);
+    // (down from the options & left from Back lead to Apply only while it's enabled, see RefreshApplyState)
     ApplyButton->SetNavigationRuleExplicit(EUINavigation::Up, GamepadSchemeButton);
     BackButton->SetNavigationRuleExplicit(EUINavigation::Up, GamepadSchemeButton);
     ApplyButton->SetNavigationRuleExplicit(EUINavigation::Right, BackButton);
-    BackButton->SetNavigationRuleExplicit(EUINavigation::Left, ApplyButton);
     ApplyButton->SetNavigationRuleBase(EUINavigation::Left, EUINavigationRule::Stop);
     BackButton->SetNavigationRuleBase(EUINavigation::Right, EUINavigationRule::Stop);
     ApplyButton->SetNavigationRuleBase(EUINavigation::Down, EUINavigationRule::Stop);
     BackButton->SetNavigationRuleBase(EUINavigation::Down, EUINavigationRule::Stop);
 
-    const FText Hint = FText::FromString(TEXT("Arrows / D-pad / Left stick - navigate & change,  Enter / A - select,  Esc / B - back"));
-    UTextBlock* HintText = MakeText(Hint, HintFont, FLinearColor(1, 1, 1, .7f));
-    if (UVerticalBoxSlot* HintSlot = Column->AddChildToVerticalBox(HintText))
-        HintSlot->SetHorizontalAlignment(HAlign_Center);
+    RefreshApplyState();
 }
 
 bool UGameSettingsWidget::HandleBackAction()
@@ -219,6 +215,7 @@ void UGameSettingsWidget::HandleOptionClicked()
 
 void UGameSettingsWidget::HandleApplyClicked()
 {
+    if (!HasPendingChanges()) return;
     UReignForceGameUserSettings* Settings = UReignForceGameUserSettings::GetReignForceGameUserSettings();
     if (IsValid(Settings) && Rows.Num() == EOption::Count)
     {
@@ -241,7 +238,9 @@ void UGameSettingsWidget::HandleApplyClicked()
         Settings->SaveSettings();
         Settings->ApplyAudioSettings(this);
     }
-    RequestClose();
+    // Stays in the settings: the applied values become the new baseline, Back no longer reverts them
+    for (FOptionRow& Row : Rows) Row.AppliedIndex = Row.Index;
+    RefreshApplyState();
 }
 
 void UGameSettingsWidget::HandleControlsClicked()
@@ -358,6 +357,7 @@ void UGameSettingsWidget::ReadOptions(const UReignForceGameUserSettings* Setting
     Select(Rows[MasterVolume], FMath::RoundToInt(Settings->GetMasterVolume() * VOLUME_STEPS));
     Select(Rows[MusicVolume], FMath::RoundToInt(Settings->GetMusicVolume() * VOLUME_STEPS));
     Select(Rows[EffectsVolume], FMath::RoundToInt(Settings->GetEffectsVolume() * VOLUME_STEPS));
+    for (FOptionRow& Row : Rows) Row.AppliedIndex = Row.Index;
 }
 
 void UGameSettingsWidget::ChangeOption(int32 RowIndex, int32 Delta, bool bWrap)
@@ -373,6 +373,7 @@ void UGameSettingsWidget::ChangeOption(int32 RowIndex, int32 Delta, bool bWrap)
     Row.Index = Index;
 
     RefreshRowText(RowIndex);
+    RefreshApplyState();
     if (Row.bLive) PreviewOption(RowIndex);
     if (Row.Button.IsValid() && FSlateApplication::IsInitialized())
         FSlateApplication::Get().PlaySound(Row.Button->GetStyle().PressedSlateSound);
@@ -425,4 +426,25 @@ void UGameSettingsWidget::DiscardChanges()
     constexpr bool bForceReload = true;
     Settings->LoadSettings(bForceReload);
     Settings->ApplyAudioSettings(this);
+}
+
+bool UGameSettingsWidget::HasPendingChanges() const
+{
+    return Rows.ContainsByPredicate([] (const FOptionRow& Row) { return Row.Index != Row.AppliedIndex; });
+}
+
+void UGameSettingsWidget::RefreshApplyState()
+{
+    if (!IsValid(ApplyButton) || !IsValid(BackButton)) return;
+    const bool bChanged = HasPendingChanges();
+    // Leaving the focus on a disabled Apply would stop keyboard & gamepad navigation
+    const bool bApplyFocused = ApplyButton->HasAnyUserFocus();
+    ApplyButton->SetIsEnabled(bChanged);
+    if (IsValid(ApplyLabel)) ApplyLabel->SetColorAndOpacity(FLinearColor(1, 1, 1, bChanged ? 1.f : .35f));
+    if (!bChanged && bApplyFocused) FocusButton(BackButton);
+
+    UWidget* BelowOptions = bChanged ? static_cast<UWidget*>(ApplyButton) : static_cast<UWidget*>(BackButton);
+    if (IsValid(GamepadSchemeButton)) GamepadSchemeButton->SetNavigationRuleExplicit(EUINavigation::Down, BelowOptions);
+    if (bChanged) BackButton->SetNavigationRuleExplicit(EUINavigation::Left, ApplyButton);
+    else BackButton->SetNavigationRuleBase(EUINavigation::Left, EUINavigationRule::Stop);
 }

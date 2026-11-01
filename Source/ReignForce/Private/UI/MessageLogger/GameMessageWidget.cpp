@@ -26,11 +26,11 @@ bool UGameMessageWidget::SetDestroyTimeout(float Seconds)
 
     if (CleanupTimer.IsValid() || TimerManager.IsTimerActive(CleanupTimer)) return false;
 
-    TimerManager.SetTimer(CleanupTimer, [this]
+    // Weak lambda: skipped if the message widget is already gone (checking IsValid(this) inside a raw lambda would read freed memory)
+    TimerManager.SetTimer(CleanupTimer, FTimerDelegate::CreateWeakLambda(this, [this]
     {
-        bool bEnvValid = IsValid(this) && IsValid(GetWorld());
-        if (bEnvValid) RemoveFromParent();
-    }, Seconds, false);
+        if (IsValid(GetWorld())) RemoveFromParent();
+    }), Seconds, false);
 
     return true;
 }

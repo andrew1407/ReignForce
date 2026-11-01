@@ -4,6 +4,7 @@
 
 #include "CoreMinimal.h"
 #include "UI/Common/ReignForceActivatableWidget.h"
+#include "Styling/SlateTypes.h"
 #include "SkillUpgradeConfirmationWidget.generated.h"
 
 
@@ -25,7 +26,7 @@ public:
 	UPROPERTY(BlueprintAssignable)
 	FOnSkillUpgradeConfirmation OnConfirmation;
 
-	/** Builds the dialog taking the buttons style from the template (should be called before adding to the viewport) */
+	/** Builds the dialog in the pause menu modals style taking only the font face from the template (should be called before adding to the viewport) */
 	UFUNCTION(BlueprintCallable)
 	void Setup(UButton* StyleTemplate, const FText& SkillTitle, const FText& Details);
 
@@ -37,11 +38,27 @@ protected:
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Dialog", meta = (ClampMin = 0, UIMin = 0))
 	float BlurStrength;
 
+	/** Full screen tint over the blurred skills menu (same as the pause menu modals background) */
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Dialog")
 	FLinearColor DimColor;
 
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Dialog")
+	FLinearColor FrameColor;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Dialog")
 	FLinearColor PanelColor;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Dialog|Buttons")
+	FLinearColor ButtonColor;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Dialog|Buttons")
+	FLinearColor ButtonHoveredColor;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Dialog|Buttons")
+	FLinearColor ButtonPressedColor;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Dialog|Buttons")
+	FLinearColor ButtonOutlineColor;
 
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Dialog", meta = (ClampMin = 0, UIMin = 0))
 	float PanelWidth;
@@ -54,6 +71,9 @@ private:
 	TObjectPtr<UButton> CancelButton;
 
 	bool bBuilt;
+
+	FButtonStyle MakeModalButtonStyle() const;
+	UButton* MakeModalButton(const FText& Label, const FSlateFontInfo& Font, FName Name);
 
 	UFUNCTION()
 	void HandleAccept();

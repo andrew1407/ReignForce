@@ -17,12 +17,35 @@
 #include "Components/ContentWidget.h"
 #include "Components/CanvasPanelSlot.h"
 #include "Components/TextBlock.h"
+#include "Components/Image.h"
+#include "Components/HorizontalBox.h"
+#include "Components/HorizontalBoxSlot.h"
 #include "Components/VerticalBox.h"
 #include "Components/VerticalBoxSlot.h"
 #include "CommonTextBlock.h"
 #include "CommonInputSubsystem.h"
 
 #include "UI/Settings/GameSettingsWidget.h"
+#include "UI/Common/ReignForceGamepadControllerData.h"
+
+
+namespace
+{
+    constexpr float GAMEPAD_ICON_SIZE = 28;
+    constexpr float GAMEPAD_ICON_GAP = 10;
+
+    /** The button text: its content, or the label next to the gamepad icon once the button is registered as focusable */
+    UTextBlock* FindButtonLabel(const UButton* Button)
+    {
+        UWidget* Content = IsValid(Button) ? Button->GetContent() : nullptr;
+        if (auto Label = Cast<UTextBlock>(Content)) return Label;
+        auto Row = Cast<UHorizontalBox>(Content);
+        if (!IsValid(Row)) return nullptr;
+        for (UWidget* Child : Row->GetAllChildren())
+            if (auto Label = Cast<UTextBlock>(Child)) return Label;
+        return nullptr;
+    }
+}
 
 
 UReignForceActivatableWidget::UReignForceActivatableWidget(const FObjectInitializer& ObjectInitializer) : Super(ObjectInitializer)
@@ -54,8 +77,56 @@ void UReignForceActivatableWidget::RegisterFocusableButton(UButton* Button)
     FButtonStyle Style = State.DefaultStyle;
     Style.Hovered = Style.Normal;
     Button->SetStyle(Style);
+    State.GamepadIcon = AddGamepadIcon(Button);
 
     Button->OnHovered.AddDynamic(this, &UReignForceActivatableWidget::HandleButtonHovered);
+}
+
+UImage* UReignForceActivatableWidget::AddGamepadIcon(UButton* Button)
+{
+    UWidget* Content = IsValid(Button) ? Button->GetContent() : nullptr;
+    if (!IsValid(Content) || !IsValid(WidgetTree)) return nullptr;
+
+    FSlateBrush Brush;
+    if (!UReignForceGamepadControllerData::GetGamepadKeyBrush(EKeys::Gamepad_FaceButton_Bottom, Brush)) return nullptr;
+    Brush.ImageSize = FVector2D(GAMEPAD_ICON_SIZE);
+
+    // The button slot layout (padding, alignment) moves to the [icon][content] row, the content keeps its own sizing in it
+    auto ContentSlot = Cast<UButtonSlot>(Content->Slot);
+    const FMargin ContentPadding = IsValid(ContentSlot) ? ContentSlot->GetPadding() : FMargin(0);
+    const EHorizontalAlignment ContentHAlign = IsValid(ContentSlot) ? ContentSlot->GetHorizontalAlignment() : HAlign_Center;
+    const EVerticalAlignment ContentVAlign = IsValid(ContentSlot) ? ContentSlot->GetVerticalAlignment() : VAlign_Center;
+
+    auto Row = WidgetTree->ConstructWidget<UHorizontalBox>(UHorizontalBox::StaticClass());
+    auto Icon = WidgetTree->ConstructWidget<UImage>(UImage::StaticClass());
+    Icon->SetBrush(Brush);
+    // Collapsed takes no space: the label stays where it was until the icon shows up
+    Icon->SetVisibility(ESlateVisibility::Collapsed);
+
+    Button->SetContent(Row);
+    if (UHorizontalBoxSlot* IconSlot = Row->AddChildToHorizontalBox(Icon))
+    {
+        IconSlot->SetVerticalAlignment(VAlign_Center);
+        IconSlot->SetPadding(FMargin(0, 0, GAMEPAD_ICON_GAP, 0));
+    }
+    if (UHorizontalBoxSlot* LabelSlot = Row->AddChildToHorizontalBox(Content))
+    {
+        LabelSlot->SetVerticalAlignment(VAlign_Center);
+        if (ContentHAlign == HAlign_Fill) LabelSlot->SetSize(FSlateChildSize(ESlateSizeRule::Fill));
+    }
+    if (auto RowSlot = Cast<UButtonSlot>(Row->Slot))
+    {
+        RowSlot->SetPadding(ContentPadding);
+        RowSlot->SetHorizontalAlignment(ContentHAlign);
+        RowSlot->SetVerticalAlignment(ContentVAlign);
+    }
+    return Icon;
+}
+
+bool UReignForceActivatableWidget::IsGamepadUsed() const
+{
+    const UCommonInputSubsystem* InputSubsystem = UCommonInputSubsystem::Get(GetOwningLocalPlayer());
+    return InputSubsystem && InputSubsystem->GetCurrentInputType() == ECommonInputType::Gamepad;
 }
 
 void UReignForceActivatableWidget::FocusButton(UButton* Button)
@@ -146,7 +217,7 @@ UButton* UReignForceActivatableWidget::CreateButtonLike(UButton* Template, const
     Button->SetColorAndOpacity(Template->GetColorAndOpacity());
     Button->SetBackgroundColor(Template->GetBackgroundColor());
 
-    auto TemplateLabel = Cast<UTextBlock>(Template->GetChildAt(0));
+    UTextBlock* TemplateLabel = FindButtonLabel(Template);
     auto Text = WidgetTree->ConstructWidget<UTextBlock>(UTextBlock::StaticClass());
     Text->SetText(Label);
     if (IsValid(TemplateLabel))
@@ -155,7 +226,8 @@ UButton* UReignForceActivatableWidget::CreateButtonLike(UButton* Template, const
         Text->SetColorAndOpacity(TemplateLabel->GetColorAndOpacity());
         Text->SetShadowOffset(TemplateLabel->GetShadowOffset());
         Text->SetShadowColorAndOpacity(TemplateLabel->GetShadowColorAndOpacity());
-        Button->AddChild(Text, TemplateLabel->Slot);
+        // The template content slot (its button padding & alignment), also when it's the gamepad icon row already
+        Button->AddChild(Text, Template->GetContent()->Slot);
     }
     else
     {
@@ -276,7 +348,7 @@ void UReignForceActivatableWidget::MakeMenuItemsScrollableCentered(UWidget* Item
 
 FSlateFontInfo UReignForceActivatableWidget::MakeFont(const UButton* StyleTemplate, int32 Size)
 {
-    auto TemplateLabel = IsValid(StyleTemplate) ? Cast<UTextBlock>(StyleTemplate->GetChildAt(0)) : nullptr;
+    UTextBlock* TemplateLabel = FindButtonLabel(StyleTemplate);
     FSlateFontInfo Font = IsValid(TemplateLabel) ? TemplateLabel->GetFont() : FCoreStyle::GetDefaultFontStyle("Bold", Size);
     Font.Size = Size;
     return Font;
@@ -386,11 +458,19 @@ void UReignForceActivatableWidget::HandleButtonHovered()
 
 void UReignForceActivatableWidget::UpdateButtonsHighlight()
 {
+    const bool bGamepad = IsGamepadUsed();
     for (FFocusableButtonState& State : FocusableButtons)
     {
         UButton* Button = State.Button.Get();
         if (!IsValid(Button)) continue;
         bool bFocused = Button->HasAnyUserFocus() && Button->GetIsEnabled();
+
+        // The confirm button icon marks the focused item for the gamepad: "(A) Apply"
+        if (UImage* Icon = State.GamepadIcon.Get())
+        {
+            const ESlateVisibility IconVisibility = bFocused && bGamepad ? ESlateVisibility::HitTestInvisible : ESlateVisibility::Collapsed;
+            if (Icon->GetVisibility() != IconVisibility) Icon->SetVisibility(IconVisibility);
+        }
         if (bFocused == State.bHighlighted) continue;
 
         if (bFocused)

@@ -105,8 +105,9 @@ void AShooterCharacter::Jump()
 		ReactionsComponent->MakeJumpGruntSound(GetActorLocation(), GetActorRotation());
 }
 
-void AShooterCharacter::BeginDestroy()
+void AShooterCharacter::EndPlay(const EEndPlayReason::Type EndPlayReason)
 {
+	// Done on end play, not on GC (BeginDestroy): attached weapons are separate actors that would stay in the world (destroying actors while collecting isn't allowed)
 	OnHealthChanged.Clear();
 	OnDamageTaken.Clear();
 	OnPerish.Clear();
@@ -122,10 +123,10 @@ void AShooterCharacter::BeginDestroy()
 			if (IsValid(Weapon))
 				Weapon->OnDamageCaused.RemoveDynamic(this, &AShooterCharacter::ReactOnDamageCaused);
 		}
-		WeaponSlotsSystem->RemoveAllWeapons();
+		if (EndPlayReason == EEndPlayReason::Destroyed) WeaponSlotsSystem->RemoveAllWeapons();
 	}
 
-	Super::BeginDestroy();
+	Super::EndPlay(EndPlayReason);
 }
 
 void AShooterCharacter::Landed(const FHitResult& Hit)
@@ -275,7 +276,8 @@ void AShooterCharacter::DefineStats()
 		return OnStatsDefined.Broadcast(bStatsDefined);
 	}
 
-	UAssetManager::GetStreamableManager().RequestAsyncLoad(ModelPaths, [this, LoadedModels = MoveTemp(LoadedModels)]
+	// Weak lambda: skipped if the owner is destroyed before the asset is loaded (a raw this would be used after free)
+	UAssetManager::GetStreamableManager().RequestAsyncLoad(ModelPaths, FStreamableDelegate::CreateWeakLambda(this, [this, LoadedModels = MoveTemp(LoadedModels)]
 	{
 		for (const auto &[WeaponClass, WeaponType] : LoadedModels)
 		{
@@ -290,7 +292,7 @@ void AShooterCharacter::DefineStats()
 
 		bStatsDefined = true;
 		OnStatsDefined.Broadcast(bStatsDefined);
-	});
+	}));
 }
 
 void AShooterCharacter::DefineDamageHitReactions()
