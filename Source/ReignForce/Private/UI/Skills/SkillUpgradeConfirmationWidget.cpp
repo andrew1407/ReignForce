@@ -177,6 +177,7 @@ void USkillUpgradeConfirmationWidget::Setup(UButton* StyleTemplate, const FText&
     // The upgrade was asked for explicitly, so it gets the initial focus (A twice upgrades)
     RegisterFocusableButton(AcceptButton);
     RegisterFocusableButton(CancelButton);
+    SetBackActionButton(CancelButton);
     FocusButton(AcceptButton);
 }
 

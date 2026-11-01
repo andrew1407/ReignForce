@@ -17,6 +17,7 @@ class UPauseMenuWidget;
 class URestartLevelAfterLoseWidget;
 class URoundProgressWidget;
 class UStartRoundWidget;
+class UControlsHintWidget;
 
 class UUIMessageLoggerComponent;
 class UUpgradesProgressStateComponent;
@@ -132,6 +133,7 @@ public:
 	FORCEINLINE URoundProgressWidget* GetRoundProgressWidget() const { return RoundProgressWidget; }
 	FORCEINLINE UStartRoundWidget* GetStartRoundWidget() const { return StartRoundWidget; }
 	FORCEINLINE UUIMessageLoggerComponent* GetMessageLoggerComponent() const { return MessageLoggerComponent; }
+	FORCEINLINE UControlsHintWidget* GetControlsHintWidget() const { return ControlsHintWidget; }
 
 protected:
 	virtual void BeginPlay() override;
@@ -139,6 +141,16 @@ protected:
 private:
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "MessageLogger", meta = (AllowPrivateAccess = true))
 	TObjectPtr<UUIMessageLoggerComponent> MessageLoggerComponent;
+
+	/** Main controls table shown for a few seconds when the level is opened */
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "ControlsHint", meta = (AllowPrivateAccess = true))
+	bool bShowControlsHint;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "ControlsHint", meta = (AllowPrivateAccess = true))
+	TSubclassOf<UControlsHintWidget> ControlsHintClass;
+
+	UPROPERTY(BlueprintReadOnly, Category = "ControlsHint", meta = (AllowPrivateAccess = true))
+	TObjectPtr<UControlsHintWidget> ControlsHintWidget;
 
 	#pragma region AIM
 

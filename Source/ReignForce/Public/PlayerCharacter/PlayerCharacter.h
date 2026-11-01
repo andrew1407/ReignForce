@@ -40,6 +40,10 @@ public:
 	UFUNCTION(BlueprintCallable)
 	bool SaveProgress();
 
+	/** The progress can be saved now: the player is alive & no round is going (SaveProgress tells why it can't) */
+	UFUNCTION(BlueprintPure)
+	bool CanSaveProgress() const;
+
 	UFUNCTION(BlueprintCallable)
 	bool LoadProgress();
 
@@ -59,6 +63,12 @@ public:
 
 	FORCEINLINE const FCharacterInputActions& GetInputActions() const { return Inputs; }
 	FORCEINLINE AShooterHUD* GetShooterHUD() const { return ShooterHUD.Get(); }
+
+	/** What the damage came from by its causer: a firearm (bullet), a melee weapon (machete) or a character itself (fists) */
+	static EDamageVibrationSource GetDamageVibrationSource(const AActor* DamageCauser);
+
+	/** Rumble played when the damage from the source is taken, null for the damage without one (falls) */
+	const FGamepadVibration* FindDamageVibration(EDamageVibrationSource Source) const;
 
 protected:
 	// APawn interface
@@ -113,6 +123,16 @@ private:
 
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Input|Vibration", meta = (AllowPrivateAccess = true, ClampMin = 0, UIMin = 0, ClampMax = 1, UIMax = 1))
 	float MinShotVibrationScale;
+
+	/** Damage taken rumbles: a bullet hit is the lightest one, a machete hit is stronger, a punch is the heaviest */
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Input|Vibration|Damage", meta = (AllowPrivateAccess = true))
+	FGamepadVibration BulletDamageVibration;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Input|Vibration|Damage", meta = (AllowPrivateAccess = true))
+	FGamepadVibration MacheteDamageVibration;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Input|Vibration|Damage", meta = (AllowPrivateAccess = true))
+	FGamepadVibration FistDamageVibration;
 
 	#pragma endregion
 

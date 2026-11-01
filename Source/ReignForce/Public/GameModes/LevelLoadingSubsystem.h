@@ -29,10 +29,25 @@ public:
 	virtual void Deinitialize() override;
 
 	/** Falls back to the regular level opening when the subsystem isn't available */
-	static void OpenLevel(const UObject* WorldContextObject, FName LevelName, bool bAbsolute = true, const FString& Options = FString());
+	static void OpenLevel(const UObject* WorldContextObject, FName LevelName, bool bAbsolute = true, const FString& Options = FString(), bool bRestart = false);
 
+	/**
+	 * A restart (the same level again: pause menu restart, the countdown after a lost round) loads behind a plain black screen
+	 * with the loading indicator, and the restarted level doesn't show the opening hints (the controls table)
+	 */
 	UFUNCTION(BlueprintCallable, Category = "Loading")
-	void OpenLevelAsync(FName LevelName, bool bAbsolute = true, const FString& Options = TEXT(""));
+	void OpenLevelAsync(FName LevelName, bool bAbsolute = true, const FString& Options = TEXT(""), bool bRestart = false);
+
+	/** The loading screen shows the black & white image (false while a level is restarted) */
+	UFUNCTION(BlueprintPure, Category = "Loading")
+	FORCEINLINE bool IsShowingImage() const { return bShowImage; }
+
+	/** The current level was opened by a restart (kept until the next level opening) */
+	UFUNCTION(BlueprintPure, Category = "Loading")
+	FORCEINLINE bool IsLevelRestarted() const { return bLevelRestarted; }
+
+	/** Whether the current level (in the world's game instance) was opened by a restart */
+	static bool IsLevelRestarted(const UObject* WorldContextObject);
 
 	UFUNCTION(BlueprintPure, Category = "Loading")
 	FORCEINLINE bool IsLoading() const { return bLoading; }
@@ -51,6 +66,10 @@ private:
 	bool bPendingAbsolute = true;
 	FString PendingOptions;
 	bool bLoading = false;
+	/** Kept until the map is loaded: the movie player asks for its screen in the middle of the travel */
+	bool bShowImage = true;
+	bool bLevelRestarted = false;
+	bool bPreviousLevelRestarted = false;
 
 	FDelegateHandle PrepareLoadingScreenHandle;
 	FDelegateHandle PostLoadMapHandle;

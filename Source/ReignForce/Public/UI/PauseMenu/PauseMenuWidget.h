@@ -113,5 +113,10 @@ private:
 	void SaveAndExitConfirmation(bool bAccepted);
 
 	void CloseCurrentOpenedModal();
+
+	/** Save & save and exit are disabled (dimmed) while the progress can't be saved (a round is going, the player is dead) */
+	void RefreshSaveAvailability();
+	/** Up & down go between the available items only (the disabled ones are skipped) */
+	void ChainMenuNavigation();
 	void OpenModalWindow(const TSubclassOf<UConfirmationModalWidget>& WidgetClass);
 };

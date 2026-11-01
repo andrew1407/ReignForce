@@ -66,7 +66,20 @@ private:
 		int32 GetValue() const { return Values.IsValidIndex(Index) ? Values[Index] : 0; }
 	};
 
-	enum EOption : int32 { WindowMode, Resolution, Quality, VSync, FrameRate, LookSensitivity, MasterVolume, MusicVolume, EffectsVolume, Count };
+	enum EOption : int32
+	{
+		WindowMode, Resolution, Quality, VSync, FrameRate, LookSensitivity, MasterVolume, MusicVolume, EffectsVolume,
+		InvertMouseX, InvertMouseY, InvertGamepadX, InvertGamepadY, Count
+	};
+
+	/** Look axis inversion rows: the device (mouse or gamepad stick) & the axis they flip */
+	struct FInversionOption
+	{
+		EOption Option;
+		bool bGamepad;
+		bool bVertical;
+	};
+	static TConstArrayView<FInversionOption> GetInversionOptions();
 
 	TArray<FOptionRow> Rows;
 	TArray<FIntPoint> Resolutions;

@@ -22,3 +22,13 @@ struct FGamepadVibration
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
 	bool bSmallMotors = true;
 };
+
+/** What hit the player: the rumble gets stronger from the bullets to the machete to the fists */
+UENUM(BlueprintType)
+enum class EDamageVibrationSource : uint8
+{
+	None,
+	Bullet,
+	Machete,
+	Fist,
+};

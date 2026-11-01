@@ -41,6 +41,8 @@ void UMainMenuWidget::NativeOnInitialized()
     RegisterFocusableButton(PlayNewGameButton);
     RegisterFocusableButton(SettingsButton);
     RegisterFocusableButton(ExitButton);
+    // Back action asks to quit the game
+    SetBackActionButton(ExitButton);
 }
 
 bool UMainMenuWidget::HandleBackAction()

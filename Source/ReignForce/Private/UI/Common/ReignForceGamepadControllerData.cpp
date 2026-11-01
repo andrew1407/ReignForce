@@ -24,7 +24,8 @@ UReignForceGamepadControllerData::UReignForceGamepadControllerData(const FObject
     GamepadName = TEXT("Generic");
     GamepadDisplayName = FText::FromString(TEXT("Gamepad"));
 
-    // Icons are made from the gamepad scheme image (T_GamepadScheme): face buttons & D-pad (pressed arm filled)
+    // Dark badges with a light outline (readable over the orange menu buttons & the dark panels), Xbox layout:
+    // face buttons, D-pad (pressed arm filled), sticks, triggers, bumpers, view & menu buttons
     KeyIcons = {
         { EKeys::Gamepad_FaceButton_Bottom, Icon(TEXT("A")) },
         { EKeys::Gamepad_FaceButton_Right, Icon(TEXT("B")) },
@@ -34,6 +35,18 @@ UReignForceGamepadControllerData::UReignForceGamepadControllerData(const FObject
         { EKeys::Gamepad_DPad_Down, Icon(TEXT("DPad_Down")) },
         { EKeys::Gamepad_DPad_Left, Icon(TEXT("DPad_Left")) },
         { EKeys::Gamepad_DPad_Right, Icon(TEXT("DPad_Right")) },
+        { EKeys::Gamepad_Left2D, Icon(TEXT("LS")) },
+        { EKeys::Gamepad_LeftThumbstick, Icon(TEXT("LS")) },
+        { EKeys::Gamepad_Right2D, Icon(TEXT("RS")) },
+        { EKeys::Gamepad_RightThumbstick, Icon(TEXT("RS")) },
+        { EKeys::Gamepad_LeftTrigger, Icon(TEXT("LT")) },
+        { EKeys::Gamepad_LeftTriggerAxis, Icon(TEXT("LT")) },
+        { EKeys::Gamepad_RightTrigger, Icon(TEXT("RT")) },
+        { EKeys::Gamepad_RightTriggerAxis, Icon(TEXT("RT")) },
+        { EKeys::Gamepad_LeftShoulder, Icon(TEXT("LB")) },
+        { EKeys::Gamepad_RightShoulder, Icon(TEXT("RB")) },
+        { EKeys::Gamepad_Special_Left, Icon(TEXT("View")) },
+        { EKeys::Gamepad_Special_Right, Icon(TEXT("Menu")) },
     };
 }
 

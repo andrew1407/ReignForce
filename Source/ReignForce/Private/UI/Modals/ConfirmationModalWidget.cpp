@@ -19,6 +19,7 @@ void UConfirmationModalWidget::NativeConstruct()
     bool bAcceptFirst = ModalFocusMode == EModalFocusMode::FocusOnAccept;
     RegisterFocusableButton(bAcceptFirst ? AcceptButton : CancelButton);
     RegisterFocusableButton(bAcceptFirst ? CancelButton : AcceptButton);
+    SetBackActionButton(CancelButton);
 
     Super::NativeConstruct();
 

@@ -4,6 +4,7 @@
 #include "Misc/AutomationTest.h"
 #include "Kismet/GameplayStatics.h"
 #include "Blueprint/WidgetTree.h"
+#include "Blueprint/WidgetNavigation.h"
 #include "Components/Button.h"
 
 #include "Tests/TestUtils.h"
@@ -105,6 +106,83 @@ void FSettingsMenuIntegrationTests::Define()
             TestTrue("Changing back is a change again", IsApplyEnabled());
             Menu->HandleApplyClicked();
             TestFalse("Restored", IsApplyEnabled());
+        });
+    });
+
+    Describe("GamepadPrompts", [this]
+    {
+        It("ShowsBackOnTheBackButtonAndConfirmOnTheFocusedOne", [this]
+        {
+            UButton* Back = FindButton(BACK_BUTTON);
+            UButton* Apply = FindButton(APPLY_BUTTON);
+            if (!TestNotNull("Back button", Back) || !TestNotNull("Apply button", Apply)) return;
+            constexpr bool bFocused = true;
+            TestTrue("Back shows B while another button is focused", Menu->GetGamepadPromptKey(Back, !bFocused) == EKeys::Gamepad_FaceButton_Right);
+            TestTrue("Focused Back shows A (A clicks it)", Menu->GetGamepadPromptKey(Back, bFocused) == EKeys::Gamepad_FaceButton_Bottom);
+            TestFalse("Disabled Apply has no prompt", Menu->GetGamepadPromptKey(Apply, !bFocused).IsValid());
+        });
+
+        It("HidesThePromptsOfACoveredMenu", [this]
+        {
+            UButton* Back = FindButton(BACK_BUTTON);
+            if (!TestNotNull("Back button", Back)) return;
+            Menu->DeactivateWidget();
+            TestFalse("No B on an inactive menu (the menu over it takes the back action)", Menu->GetGamepadPromptKey(Back, false).IsValid());
+            Menu->ActivateWidget();
+        });
+    });
+
+    Describe("Navigation", [this]
+    {
+        It("GoesDownThroughEveryOptionBeforeTheActions", [this]
+        {
+            // Rows out of the scrolled view are reached one by one (not skipped to Apply / Back)
+            TArray<UButton*> Chain;
+            for (int32 Option = 0; Option < UGameSettingsWidget::Count; ++Option)
+            {
+                UButton* Row = FindButton(*FString::Printf(TEXT("Option_%d"), Option));
+                if (IsValid(Row)) Chain.Add(Row);
+            }
+            if (!TestTrue("Option rows found", Chain.Num() > 5)) return;
+            int32 Visited = 1;
+            UWidget* Current = FindButton(TEXT("Option_0"));
+            TSet<UWidget*> Seen = { Current };
+            while (IsValid(Current) && IsValid(Current->Navigation) && Current->Navigation->Down.Rule == EUINavigationRule::Explicit)
+            {
+                UWidget* Next = Current->Navigation->Down.Widget.Get();
+                if (!IsValid(Next) || Seen.Contains(Next)) break;
+                Seen.Add(Next);
+                Current = Next;
+                if (Current->GetFName() == APPLY_BUTTON || Current->GetFName() == BACK_BUTTON) break;
+                ++Visited;
+            }
+            for (UButton* Row : Chain) TestTrue(FString::Printf(TEXT("%s is reached going down"), *Row->GetName()), Seen.Contains(Row));
+            TestTrue("Down from the last item leads to the actions", IsValid(Current) && (Current->GetFName() == APPLY_BUTTON || Current->GetFName() == BACK_BUTTON));
+            TestTrue("Submenu items are reached too", Visited >= Chain.Num() + 2);
+        });
+    });
+
+    Describe("LookInversion", [this]
+    {
+        It("HasARowPerDeviceAxis", [this]
+        {
+            for (int32 Option : { UGameSettingsWidget::InvertMouseX, UGameSettingsWidget::InvertMouseY, UGameSettingsWidget::InvertGamepadX, UGameSettingsWidget::InvertGamepadY })
+            {
+                UButton* Row = FindButton(*FString::Printf(TEXT("Option_%d"), Option));
+                TestNotNull(FString::Printf(TEXT("Inversion row %d"), Option), Row);
+            }
+        });
+
+        It("EnablesApplyWhenToggled", [this]
+        {
+            // Two values (Off / On) that don't wrap: one of the directions changes it
+            constexpr bool bWrap = false;
+            Menu->ChangeOption(UGameSettingsWidget::InvertMouseY, 1, bWrap);
+            if (!IsApplyEnabled()) Menu->ChangeOption(UGameSettingsWidget::InvertMouseY, -1, bWrap);
+            const bool bChanged = IsApplyEnabled();
+            // Not applied: the saved user settings stay as they were
+            Menu->DiscardChanges();
+            TestTrue("Inversion change can be applied", bChanged);
         });
     });
 }

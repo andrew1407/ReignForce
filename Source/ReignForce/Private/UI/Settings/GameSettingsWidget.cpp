@@ -147,10 +147,26 @@ void UGameSettingsWidget::Setup(UButton* StyleTemplate)
 
     AddSectionHeader(TEXT("Controls"));
     AddOptionRow(LookSensitivity);
+    for (int32 RowIndex : { InvertMouseX, InvertMouseY, InvertGamepadX, InvertGamepadY }) AddOptionRow(RowIndex);
     ControlsButton = MakeSubmenuButton(TEXT("Keyboard & mouse controls"), TEXT("ControlsButton"));
     ControlsButton->OnClicked.AddDynamic(this, &UGameSettingsWidget::HandleControlsClicked);
     GamepadSchemeButton = MakeSubmenuButton(TEXT("Gamepad controls"), TEXT("GamepadSchemeButton"));
     GamepadSchemeButton->OnClicked.AddDynamic(this, &UGameSettingsWidget::HandleGamepadSchemeClicked);
+
+    // Up & down go item by item through the options: the scroll box brings the next one into view (the default navigation
+    // only sees the items on the screen, so from the last visible row it jumped straight to the actions under the scroll box)
+    TArray<UButton*> OptionButtons;
+    for (UWidget* Child : Options->GetAllChildren())
+    {
+        if (auto OptionButton = Cast<UButton>(Child)) OptionButtons.Add(OptionButton);
+    }
+    for (int32 i = 0; i < OptionButtons.Num(); ++i)
+    {
+        if (i > 0) OptionButtons[i]->SetNavigationRuleExplicit(EUINavigation::Up, OptionButtons[i - 1]);
+        else OptionButtons[i]->SetNavigationRuleBase(EUINavigation::Up, EUINavigationRule::Stop);
+        // The last one leads to the actions (see RefreshApplyState)
+        if (i + 1 < OptionButtons.Num()) OptionButtons[i]->SetNavigationRuleExplicit(EUINavigation::Down, OptionButtons[i + 1]);
+    }
 
     auto Actions = WidgetTree->ConstructWidget<UHorizontalBox>(UHorizontalBox::StaticClass(), TEXT("Actions"));
     ApplyLabel = MakeText(FText::FromString(TEXT("Apply")), RowFont, TextColor);
@@ -171,6 +187,7 @@ void UGameSettingsWidget::Setup(UButton* StyleTemplate)
     }
     RegisterFocusableButton(ApplyButton);
     RegisterFocusableButton(BackButton);
+    SetBackActionButton(BackButton);
     // Same inset as the scrolled options, so the actions line up with them
     if (UVerticalBoxSlot* ActionsSlot = Column->AddChildToVerticalBox(Actions))
         ActionsSlot->SetPadding(FMargin(SCROLLED_CONTENT_INSET, 8, SCROLLED_CONTENT_INSET, 6));
@@ -227,6 +244,8 @@ void UGameSettingsWidget::HandleApplyClicked()
         Settings->SetVSyncEnabled(Rows[VSync].GetValue() != 0);
         Settings->SetFrameRateLimit(Rows[FrameRate].GetValue());
         Settings->SetLookSensitivity(Rows[LookSensitivity].GetValue() / 100.f);
+        for (const auto& [Option, bGamepad, bVertical] : GetInversionOptions())
+            Settings->SetLookInverted(bGamepad, bVertical, Rows[Option].GetValue() != 0);
         Settings->SetMasterVolume(Rows[MasterVolume].GetValue() / static_cast<float>(VOLUME_STEPS));
         Settings->SetMusicVolume(Rows[MusicVolume].GetValue() / static_cast<float>(VOLUME_STEPS));
         Settings->SetEffectsVolume(Rows[EffectsVolume].GetValue() / static_cast<float>(VOLUME_STEPS));
@@ -265,6 +284,17 @@ void UGameSettingsWidget::HandleBackClicked()
 {
     DiscardChanges();
     RequestClose();
+}
+
+TConstArrayView<UGameSettingsWidget::FInversionOption> UGameSettingsWidget::GetInversionOptions()
+{
+    static const FInversionOption Options[] = {
+        { InvertMouseX, false, false },
+        { InvertMouseY, false, true },
+        { InvertGamepadX, true, false },
+        { InvertGamepadY, true, true },
+    };
+    return Options;
 }
 
 void UGameSettingsWidget::ReadOptions(const UReignForceGameUserSettings* Settings)
@@ -328,6 +358,16 @@ void UGameSettingsWidget::ReadOptions(const UReignForceGameUserSettings* Setting
         SensitivityRow.Names.Add(Percent(Value));
     }
 
+    // Inversion flips the default direction of the axis (camera turn / tilt) for its device
+    const TCHAR* InversionLabels[] = { TEXT("Invert mouse left / right"), TEXT("Invert mouse up / down"), TEXT("Invert gamepad stick left / right"), TEXT("Invert gamepad stick up / down") };
+    for (int32 i = 0; i < GetInversionOptions().Num(); ++i)
+    {
+        FOptionRow& Row = Rows[GetInversionOptions()[i].Option];
+        Row.Label = FText::FromString(InversionLabels[i]);
+        Row.Names = { FText::FromString(TEXT("Off")), FText::FromString(TEXT("On")) };
+        Row.Values = { 0, 1 };
+    }
+
     const TPair<EOption, FText> Volumes[] = {
         { MasterVolume, FText::FromString(TEXT("Master volume")) },
         { MusicVolume, FText::FromString(TEXT("Music volume")) },
@@ -354,6 +394,8 @@ void UGameSettingsWidget::ReadOptions(const UReignForceGameUserSettings* Setting
     if (FrameRateLimit > 0) Select(FrameRateRow, FrameRateLimit);
     else FrameRateRow.Index = FrameRateRow.Values.Num() - 1;
     Select(SensitivityRow, FMath::RoundToInt(Settings->GetLookSensitivity() * 100));
+    for (const auto& [Option, bGamepad, bVertical] : GetInversionOptions())
+        Select(Rows[Option], Settings->IsLookInverted(bGamepad, bVertical) ? 1 : 0);
     Select(Rows[MasterVolume], FMath::RoundToInt(Settings->GetMasterVolume() * VOLUME_STEPS));
     Select(Rows[MusicVolume], FMath::RoundToInt(Settings->GetMusicVolume() * VOLUME_STEPS));
     Select(Rows[EffectsVolume], FMath::RoundToInt(Settings->GetEffectsVolume() * VOLUME_STEPS));

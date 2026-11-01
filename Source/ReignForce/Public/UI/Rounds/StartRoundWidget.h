@@ -54,10 +54,18 @@ private:
 	UPROPERTY()
 	TObjectPtr<UTextBlock> GamepadSuffix;
 
+	/** Keyboard key name in the key slot (cross-faded with the gamepad icon) */
+	UPROPERTY()
+	TObjectPtr<UTextBlock> KeyText;
+
 	bool bGamepadPrompt = false;
 
-	/** [message][icon][suffix] row in place of the message: the message is "Press" and the suffix the rest for the gamepad */
+	/** 0 - keyboard key shown, 1 - gamepad icon shown */
+	float GamepadBlend = 0;
+
+	/** "Press [key] to start a new round." row in place of the message for both devices: only the key slot content changes (no text jump) */
 	void BuildGamepadPrompt();
 	void SetGamepadPrompt(bool bGamepad);
+	void ApplyKeyBlend();
 	bool IsGamepadUsed() const;
 };

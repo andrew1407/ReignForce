@@ -52,17 +52,17 @@ UGamepadSchemeWidget::UGamepadSchemeWidget(const FObjectInitializer& ObjectIniti
     constexpr bool bLeft = true;
     Callouts = {
         MakeCallout(EKeys::Gamepad_LeftTrigger, TEXT("Aim"), FVector2D(.25f, .08f), .08f, bLeft),
-        MakeCallout(EKeys::Gamepad_LeftShoulder, TEXT("Previous weapon"), FVector2D(.19f, .14f), .19f, bLeft),
+        MakeCallout(EKeys::Gamepad_LeftShoulder, TEXT("Start round"), FVector2D(.19f, .14f), .19f, bLeft),
         MakeCallout(EKeys::Gamepad_Left2D, TEXT("Move"), FVector2D(.258f, .3f), .31f, bLeft),
-        MakeCallout(EKeys::Gamepad_Special_Left, TEXT("Save progress"), FVector2D(.431f, .313f), .43f, bLeft),
+        MakeCallout(EKeys::Gamepad_Special_Left, TEXT("Skills menu"), FVector2D(.431f, .313f), .43f, bLeft),
         MakeCallout(EKeys::Gamepad_Special_Right, TEXT("Pause menu"), FVector2D(.57f, .313f), .55f, bLeft),
-        MakeCallout(EKeys::Gamepad_DPad_Up, TEXT("Up: skills menu\nDown: start round\nLeft: previous weapon\nRight: next weapon"), FVector2D(.373f, .524f), .69f, bLeft),
+        MakeCallout(EKeys::Gamepad_DPad_Up, TEXT("Up: fists\nLeft: machete\nDown: pistol\nRight: rifle"), FVector2D(.373f, .524f), .69f, bLeft),
         MakeCallout(EKeys::Gamepad_RightTrigger, TEXT("Shoot / attack"), FVector2D(.729f, .082f), .08f, !bLeft),
-        MakeCallout(EKeys::Gamepad_RightShoulder, TEXT("Next weapon"), FVector2D(.812f, .136f), .18f, !bLeft),
+        MakeCallout(EKeys::Gamepad_RightShoulder, TEXT("Save progress"), FVector2D(.812f, .136f), .18f, !bLeft),
         MakeCallout(EKeys::Gamepad_FaceButton_Top, TEXT("Movement mode"), FVector2D(.745f, .222f), .29f, !bLeft),
-        MakeCallout(EKeys::Gamepad_FaceButton_Right, TEXT("Attack\nBack in menus"), FVector2D(.81f, .315f), .4f, !bLeft),
+        MakeCallout(EKeys::Gamepad_FaceButton_Right, TEXT("Reload\nBack in menus"), FVector2D(.81f, .315f), .4f, !bLeft),
         MakeCallout(EKeys::Gamepad_FaceButton_Bottom, TEXT("Jump\nSelect in menus"), FVector2D(.745f, .4f), .53f, !bLeft),
-        MakeCallout(EKeys::Gamepad_FaceButton_Left, TEXT("Reload"), FVector2D(.68f, .315f), .65f, !bLeft),
+        MakeCallout(EKeys::Gamepad_FaceButton_Left, TEXT("Attack"), FVector2D(.68f, .315f), .65f, !bLeft),
         MakeCallout(EKeys::Gamepad_Right2D, TEXT("Camera\nClick: movement mode"), FVector2D(.624f, .513f), .77f, !bLeft),
     };
 }
@@ -120,6 +120,7 @@ void UGamepadSchemeWidget::Setup(UButton* StyleTemplate)
     BackButton = MakeButton(StyleTemplate, MakeText(FText::FromString(TEXT("Back")), ButtonFont, TextColor), TEXT("BackButton"));
     BackButton->OnClicked.AddDynamic(this, &UReignForceActivatableWidget::RequestClose);
     RegisterFocusableButton(BackButton);
+    SetBackActionButton(BackButton);
     if (UVerticalBoxSlot* BackSlot = Column->AddChildToVerticalBox(BackButton))
     {
         BackSlot->SetHorizontalAlignment(HAlign_Center);

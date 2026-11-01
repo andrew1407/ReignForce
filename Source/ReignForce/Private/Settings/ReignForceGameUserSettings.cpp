@@ -15,6 +15,7 @@ UReignForceGameUserSettings::UReignForceGameUserSettings(const FObjectInitialize
     MusicVolume = 1;
     EffectsVolume = 1;
     LookSensitivity = 1;
+    bInvertMouseX = bInvertMouseY = bInvertGamepadX = bInvertGamepadY = false;
 }
 
 UReignForceGameUserSettings* UReignForceGameUserSettings::GetReignForceGameUserSettings()
@@ -35,6 +36,7 @@ void UReignForceGameUserSettings::SetToDefaults()
     MusicVolume = 1;
     EffectsVolume = 1;
     LookSensitivity = 1;
+    bInvertMouseX = bInvertMouseY = bInvertGamepadX = bInvertGamepadY = false;
 }
 
 void UReignForceGameUserSettings::ApplyAudioSettings(const UObject* WorldContextObject) const
@@ -82,3 +84,24 @@ void UReignForceGameUserSettings::SetLookSensitivity(float Sensitivity)
     LookSensitivity = FMath::Clamp(Sensitivity, .1f, 3.f);
 }
 
+
+bool UReignForceGameUserSettings::IsLookInverted(bool bGamepad, bool bVertical) const
+{
+    if (bGamepad) return bVertical ? bInvertGamepadY : bInvertGamepadX;
+    return bVertical ? bInvertMouseY : bInvertMouseX;
+}
+
+void UReignForceGameUserSettings::SetLookInverted(bool bGamepad, bool bVertical, bool bInverted)
+{
+    bool& Flag = bGamepad ? (bVertical ? bInvertGamepadY : bInvertGamepadX) : (bVertical ? bInvertMouseY : bInvertMouseX);
+    Flag = bInverted;
+}
+
+FVector2D UReignForceGameUserSettings::ApplyLookInversion(const FVector2D& LookInput, bool bGamepad) const
+{
+    constexpr bool bVertical = true;
+    return FVector2D(
+        IsLookInverted(bGamepad, !bVertical) ? -LookInput.X : LookInput.X,
+        IsLookInverted(bGamepad, bVertical) ? -LookInput.Y : LookInput.Y
+    );
+}
