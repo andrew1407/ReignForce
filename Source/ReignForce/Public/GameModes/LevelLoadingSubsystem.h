@@ -13,8 +13,8 @@ class UTexture2D;
 class ULoadingScreenWidget;
 
 /**
- * Opens levels asynchronously: the level package is streamed in behind a loading screen (main menu image),
- * then the travel happens with the same image shown by the movie player during the map switch
+ * Opens levels behind a loading screen (black & white main menu image): it is shown over the current level first,
+ * then the movie player keeps the same screen up (rendered on its own thread) while the map is loaded
  */
 UCLASS()
 class REIGNFORCE_API ULevelLoadingSubsystem : public UGameInstanceSubsystem
@@ -46,23 +46,21 @@ private:
 	UPROPERTY()
 	TObjectPtr<ULoadingScreenWidget> LoadingWidget;
 
-	/** Holds the streamed in level until the travel picks it up */
-	UPROPERTY()
-	TObjectPtr<UPackage> PreloadedLevel;
-
 	FName PendingLevel;
 	bool bPendingAbsolute = true;
 	FString PendingOptions;
 	bool bLoading = false;
 
-	FDelegateHandle PreLoadMapHandle;
+	FDelegateHandle PrepareLoadingScreenHandle;
 	FDelegateHandle PostLoadMapHandle;
+	FDelegateHandle TravelFailureHandle;
 
 	void ShowLoadingWidget();
+	void HideLoadingWidget();
 	void Travel();
-	void HandlePackageLoaded(const FName& PackageName, UPackage* Package, EAsyncLoadingResult::Type Result);
-	void HandlePreLoadMap(const FString& MapName);
+	/** The movie player asks for the screen on every map load (the game start too) when none is set up for it */
+	void HandlePrepareLoadingScreen();
 	void HandlePostLoadMap(UWorld* World);
-	FString ResolveLevelPackage(FName LevelName) const;
+	void HandleTravelFailure(UWorld* World, ETravelFailure::Type FailureType, const FString& Error);
 	UTexture2D* GetLoadingImage();
 };

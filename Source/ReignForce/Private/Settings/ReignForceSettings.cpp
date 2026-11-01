@@ -15,7 +15,7 @@ UReignForceSettings::UReignForceSettings(const FObjectInitializer& ObjectInitial
     MasterSoundClass = TSoftObjectPtr<USoundClass>(FSoftObjectPath(TEXT("/Engine/EngineSounds/Master.Master")));
     MusicSoundClass = TSoftObjectPtr<USoundClass>(FSoftObjectPath(TEXT("/Game/Core/Audio/SC_Music.SC_Music")));
 
-    LoadingScreenImage = TSoftObjectPtr<UTexture2D>(FSoftObjectPath(TEXT("/Game/Core/UI/MainMenu/Images/main-menu-image.main-menu-image")));
+    LoadingScreenImage = TSoftObjectPtr<UTexture2D>(FSoftObjectPath(TEXT("/Game/Core/UI/Loading/T_LoadingScreen.T_LoadingScreen")));
     MinLoadingScreenDisplayTime = .5f;
 
     ImpactEffects = TSoftObjectPtr<UImpactEffectsDataAsset>(FSoftObjectPath(TEXT("/Game/Core/Weapons/Impacts/DA_ImpactEffects.DA_ImpactEffects")));

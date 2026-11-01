@@ -14,6 +14,7 @@ class UPanelWidget;
 class USkillDescriptionWidget;
 class USkillsCountWidget;
 class USkillUpgradeWidget;
+class USkillUpgradeConfirmationWidget;
 class UShooterSkillUpgrade;
 class UUpgradesProgressWidget;
 
@@ -39,6 +40,8 @@ class REIGNFORCE_API USkillsProgressionWidget : public UReignForceActivatableWid
 	GENERATED_BODY()
 
 public:
+	USkillsProgressionWidget(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
+
 	UFUNCTION(BlueprintPure)
 	bool IsSkillsDataAssetValid() const;
 
@@ -63,6 +66,7 @@ public:
 	FORCEINLINE UButton* GetCloseMenuButton() const { return CloseMenuButton; }
 
 protected:
+	virtual void NativeOnInitialized() override;
 	virtual void NativeConstruct() override;
 	virtual UWidget* NativeGetDesiredFocusTarget() const override;
 
@@ -85,6 +89,10 @@ private:
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Skills|DataAssets", meta = (AllowPrivateAccess = true))
 	TObjectPtr<USkillsDataAsset> SkillsDataAsset;
 
+	/** Asked before every upgrade, over the blurred menu */
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Skills|Upgrade", meta = (AllowPrivateAccess = true))
+	TSubclassOf<USkillUpgradeConfirmationWidget> UpgradeConfirmationClass;
+
 	UPROPERTY(BlueprintReadOnly, meta = (AllowPrivateAccess = true))
 	TMap<USkillUpgradeWidget*, FSkillUpgradeStages> Skills;
 
@@ -95,6 +103,20 @@ private:
 
 	UFUNCTION()
 	void HandleOnSkillSelected(USkillUpgradeWidget* Skill, bool bState);
+
+	/** Opens the upgrade confirmation for the selected skill when its next stage can be upgraded */
+	UFUNCTION()
+	void RequestUpgradeConfirmation();
+
+	UFUNCTION()
+	void HandleSkillUpgradeRequested(USkillUpgradeWidget* Skill);
+
+	UFUNCTION()
+	void HandleUpgradeConfirmation(bool bAccepted);
+
+	/** Grid navigation: left/right go through the skills in order (wrapping rows), up/down to the closest skill of the next row, the last row leads to the close button */
+	UFUNCTION()
+	UWidget* HandleSkillNavigation(EUINavigation Direction);
 
 	bool CheckIfCanUpgrade(UShooterSkillUpgrade* SkillUpgrade, APlayerCharacter* Character);
 	TPair<USkillUpgradeWidget*, UShooterSkillUpgrade*> GetCurrentSkillState(APlayerCharacter* Character);

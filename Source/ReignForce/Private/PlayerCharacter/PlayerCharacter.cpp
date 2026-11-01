@@ -83,8 +83,9 @@ void APlayerCharacter::BeginPlay()
 	// Call the base class
 	Super::BeginPlay();
 
-	OnHealthChanged.AddDynamic(this, &APlayerCharacter::UpdateHealthBar);
-	OnStatsDefined.AddDynamic(this, &APlayerCharacter::HandleStatsDefined);
+	// The handlers can be bound already (saved with the placed character), so they aren't added twice
+	OnHealthChanged.AddUniqueDynamic(this, &APlayerCharacter::UpdateHealthBar);
+	OnStatsDefined.AddUniqueDynamic(this, &APlayerCharacter::HandleStatsDefined);
 
     auto PlayerController = GetController<APlayerController>();
 	if (IsValid(PlayerController))

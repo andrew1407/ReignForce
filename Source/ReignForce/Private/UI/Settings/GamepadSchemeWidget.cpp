@@ -45,7 +45,6 @@ UGamepadSchemeWidget::UGamepadSchemeWidget(const FObjectInitializer& ObjectIniti
     BackgroundColor = FLinearColor(0, 0, 0, .85f);
     LineColor = FLinearColor(1, 1, 1, .55f);
     AnchorColor = FLinearColor(.75f, .5f, 0.f);
-    FocusedButtonScale = 1.05f;
     bBuilt = false;
     ImageSize = FVector2D::ZeroVector;
 

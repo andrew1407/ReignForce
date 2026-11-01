@@ -104,7 +104,9 @@ UKeyBindingsWidget::UKeyBindingsWidget(const FObjectInitializer& ObjectInitializ
     CategoryColor = FLinearColor(1.f, .8f, .45f);
     ConflictColor = FLinearColor(1.f, .35f, .25f);
     CaptureColor = FLinearColor(1.f, .85f, .2f);
-    FocusedButtonScale = 1.03f;
+    // Rows are packed tightly, so the focus frame hugs the button
+    FocusOutlineStyle.Thickness = 3;
+    FocusOutlineStyle.Gap = 0;
 
     CapturingRow = INDEX_NONE;
     bBuilt = false;
@@ -182,7 +184,6 @@ void UKeyBindingsWidget::Setup(UButton* StyleTemplate)
             UButton* Button = MakeButton(StyleTemplate, Content, *FString::Printf(TEXT("Binding_%d"), RowIndex));
             UTextBlock* ResetText = MakeText(FText::FromString(TEXT("Reset")), ResetFont, TextColor);
             UButton* ResetButton = MakeButton(StyleTemplate, ResetText, *FString::Printf(TEXT("Reset_%d"), RowIndex));
-            ResetButton->SetToolTipText(FText::FromString(TEXT("Reset to the default key")));
             Button->OnClicked.AddDynamic(this, &UKeyBindingsWidget::HandleBindingClicked);
             ResetButton->OnClicked.AddDynamic(this, &UKeyBindingsWidget::HandleResetClicked);
 

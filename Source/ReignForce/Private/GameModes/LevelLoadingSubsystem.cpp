@@ -8,9 +8,7 @@
 #include "Engine/World.h"
 #include "Kismet/GameplayStatics.h"
 #include "Blueprint/WidgetBlueprintLibrary.h"
-#include "AssetRegistry/AssetData.h"
-#include "AssetRegistry/IAssetRegistry.h"
-#include "Misc/PackageName.h"
+#include "TimerManager.h"
 #include "MoviePlayer.h"
 
 #include "Styling/CoreStyle.h"
@@ -43,14 +41,20 @@ void ULevelLoadingSubsystem::Initialize(FSubsystemCollectionBase& Collection)
 {
     Super::Initialize(Collection);
 
-    PreLoadMapHandle = FCoreUObjectDelegates::PreLoadMap.AddUObject(this, &ULevelLoadingSubsystem::HandlePreLoadMap);
+    // The movie player handles the map loading start before any other listener, so the screen is given to it on its request
+    // (a screen set up on PreLoadMap would be shown only on the next map change)
+    if (!IsRunningDedicatedServer() && IsMoviePlayerEnabled() && GetMoviePlayer())
+        PrepareLoadingScreenHandle = GetMoviePlayer()->OnPrepareLoadingScreen().AddUObject(this, &ULevelLoadingSubsystem::HandlePrepareLoadingScreen);
     PostLoadMapHandle = FCoreUObjectDelegates::PostLoadMapWithWorld.AddUObject(this, &ULevelLoadingSubsystem::HandlePostLoadMap);
+    if (GEngine) TravelFailureHandle = GEngine->OnTravelFailure().AddUObject(this, &ULevelLoadingSubsystem::HandleTravelFailure);
 }
 
 void ULevelLoadingSubsystem::Deinitialize()
 {
-    FCoreUObjectDelegates::PreLoadMap.Remove(PreLoadMapHandle);
+    if (PrepareLoadingScreenHandle.IsValid() && GetMoviePlayer())
+        GetMoviePlayer()->OnPrepareLoadingScreen().Remove(PrepareLoadingScreenHandle);
     FCoreUObjectDelegates::PostLoadMapWithWorld.Remove(PostLoadMapHandle);
+    if (GEngine) GEngine->OnTravelFailure().Remove(TravelFailureHandle);
 
     Super::Deinitialize();
 }
@@ -72,9 +76,13 @@ void ULevelLoadingSubsystem::OpenLevelAsync(FName LevelName, bool bAbsolute, con
 
     ShowLoadingWidget();
 
-    const FString Package = ResolveLevelPackage(LevelName);
-    if (Package.IsEmpty()) return Travel();
-    LoadPackageAsync(Package, FLoadPackageAsyncDelegate::CreateUObject(this, &ULevelLoadingSubsystem::HandlePackageLoaded));
+    // The loading screen is drawn first, then the movie player keeps it on screen while the map loads.
+    // The map package isn't preloaded: only the package would stay referenced, its world was collected
+    // before the travel and the travel failed with "Failed to load package"
+    UGameInstance* GameInstance = GetGameInstance();
+    UWorld* World = IsValid(GameInstance) ? GameInstance->GetWorld() : nullptr;
+    if (!IsValid(World)) return Travel();
+    World->GetTimerManager().SetTimerForNextTick(FTimerDelegate::CreateUObject(this, &ULevelLoadingSubsystem::Travel));
 }
 
 void ULevelLoadingSubsystem::ShowLoadingWidget()
@@ -96,6 +104,26 @@ void ULevelLoadingSubsystem::ShowLoadingWidget()
     LoadingWidget->AddToViewport(LOADING_SCREEN_Z_ORDER);
 }
 
+void ULevelLoadingSubsystem::HideLoadingWidget()
+{
+    if (IsValid(LoadingWidget)) LoadingWidget->RemoveFromParent();
+    LoadingWidget = nullptr;
+
+    UGameInstance* GameInstance = GetGameInstance();
+    UWorld* World = IsValid(GameInstance) ? GameInstance->GetWorld() : nullptr;
+    if (!IsValid(World)) return;
+
+    // The level stays the same, so its menus get the input back
+    TArray<UUserWidget*> Menus;
+    constexpr bool bTopLevelOnly = true;
+    UWidgetBlueprintLibrary::GetAllWidgetsOfClass(World, Menus, UCommonActivatableWidget::StaticClass(), bTopLevelOnly);
+    for (UUserWidget* Menu : Menus)
+    {
+        auto Activatable = Cast<UCommonActivatableWidget>(Menu);
+        if (IsValid(Activatable) && Activatable->IsInViewport() && !Activatable->IsActivated()) Activatable->ActivateWidget();
+    }
+}
+
 void ULevelLoadingSubsystem::Travel()
 {
     UGameInstance* GameInstance = GetGameInstance();
@@ -108,16 +136,16 @@ void ULevelLoadingSubsystem::Travel()
     UGameplayStatics::OpenLevel(World, PendingLevel, bPendingAbsolute, PendingOptions);
 }
 
-void ULevelLoadingSubsystem::HandlePackageLoaded(const FName& PackageName, UPackage* Package, EAsyncLoadingResult::Type Result)
+void ULevelLoadingSubsystem::HandleTravelFailure(UWorld* World, ETravelFailure::Type FailureType, const FString& Error)
 {
-    if (Result == EAsyncLoadingResult::Succeeded) PreloadedLevel = Package;
-    // A failed preload is not fatal, the travel loads the level on its own
-    Travel();
+    UE_LOG(LogTemp, Warning, TEXT("Level '%s' opening failed: %s"), *PendingLevel.ToString(), *Error);
+    bLoading = false;
+    HideLoadingWidget();
 }
 
-void ULevelLoadingSubsystem::HandlePreLoadMap(const FString& MapName)
+void ULevelLoadingSubsystem::HandlePrepareLoadingScreen()
 {
-    if (IsRunningDedicatedServer() || !IsMoviePlayerEnabled() || !GetMoviePlayer()) return;
+    if (!GetMoviePlayer()) return;
 
     UTexture2D* Image = GetLoadingImage();
     const UReignForceSettings* Settings = UReignForceSettings::Get();
@@ -162,22 +190,8 @@ void ULevelLoadingSubsystem::HandlePreLoadMap(const FString& MapName)
 
 void ULevelLoadingSubsystem::HandlePostLoadMap(UWorld* World)
 {
-    PreloadedLevel = nullptr;
     LoadingWidget = nullptr;
     bLoading = false;
-}
-
-FString ULevelLoadingSubsystem::ResolveLevelPackage(FName LevelName) const
-{
-    const FString Name = LevelName.ToString();
-    if (FPackageName::IsValidLongPackageName(Name)) return Name;
-
-    IAssetRegistry* AssetRegistry = IAssetRegistry::Get();
-    if (!AssetRegistry) return FString();
-    TArray<FAssetData> Levels;
-    AssetRegistry->GetAssetsByClass(UWorld::StaticClass()->GetClassPathName(), Levels);
-    const FAssetData* Level = Levels.FindByPredicate([&] (const FAssetData& Asset) { return Asset.AssetName == LevelName; });
-    return Level ? Level->PackageName.ToString() : FString();
 }
 
 UTexture2D* ULevelLoadingSubsystem::GetLoadingImage()
