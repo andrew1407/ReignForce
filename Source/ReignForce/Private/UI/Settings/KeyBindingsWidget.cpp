@@ -217,6 +217,7 @@ void UKeyBindingsWidget::Setup(UButton* StyleTemplate)
         }
         RegisterFocusableButton(Button);
     }
+    SetBackActionButton(BackButton);
     if (UVerticalBoxSlot* ActionsSlot = Column->AddChildToVerticalBox(Actions))
         ActionsSlot->SetPadding(FMargin(0, 24, 0, 12));
 

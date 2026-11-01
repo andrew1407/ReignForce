@@ -25,6 +25,8 @@
 #include "UI/Rounds/RestartLevelAfterLoseWidget.h"
 #include "UI/Rounds/RoundProgressWidget.h"
 #include "UI/Rounds/StartRoundWidget.h"
+#include "UI/ControlsHint/ControlsHintWidget.h"
+#include "GameModes/LevelLoadingSubsystem.h"
 
 
 AShooterHUD::AShooterHUD(const FObjectInitializer& ObjectInitializer) : Super(ObjectInitializer)
@@ -32,6 +34,8 @@ AShooterHUD::AShooterHUD(const FObjectInitializer& ObjectInitializer) : Super(Ob
 	MessageLoggerComponent = CreateDefaultSubobject<UUIMessageLoggerComponent>(GET_MEMBER_NAME_CHECKED(AShooterHUD, MessageLoggerComponent));
 
     AlternativeSkillsProgressionSoundChance = .3f;
+    bShowControlsHint = true;
+    ControlsHintClass = UControlsHintWidget::StaticClass();
 }
 
 void AShooterHUD::BeginPlay()
@@ -39,6 +43,16 @@ void AShooterHUD::BeginPlay()
     Super::BeginPlay();
 
     if (IsValid(MessageLoggerComponent)) MessageLoggerComponent->OpenGameMessageLogger();
+
+    // Main controls are reminded when the level is opened from the main menu, not on its restarts
+    // (the table slides out on its own after a few seconds)
+    APlayerController* Controller = GetOwningPlayerController();
+    const bool bRestarted = ULevelLoadingSubsystem::IsLevelRestarted(this);
+    if (bShowControlsHint && !bRestarted && IsValid(ControlsHintClass) && IsValid(Controller) && Controller->IsLocalController())
+    {
+        ControlsHintWidget = CreateWidget<UControlsHintWidget>(Controller, ControlsHintClass);
+        if (IsValid(ControlsHintWidget)) ControlsHintWidget->AddToViewport();
+    }
 
 	auto GameState = GetWorld()->GetGameState<AShooterGameState>();
     if (IsValid(GameState))

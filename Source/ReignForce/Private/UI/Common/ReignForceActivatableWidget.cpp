@@ -7,6 +7,7 @@
 #include "Styling/CoreStyle.h"
 
 #include "Components/Border.h"
+#include "Components/CanvasPanel.h"
 #include "Components/Button.h"
 #include "Components/ButtonSlot.h"
 #include "Components/PanelWidget.h"
@@ -31,8 +32,26 @@
 
 namespace
 {
-    constexpr float GAMEPAD_ICON_SIZE = 28;
-    constexpr float GAMEPAD_ICON_GAP = 10;
+    /** Prompt icon size relative to the label font size (clamped), the default one for the buttons without a text label */
+    constexpr float PROMPT_SIZE_PER_FONT_SIZE = 1.35f;
+    constexpr float PROMPT_MIN_SIZE = 22;
+    constexpr float PROMPT_MAX_SIZE = 32;
+    constexpr float PROMPT_DEFAULT_SIZE = 28;
+    constexpr float PROMPT_GAP = 10;
+    /** Prompt slide in / out time (seconds) */
+    constexpr float PROMPT_ANIMATION_TIME = .16f;
+    constexpr float PROMPT_PULSE_TIME = .22f;
+    constexpr float PROMPT_PULSE_SCALE = .18f;
+    /** Prompt slides in from this fraction of its size towards the label */
+    constexpr float PROMPT_SLIDE = .45f;
+
+    /** Text alignment of a text block (the property has no getter, it is read by reflection) */
+    ETextJustify::Type GetJustification(const UTextBlock* Text)
+    {
+        static const FProperty* Property = UTextLayoutWidget::StaticClass()->FindPropertyByName(TEXT("Justification"));
+        const auto Value = Property ? Property->ContainerPtrToValuePtr<TEnumAsByte<ETextJustify::Type>>(Text) : nullptr;
+        return Value ? Value->GetValue() : ETextJustify::Left;
+    }
 
     /** The button text: its content, or the label next to the gamepad icon once the button is registered as focusable */
     UTextBlock* FindButtonLabel(const UButton* Button)
@@ -77,50 +96,194 @@ void UReignForceActivatableWidget::RegisterFocusableButton(UButton* Button)
     FButtonStyle Style = State.DefaultStyle;
     Style.Hovered = Style.Normal;
     Button->SetStyle(Style);
-    State.GamepadIcon = AddGamepadIcon(Button);
+    AddGamepadPrompt(State);
 
     Button->OnHovered.AddDynamic(this, &UReignForceActivatableWidget::HandleButtonHovered);
 }
 
-UImage* UReignForceActivatableWidget::AddGamepadIcon(UButton* Button)
+void UReignForceActivatableWidget::AddGamepadPrompt(FFocusableButtonState& State)
 {
+    UButton* Button = State.Button.Get();
     UWidget* Content = IsValid(Button) ? Button->GetContent() : nullptr;
-    if (!IsValid(Content) || !IsValid(WidgetTree)) return nullptr;
+    if (!IsValid(Content) || !IsValid(WidgetTree)) return;
 
-    FSlateBrush Brush;
-    if (!UReignForceGamepadControllerData::GetGamepadKeyBrush(EKeys::Gamepad_FaceButton_Bottom, Brush)) return nullptr;
-    Brush.ImageSize = FVector2D(GAMEPAD_ICON_SIZE);
-
-    // The button slot layout (padding, alignment) moves to the [icon][content] row, the content keeps its own sizing in it
+    // The button slot layout (padding, alignment) moves to the [prompt][content] row, the content keeps its own sizing in it
     auto ContentSlot = Cast<UButtonSlot>(Content->Slot);
     const FMargin ContentPadding = IsValid(ContentSlot) ? ContentSlot->GetPadding() : FMargin(0);
     const EHorizontalAlignment ContentHAlign = IsValid(ContentSlot) ? ContentSlot->GetHorizontalAlignment() : HAlign_Center;
     const EVerticalAlignment ContentVAlign = IsValid(ContentSlot) ? ContentSlot->GetVerticalAlignment() : VAlign_Center;
 
-    auto Row = WidgetTree->ConstructWidget<UHorizontalBox>(UHorizontalBox::StaticClass());
-    auto Icon = WidgetTree->ConstructWidget<UImage>(UImage::StaticClass());
-    Icon->SetBrush(Brush);
-    // Collapsed takes no space: the label stays where it was until the icon shows up
-    Icon->SetVisibility(ESlateVisibility::Collapsed);
+    // The prompt is about the label line height
+    auto Label = Cast<UTextBlock>(Content);
+    const float FontSize = IsValid(Label) ? Label->GetFont().Size : 0.f;
+    State.PromptSize = FontSize > 0 ? FMath::Clamp(FontSize * PROMPT_SIZE_PER_FONT_SIZE, PROMPT_MIN_SIZE, PROMPT_MAX_SIZE) : PROMPT_DEFAULT_SIZE;
 
+    // Centered label: the [prompt][label] pair is centered as one (the label glides aside while the prompt grows), the button grows if needed
+    const bool bCentered = IsValid(Label) && (ContentHAlign == HAlign_Center || (ContentHAlign == HAlign_Fill && GetJustification(Label) == ETextJustify::Center));
+    if (bCentered) State.CenteredLabel = Label;
+
+    auto Row = WidgetTree->ConstructWidget<UHorizontalBox>(UHorizontalBox::StaticClass());
     Button->SetContent(Row);
-    if (UHorizontalBoxSlot* IconSlot = Row->AddChildToHorizontalBox(Icon))
+
+    // The icon stays whole on a canvas (at the label side) while the clipped box around it grows: it slides out from behind the label
+    auto PromptBox = WidgetTree->ConstructWidget<USizeBox>(USizeBox::StaticClass());
+    PromptBox->SetWidthOverride(0);
+    PromptBox->SetHeightOverride(State.PromptSize);
+    PromptBox->SetClipping(EWidgetClipping::ClipToBounds);
+    // Collapsed takes no space: the label stays where it was until the prompt shows up
+    PromptBox->SetVisibility(ESlateVisibility::Collapsed);
+    auto PromptCanvas = WidgetTree->ConstructWidget<UCanvasPanel>(UCanvasPanel::StaticClass());
+    PromptBox->SetContent(PromptCanvas);
+    auto Icon = WidgetTree->ConstructWidget<UImage>(UImage::StaticClass());
+    Icon->SetRenderTransformPivot(FVector2D(.5f));
+    if (UCanvasPanelSlot* IconSlot = PromptCanvas->AddChildToCanvas(Icon))
     {
-        IconSlot->SetVerticalAlignment(VAlign_Center);
-        IconSlot->SetPadding(FMargin(0, 0, GAMEPAD_ICON_GAP, 0));
+        IconSlot->SetAnchors(FAnchors(1, .5f));
+        IconSlot->SetAlignment(FVector2D(1, .5f));
+        IconSlot->SetPosition(FVector2D(-PROMPT_GAP, 0));
+        IconSlot->SetSize(FVector2D(State.PromptSize));
     }
+    if (UHorizontalBoxSlot* PromptSlot = Row->AddChildToHorizontalBox(PromptBox))
+        PromptSlot->SetVerticalAlignment(VAlign_Center);
+
     if (UHorizontalBoxSlot* LabelSlot = Row->AddChildToHorizontalBox(Content))
     {
         LabelSlot->SetVerticalAlignment(VAlign_Center);
-        if (ContentHAlign == HAlign_Fill) LabelSlot->SetSize(FSlateChildSize(ESlateSizeRule::Fill));
+        // A centered label sizes to its text, so the whole row (not only the label in the space left after the prompt) is centered
+        if (ContentHAlign == HAlign_Fill && !bCentered) LabelSlot->SetSize(FSlateChildSize(ESlateSizeRule::Fill));
     }
+
     if (auto RowSlot = Cast<UButtonSlot>(Row->Slot))
     {
         RowSlot->SetPadding(ContentPadding);
-        RowSlot->SetHorizontalAlignment(ContentHAlign);
+        RowSlot->SetHorizontalAlignment(bCentered ? HAlign_Center : ContentHAlign);
         RowSlot->SetVerticalAlignment(ContentVAlign);
     }
-    return Icon;
+
+    if (auto CanvasSlot = Cast<UCanvasPanelSlot>(Button->Slot))
+    {
+        State.BaseSlotLayout = CanvasSlot->GetOffsets();
+        // A fixed size canvas slot (not stretched between anchors) knows its width before the first layout
+        const FAnchors Anchors = CanvasSlot->GetAnchors();
+        State.bBaseWidthFromSlot = FMath::IsNearlyEqual(Anchors.Minimum.X, Anchors.Maximum.X) && !CanvasSlot->GetAutoSize();
+        if (State.bBaseWidthFromSlot) State.BaseWidth = State.BaseSlotLayout.Right;
+    }
+    else if (auto BoxSlot = Cast<UVerticalBoxSlot>(Button->Slot))
+    {
+        State.BaseSlotLayout = BoxSlot->GetPadding();
+    }
+    else if (auto RowBoxSlot = Cast<UHorizontalBoxSlot>(Button->Slot))
+    {
+        State.BaseSlotLayout = RowBoxSlot->GetPadding();
+    }
+
+    State.PromptBox = PromptBox;
+    State.GamepadIcon = Icon;
+}
+
+void UReignForceActivatableWidget::ApplyPromptProgress(FFocusableButtonState& State)
+{
+    USizeBox* PromptBox = State.PromptBox.Get();
+    UImage* Icon = State.GamepadIcon.Get();
+    if (!(IsValid(PromptBox) && IsValid(Icon))) return;
+
+    const bool bShown = State.PromptProgress > 0;
+    const ESlateVisibility PromptVisibility = bShown ? ESlateVisibility::HitTestInvisible : ESlateVisibility::Collapsed;
+    if (PromptBox->GetVisibility() != PromptVisibility) PromptBox->SetVisibility(PromptVisibility);
+
+    const float Eased = FMath::InterpEaseInOut(0.f, 1.f, State.PromptProgress, 2.f);
+    const float FullWidth = State.PromptSize + PROMPT_GAP;
+    const float Width = FullWidth * Eased;
+    if (!FMath::IsNearlyEqual(PromptBox->GetWidthOverride(), Width, .01f)) PromptBox->SetWidthOverride(Width);
+
+    if (!FMath::IsNearlyEqual(Icon->GetRenderOpacity(), State.PromptProgress)) Icon->SetRenderOpacity(State.PromptProgress);
+    // Slides from the label side & pops a bit when the key changes
+    const float Scale = 1 + PROMPT_PULSE_SCALE * FMath::Sin(State.PromptPulse * PI);
+    FWidgetTransform Transform;
+    Transform.Translation = FVector2D(State.PromptSize * PROMPT_SLIDE * (1 - Eased), 0);
+    Transform.Scale = FVector2D(Scale);
+    const FWidgetTransform& Current = Icon->GetRenderTransform();
+    if (!(Current.Translation.Equals(Transform.Translation, .01) && Current.Scale.Equals(Transform.Scale, .001))) Icon->SetRenderTransform(Transform);
+
+    UTextBlock* Label = State.CenteredLabel.Get();
+    UButton* Button = State.Button.Get();
+    if (!(IsValid(Label) && IsValid(Button))) return;
+
+    // Room the centered [prompt][label] needs with the paddings & the same gap on the free side: the button grows (eased with the
+    // prompt, so the width & the label move together) by what doesn't fit - a fixed size canvas slot grows freely, a box item takes its side paddings
+    const bool bNoGrowth = State.AppliedGrowth < .5f;
+    if (bNoGrowth && !State.bBaseWidthFromSlot)
+    {
+        // The slot width isn't known up front: it's measured while the button has its own size
+        const float GeometryWidth = Button->GetCachedGeometry().GetLocalSize().X;
+        if (GeometryWidth > 0) State.BaseWidth = GeometryWidth;
+    }
+    const FMargin StylePadding = State.DefaultStyle.NormalPadding;
+    auto RowSlot = IsValid(Button->GetContent()) ? Cast<UButtonSlot>(Button->GetContent()->Slot) : nullptr;
+    const FMargin ContentPadding = IsValid(RowSlot) ? RowSlot->GetPadding() : FMargin(0);
+    const float Needed = Label->GetDesiredSize().X + FullWidth + PROMPT_GAP + StylePadding.GetTotalSpaceAlong<Orient_Horizontal>() +
+        ContentPadding.GetTotalSpaceAlong<Orient_Horizontal>();
+
+    float MaxGrowth = 0;
+    if (State.bBaseWidthFromSlot) MaxGrowth = TNumericLimits<float>::Max();
+    else if (Cast<UVerticalBoxSlot>(Button->Slot) || Cast<UHorizontalBoxSlot>(Button->Slot)) MaxGrowth = State.BaseSlotLayout.GetTotalSpaceAlong<Orient_Horizontal>();
+
+    const float Missing = State.BaseWidth > 0 ? FMath::Max(0.f, Needed - State.BaseWidth) : 0.f;
+    const float Growth = FMath::Min(Missing, MaxGrowth);
+    ApplyButtonGrowth(State, FMath::RoundToFloat(Growth * Eased));
+}
+
+void UReignForceActivatableWidget::ApplyButtonGrowth(FFocusableButtonState& State, float Growth)
+{
+    UButton* Button = State.Button.Get();
+    if (!IsValid(Button) || FMath::IsNearlyEqual(State.AppliedGrowth, Growth, .5f)) return;
+    State.AppliedGrowth = Growth;
+
+    const FMargin& Base = State.BaseSlotLayout;
+    if (auto CanvasSlot = Cast<UCanvasPanelSlot>(Button->Slot))
+    {
+        // Wider by the growth around the same center: the position moves by its part on the alignment side
+        const float AlignmentX = CanvasSlot->GetAlignment().X;
+        FMargin Offsets = Base;
+        Offsets.Left = Base.Left - Growth * (.5f - AlignmentX);
+        Offsets.Right = Base.Right + Growth;
+        CanvasSlot->SetOffsets(Offsets);
+    }
+    else
+    {
+        auto VerticalSlot = Cast<UVerticalBoxSlot>(Button->Slot);
+        auto HorizontalSlot = Cast<UHorizontalBoxSlot>(Button->Slot);
+        if (!(VerticalSlot || HorizontalSlot)) return;
+        // Side paddings give the room evenly (the vertical ones may be changed by the menu layout, they're kept)
+        FMargin SlotPadding = VerticalSlot ? VerticalSlot->GetPadding() : HorizontalSlot->GetPadding();
+        // Half from each side, the other side gives the rest when one runs out
+        const float RightShare = FMath::Min(Base.Right, Growth - FMath::Min(Base.Left, Growth * .5f));
+        const float LeftShare = FMath::Min(Base.Left, Growth - RightShare);
+        SlotPadding.Left = Base.Left - LeftShare;
+        SlotPadding.Right = Base.Right - RightShare;
+        if (VerticalSlot) VerticalSlot->SetPadding(SlotPadding);
+        else HorizontalSlot->SetPadding(SlotPadding);
+    }
+}
+
+void UReignForceActivatableWidget::SetBackActionButton(UButton* Button)
+{
+    BackActionButton = Button;
+}
+
+FKey UReignForceActivatableWidget::GetGamepadPromptKey(const UButton* Button, bool bFocused) const
+{
+    // Prompts of a menu covered by a submenu or a modal would show the keys which act on the menu over it
+    if (!(IsActivated() && IsButtonAvailable(Button))) return EKeys::Invalid;
+    if (bFocused) return EKeys::Gamepad_FaceButton_Bottom;
+    if (Button == BackActionButton.Get()) return EKeys::Gamepad_FaceButton_Right;
+    return EKeys::Invalid;
+}
+
+FKey UReignForceActivatableWidget::GetShownGamepadPrompt(const UButton* Button) const
+{
+    const FFocusableButtonState* State = FocusableButtons.FindByPredicate([&] (const FFocusableButtonState& Item) { return Item.Button == Button; });
+    return State && State->PromptProgress > 0 ? State->PromptKey : EKeys::Invalid;
 }
 
 bool UReignForceActivatableWidget::IsGamepadUsed() const
@@ -145,7 +308,7 @@ void UReignForceActivatableWidget::NativeTick(const FGeometry& MyGeometry, float
 {
     Super::NativeTick(MyGeometry, InDeltaTime);
 
-    UpdateButtonsHighlight();
+    UpdateButtonsHighlight(InDeltaTime);
 
     // The menu is fullscreen: its height is the screen one in the layout units
     if (IsValid(ScreenHeightLimitedBox))
@@ -456,7 +619,7 @@ void UReignForceActivatableWidget::HandleButtonHovered()
     }
 }
 
-void UReignForceActivatableWidget::UpdateButtonsHighlight()
+void UReignForceActivatableWidget::UpdateButtonsHighlight(float DeltaTime)
 {
     const bool bGamepad = IsGamepadUsed();
     for (FFocusableButtonState& State : FocusableButtons)
@@ -465,11 +628,31 @@ void UReignForceActivatableWidget::UpdateButtonsHighlight()
         if (!IsValid(Button)) continue;
         bool bFocused = Button->HasAnyUserFocus() && Button->GetIsEnabled();
 
-        // The confirm button icon marks the focused item for the gamepad: "(A) Apply"
+        // Gamepad prompts mark what the buttons do: "(A) Apply" on the focused one, "(B) Back" on the back action one
         if (UImage* Icon = State.GamepadIcon.Get())
         {
-            const ESlateVisibility IconVisibility = bFocused && bGamepad ? ESlateVisibility::HitTestInvisible : ESlateVisibility::Collapsed;
-            if (Icon->GetVisibility() != IconVisibility) Icon->SetVisibility(IconVisibility);
+            const FKey Key = bGamepad ? GetGamepadPromptKey(Button, bFocused) : EKeys::Invalid;
+            if (Key.IsValid() && Key != State.PromptKey)
+            {
+                FSlateBrush Brush;
+                if (UReignForceGamepadControllerData::GetGamepadKeyBrush(Key, Brush))
+                {
+                    Brush.ImageSize = FVector2D(State.PromptSize);
+                    Icon->SetBrush(Brush);
+                    // A shown prompt changing its key pops, so the change is noticed
+                    if (State.PromptProgress > 0) State.PromptPulse = 1;
+                    State.PromptKey = Key;
+                }
+            }
+            const float Target = Key.IsValid() && Key == State.PromptKey ? 1.f : 0.f;
+            const float PreviousProgress = State.PromptProgress;
+            State.PromptProgress = FMath::FInterpConstantTo(State.PromptProgress, Target, DeltaTime, 1.f / PROMPT_ANIMATION_TIME);
+            const float PreviousPulse = State.PromptPulse;
+            State.PromptPulse = FMath::FInterpConstantTo(State.PromptPulse, 0.f, DeltaTime, 1.f / PROMPT_PULSE_TIME);
+
+            bool bAnimating = State.PromptProgress != PreviousProgress || State.PromptPulse != PreviousPulse;
+            // The centered label room is kept up to date while the prompt is shown (the label text may change)
+            if (bAnimating || State.PromptProgress > 0 || State.CenteredLabel.IsValid()) ApplyPromptProgress(State);
         }
         if (bFocused == State.bHighlighted) continue;
 

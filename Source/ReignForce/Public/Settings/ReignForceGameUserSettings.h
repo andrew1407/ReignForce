@@ -50,6 +50,16 @@ public:
 	UFUNCTION(BlueprintCallable, Category = "Settings|Controls")
 	void SetLookSensitivity(float Sensitivity);
 
+	/** Look (camera) axes inversion of the mouse & the gamepad right stick, on top of the default directions */
+	UFUNCTION(BlueprintPure, Category = "Settings|Controls")
+	bool IsLookInverted(bool bGamepad, bool bVertical) const;
+
+	UFUNCTION(BlueprintCallable, Category = "Settings|Controls")
+	void SetLookInverted(bool bGamepad, bool bVertical, bool bInverted);
+
+	/** Look input with the inversion of the device it came from applied */
+	FVector2D ApplyLookInversion(const FVector2D& LookInput, bool bGamepad) const;
+
 private:
 	UPROPERTY(Config)
 	float MasterVolume;
@@ -62,4 +72,16 @@ private:
 
 	UPROPERTY(Config)
 	float LookSensitivity;
+
+	UPROPERTY(Config)
+	bool bInvertMouseX;
+
+	UPROPERTY(Config)
+	bool bInvertMouseY;
+
+	UPROPERTY(Config)
+	bool bInvertGamepadX;
+
+	UPROPERTY(Config)
+	bool bInvertGamepadY;
 };

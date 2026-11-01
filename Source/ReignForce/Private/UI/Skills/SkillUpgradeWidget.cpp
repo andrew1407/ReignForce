@@ -32,10 +32,14 @@ void USkillUpgradeWidget::NativeTick(const FGeometry& MyGeometry, float InDeltaT
 void USkillUpgradeWidget::SetFocusHighlight(bool bState)
 {
     bFocused = bState;
+    // The focus given by a mouse hover doesn't select the skill (a click does), any other one is the keyboard or gamepad navigation.
+    // (Not a hover check: CommonUI moves the cursor onto the gamepad focused widget, so it's hovered too)
+    const bool bFocusedByHover = bHoverFocus;
+    bHoverFocus = false;
     if (!IsValid(ActionButton)) return;
 
     // Hover sound for the keyboard & gamepad navigation (mouse hover plays it on its own)
-    bool bNavigated = bFocused && !ActionButton->IsHovered();
+    bool bNavigated = bFocused && !bFocusedByHover;
     if (bNavigated && IsValid(OnHoverActionSound))
     {
         constexpr float PitchMultiplier = 1;
@@ -165,8 +169,6 @@ void USkillUpgradeWidget::OnActionClick()
 
 void USkillUpgradeWidget::OnActionHover()
 {
-    // Mouse hover moves the focus as well, so gamepad & keyboard navigation continues from it.
-    // Only a real mouse move does it: the skill under a resting cursor (menu just opened) keeps the navigation focus where it is
     bool bMouseMoved = false;
     if (FSlateApplication::IsInitialized())
     {
@@ -174,7 +176,18 @@ void USkillUpgradeWidget::OnActionHover()
         bMouseMoved = !CursorPosition.Equals(HoverCursorPosition, 1.);
         HoverCursorPosition = CursorPosition;
     }
-    if (bMouseMoved && IsValid(ActionButton) && !ActionButton->HasAnyUserFocus()) ActionButton->SetFocus();
+    // With the gamepad the (hidden) cursor follows the focus: the hover is the navigation itself, its sound is played on the focus
+    auto InputSubsystem = UCommonInputSubsystem::Get(GetOwningLocalPlayer());
+    if (InputSubsystem && InputSubsystem->GetCurrentInputType() == ECommonInputType::Gamepad) return;
+
+    // Mouse hover moves the focus as well, so gamepad & keyboard navigation continues from it.
+    // Only a real mouse move does it: the skill under a resting cursor (menu just opened) keeps the navigation focus where it is
+    if (bMouseMoved && IsValid(ActionButton) && !ActionButton->HasAnyUserFocus())
+    {
+        bHoverFocus = true;
+        ActionButton->SetFocus();
+        bHoverFocus = ActionButton->HasAnyUserFocus();
+    }
 
     if (IsValid(OnHoverActionSound))
     {

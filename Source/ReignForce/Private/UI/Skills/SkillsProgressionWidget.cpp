@@ -45,6 +45,7 @@ void USkillsProgressionWidget::NativeConstruct()
     if (IsValid(CloseMenuButton))
         CloseMenuButton->OnClicked.AddUniqueDynamic(this, &UReignForceActivatableWidget::RequestClose);
     RegisterFocusableButton(CloseMenuButton);
+    SetBackActionButton(CloseMenuButton);
     if (IsValid(SkillDescription)) RegisterFocusableButton(SkillDescription->GetUpgradeSkillButton());
 
     if (!(IsSkillsDataAssetValid() && IsValid(SkillDescription))) return;
@@ -103,23 +104,30 @@ void USkillsProgressionWidget::NativeConstruct()
 UWidget* USkillsProgressionWidget::HandleSkillNavigation(EUINavigation Direction)
 {
     TArray<USkillUpgradeWidget*> SkillUpgrades = GetSkillUpgrades();
-    const int32 Current = SkillUpgrades.IndexOfByPredicate([] (const USkillUpgradeWidget* Skill)
-    {
-        return IsValid(Skill->GetActionButton()) && Skill->GetActionButton()->HasAnyUserFocus();
-    });
+    // Navigation goes from the focused skill (the selected one if the focus isn't on the skills, e.g. no window focus)
+    const int32 Current = GetCurrentSkillIndex(SkillUpgrades);
     if (Current == INDEX_NONE) return nullptr;
-    auto ButtonAt = [&] (int32 Index) -> UWidget* { return SkillUpgrades.IsValidIndex(Index) ? SkillUpgrades[Index]->GetActionButton() : nullptr; };
+
+    // The skill moved to is selected right away (its icon & details), not after the focus change is noticed:
+    // with the gamepad the cursor follows the focus, so a hover check would skip it and the selection lagged behind
+    auto MoveTo = [&] (int32 Index) -> UWidget*
+    {
+        if (!SkillUpgrades.IsValidIndex(Index)) return nullptr;
+        USkillUpgradeWidget* Skill = SkillUpgrades[Index];
+        Skill->SetIsSelected(true);
+        return Skill->GetActionButton();
+    };
 
     // Skills are laid out in reading order, so the previous & next ones continue on the neighbour rows
-    if (Direction == EUINavigation::Left) return ButtonAt(Current - 1);
-    if (Direction == EUINavigation::Right) return ButtonAt(Current + 1);
+    if (Direction == EUINavigation::Left) return MoveTo(Current - 1);
+    if (Direction == EUINavigation::Right) return MoveTo(Current + 1);
 
     const bool bDown = Direction == EUINavigation::Down;
     const FGeometry& CurrentGeometry = SkillUpgrades[Current]->GetCachedGeometry();
     const FVector2f CurrentCenter = CurrentGeometry.GetAbsolutePositionAtCoordinates(FVector2f(.5f));
     const float RowThreshold = CurrentGeometry.GetAbsoluteSize().Y * .5f;
 
-    UWidget* Closest = nullptr;
+    int32 Closest = INDEX_NONE;
     float ClosestRowDistance = TNumericLimits<float>::Max();
     float ClosestColumnDistance = TNumericLimits<float>::Max();
     for (int32 i = 0; i < SkillUpgrades.Num(); ++i)
@@ -133,13 +141,39 @@ UWidget* USkillsProgressionWidget::HandleSkillNavigation(EUINavigation Direction
         bool bSameRow = FMath::Abs(RowDistance - ClosestRowDistance) <= RowThreshold;
         if (bNearerRow || (bSameRow && ColumnDistance < ClosestColumnDistance))
         {
-            Closest = ButtonAt(i);
+            Closest = i;
             ClosestRowDistance = RowDistance;
             ClosestColumnDistance = ColumnDistance;
         }
     }
-    if (IsValid(Closest)) return Closest;
+    if (Closest != INDEX_NONE) return MoveTo(Closest);
     return bDown ? CloseMenuButton.Get() : nullptr;
+}
+
+int32 USkillsProgressionWidget::GetCurrentSkillIndex(const TArray<USkillUpgradeWidget*>& SkillUpgrades) const
+{
+    const int32 Focused = SkillUpgrades.IndexOfByPredicate([] (const USkillUpgradeWidget* Skill)
+    {
+        return IsValid(Skill->GetActionButton()) && Skill->GetActionButton()->HasAnyUserFocus();
+    });
+    if (Focused != INDEX_NONE) return Focused;
+    return SkillUpgrades.IndexOfByPredicate([] (const USkillUpgradeWidget* Skill) { return Skill->IsSelected(); });
+}
+
+FKey USkillsProgressionWidget::GetGamepadPromptKey(const UButton* Button, bool bFocused) const
+{
+    // A on the selected skill upgrades it: the upgrade button shows A while the navigation is on the skills
+    bool bUpgradeButton = IsValid(SkillDescription) && Button == SkillDescription->GetUpgradeSkillButton();
+    if (bUpgradeButton && !bFocused && IsActivated() && SkillDescription->IsVisible() && IsValid(Button) && Button->GetIsEnabled() && Button->IsVisible())
+    {
+        TArray<USkillUpgradeWidget*> SkillUpgrades = GetSkillUpgrades();
+        const int32 Focused = SkillUpgrades.IndexOfByPredicate([] (const USkillUpgradeWidget* Skill)
+        {
+            return Skill->IsSelected() && IsValid(Skill->GetActionButton()) && Skill->GetActionButton()->HasAnyUserFocus();
+        });
+        if (Focused != INDEX_NONE) return EKeys::Gamepad_FaceButton_Bottom;
+    }
+    return Super::GetGamepadPromptKey(Button, bFocused);
 }
 
 UWidget* USkillsProgressionWidget::NativeGetDesiredFocusTarget() const

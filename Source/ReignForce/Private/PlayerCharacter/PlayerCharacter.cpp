@@ -18,6 +18,7 @@
 #include "EnhancedInputComponent.h"
 #include "EnhancedInputSubsystems.h"
 #include "InputActionValue.h"
+#include "CommonInputSubsystem.h"
 
 #include "PlayerCharacter/ShooterPlayerController.h"
 #include "PlayerCharacter/PlayerInteractionMode.h"
@@ -32,6 +33,7 @@
 #include "Weapons/Components/CombatSystem.h"
 #include "Weapons/Types/Weapon.h"
 #include "Weapons/Types/FirearmsWeapon.h"
+#include "Weapons/Types/MeleeWeapon.h"
 
 #include "UI/ShooterHUD.h"
 #include "UI/ShooterStatsWidget.h"
@@ -76,6 +78,11 @@ APlayerCharacter::APlayerCharacter(const FObjectInitializer& ObjectInitializer) 
 	MeleeHitVibration = { .75f, .18f, true, true };
 	ShotVibration = { .6f, .08f, true, true };
 	MinShotVibrationScale = .2f;
+
+	// Taken damage: a light buzz for a bullet, a heavy rumble for a machete hit & a stronger longer one for a punch
+	BulletDamageVibration = { .35f, .12f, false, true };
+	MacheteDamageVibration = { .65f, .2f, true, true };
+	FistDamageVibration = { .9f, .26f, true, true };
 }
 
 void APlayerCharacter::BeginPlay()
@@ -150,9 +157,31 @@ float APlayerCharacter::TakeDamage(float DamageAmount, FDamageEvent const& Damag
 	float DamageTaken = Super::TakeDamage(DamageAmount, DamageEvent, EventInstigator, DamageCauser);
 
 	if (DamageTaken == 0) return DamageTaken;
+	if (const FGamepadVibration* Vibration = FindDamageVibration(GetDamageVibrationSource(DamageCauser))) PlayVibration(*Vibration);
 	bool bPerished = IsValid(GetStatsComponent()) && GetStatsComponent()->HasNoHealth();
 	if (bPerished) Perish(DamageCauser);
 	return DamageTaken;
+}
+
+EDamageVibrationSource APlayerCharacter::GetDamageVibrationSource(const AActor* DamageCauser)
+{
+	if (!IsValid(DamageCauser)) return EDamageVibrationSource::None;
+	if (DamageCauser->IsA<AFirearmsWeapon>()) return EDamageVibrationSource::Bullet;
+	if (DamageCauser->IsA<AMeleeWeapon>()) return EDamageVibrationSource::Machete;
+	// Punches are dealt by the character itself (its fists aren't separate actors)
+	if (DamageCauser->IsA<AShooterCharacter>()) return EDamageVibrationSource::Fist;
+	return EDamageVibrationSource::None;
+}
+
+const FGamepadVibration* APlayerCharacter::FindDamageVibration(EDamageVibrationSource Source) const
+{
+	switch (Source)
+	{
+		case EDamageVibrationSource::Bullet: return &BulletDamageVibration;
+		case EDamageVibrationSource::Machete: return &MacheteDamageVibration;
+		case EDamageVibrationSource::Fist: return &FistDamageVibration;
+		default: return nullptr;
+	}
 }
 
 void APlayerCharacter::HandleStatsDefined(bool bSuccess)
@@ -265,6 +294,14 @@ bool APlayerCharacter::SaveProgress()
 	return bSaved;
 }
 
+bool APlayerCharacter::CanSaveProgress() const
+{
+	if (IsDead()) return false;
+	const UWorld* World = GetWorld();
+	auto GameState = IsValid(World) ? World->GetGameState<AShooterGameState>() : nullptr;
+	return IsValid(GameState) && !GameState->IsRoundGoing();
+}
+
 bool APlayerCharacter::LoadProgress()
 {
 	auto GameState = GetWorld()->GetGameState<AShooterGameState>();
@@ -369,7 +406,15 @@ void APlayerCharacter::LookAction(const FInputActionValue& Value)
 	// input is a Vector2D
 	auto LookAxisVector = Value.Get<FVector2D>();
 	const UReignForceGameUserSettings* Settings = UReignForceGameUserSettings::GetReignForceGameUserSettings();
-	if (IsValid(Settings)) LookAxisVector *= Settings->GetLookSensitivity();
+	if (IsValid(Settings))
+	{
+		LookAxisVector *= Settings->GetLookSensitivity();
+		// The stick & the mouse are inverted separately: the input is from the device used last (CommonUI input type)
+		auto PlayerController = Cast<APlayerController>(GetController());
+		const UCommonInputSubsystem* InputSubsystem = IsValid(PlayerController) ? UCommonInputSubsystem::Get(PlayerController->GetLocalPlayer()) : nullptr;
+		const bool bGamepad = InputSubsystem && InputSubsystem->GetCurrentInputType() == ECommonInputType::Gamepad;
+		LookAxisVector = Settings->ApplyLookInversion(LookAxisVector, bGamepad);
+	}
 
 	// add yaw and pitch input to controller
 	AddControllerYawInput(LookAxisVector.X);

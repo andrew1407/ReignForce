@@ -4,6 +4,7 @@
 #include "UI/PauseMenu/PauseMenuWidget.h"
 #include "GameFramework/PlayerController.h"
 #include "Components/Button.h"
+#include "Components/PanelWidget.h"
 
 #include "Kismet/KismetSystemLibrary.h"
 #include "Kismet/GameplayStatics.h"
@@ -51,6 +52,8 @@ void UPauseMenuWidget::NativeOnInitialized()
 
     for (UButton* Button : { ContinueButton, SaveProgressButton, RestartButton, SettingsButton, GoToMenuButton, ExitButton, SaveAndExitButton })
         RegisterFocusableButton(Button);
+    // Back action continues the game
+    SetBackActionButton(ContinueButton);
 }
 
 void UPauseMenuWidget::NativeConstruct()
@@ -72,7 +75,45 @@ void UPauseMenuWidget::NativeConstruct()
     if (IsValid(SaveAndExitButton))
         SaveAndExitButton->OnClicked.AddDynamic(this, &UPauseMenuWidget::OnSaveAndExit);
 
+    // The menu is created on every pause: the round & the player state don't change while it's open
+    RefreshSaveAvailability();
+
     if (IsValid(ContinueButton)) FocusButton(ContinueButton);
+}
+
+void UPauseMenuWidget::RefreshSaveAvailability()
+{
+    auto Character = Cast<APlayerCharacter>(GetOwningPlayerPawn());
+    const bool bCanSave = IsValid(Character) && Character->CanSaveProgress();
+    for (UButton* Button : { SaveProgressButton.Get(), SaveAndExitButton.Get() })
+    {
+        if (!IsValid(Button)) continue;
+        Button->SetIsEnabled(bCanSave);
+        // The menu buttons style has no disabled look of its own
+        Button->SetRenderOpacity(bCanSave ? 1.f : .4f);
+    }
+    ChainMenuNavigation();
+}
+
+void UPauseMenuWidget::ChainMenuNavigation()
+{
+    UPanelWidget* Column = IsValid(ContinueButton) ? ContinueButton->GetParent() : nullptr;
+    if (!IsValid(Column)) return;
+
+    // The items in their column order (the settings item is inserted in the middle), only the enabled ones
+    TArray<UButton*> Items;
+    for (UWidget* Child : Column->GetAllChildren())
+    {
+        auto Button = Cast<UButton>(Child);
+        if (IsValid(Button) && Button->GetIsEnabled() && Button->IsVisible()) Items.Add(Button);
+    }
+    for (int32 i = 0; i < Items.Num(); ++i)
+    {
+        if (i > 0) Items[i]->SetNavigationRuleExplicit(EUINavigation::Up, Items[i - 1]);
+        else Items[i]->SetNavigationRuleBase(EUINavigation::Up, EUINavigationRule::Stop);
+        if (i + 1 < Items.Num()) Items[i]->SetNavigationRuleExplicit(EUINavigation::Down, Items[i + 1]);
+        else Items[i]->SetNavigationRuleBase(EUINavigation::Down, EUINavigationRule::Stop);
+    }
 }
 
 void UPauseMenuWidget::NativeDestruct()

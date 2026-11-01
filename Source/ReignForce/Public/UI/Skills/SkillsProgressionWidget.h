@@ -64,6 +64,10 @@ public:
 	void FillDescription(USkillUpgradeWidget* Skill, const FSkillUpgradeStages& Stages);
 
 	FORCEINLINE UButton* GetCloseMenuButton() const { return CloseMenuButton; }
+	FORCEINLINE USkillDescriptionWidget* GetSkillDescription() const { return SkillDescription; }
+
+	/** A on the upgrade button while a skill is focused (A upgrades the selected skill), B on the close button */
+	virtual FKey GetGamepadPromptKey(const UButton* Button, bool bFocused) const override;
 
 protected:
 	virtual void NativeOnInitialized() override;
@@ -117,6 +121,12 @@ private:
 	/** Grid navigation: left/right go through the skills in order (wrapping rows), up/down to the closest skill of the next row, the last row leads to the close button */
 	UFUNCTION()
 	UWidget* HandleSkillNavigation(EUINavigation Direction);
+
+	/** Index of the focused skill, the selected one if no skill is focused */
+	int32 GetCurrentSkillIndex(const TArray<USkillUpgradeWidget*>& SkillUpgrades) const;
+
+	/** The skills grid integration tests navigate it directly (a headless session has no keyboard focus) */
+	friend class FSkillsMenuIntegrationTests;
 
 	bool CheckIfCanUpgrade(UShooterSkillUpgrade* SkillUpgrade, APlayerCharacter* Character);
 	TPair<USkillUpgradeWidget*, UShooterSkillUpgrade*> GetCurrentSkillState(APlayerCharacter* Character);

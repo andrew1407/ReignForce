@@ -10,6 +10,8 @@
 #include "Tests/TestUtils.h"
 #include "GameModes/LevelLoadingSubsystem.h"
 #include "GameModes/Components/BackgroundMusicComponent.h"
+#include "UI/ControlsHint/ControlsHintWidget.h"
+#include "Blueprint/WidgetBlueprintLibrary.h"
 
 
 using namespace TestUtils;
@@ -50,6 +52,39 @@ void FLevelLoadingIntegrationTests::Define()
                 TestTrue("A new level world was loaded", IsValid(Current) && Current != PreviousWorld.Get());
                 TestFalse("Loading finished", Loading.IsValid() && Loading->IsLoading());
                 TestFalse("The new level isn't paused", IsValid(Current) && Current->IsPaused());
+                Done.Execute();
+            });
+            WaitUntil(OnLoaded, [this]
+            {
+                UWorld* Current = GetGameWorld();
+                return IsValid(Current) && Current != PreviousWorld.Get() && Current->HasBegunPlay() && !(Loading.IsValid() && Loading->IsLoading());
+            }, WORLD_LOAD_TIMEOUT);
+        });
+
+        // Restart reloads the same level behind a plain black screen & without the controls table,
+        // levels opened from the main menu show the black & white image & the table
+        LatentIt("RestartsWithoutTheLoadingImageAndControlsHint", [this](const FDoneDelegate& Done)
+        {
+            UWorld* World = GetGameWorld();
+            Loading = ULevelLoadingSubsystem::Get(World);
+            if (!TestTrue("Level loading subsystem", Loading.IsValid())) return Done.Execute();
+            TestTrue("Image shown by default", Loading->IsShowingImage());
+            TestFalse("A level opened directly isn't a restart", Loading->IsLevelRestarted());
+
+            PreviousWorld = World;
+            constexpr bool bRestart = true;
+            Loading->OpenLevelAsync(TEST_MAP_NAME, true, FString(), bRestart);
+            TestTrue("Loading started", Loading->IsLoading());
+            TestFalse("No image while restarting", Loading->IsShowingImage());
+
+            FDoneDelegate OnLoaded = FDoneDelegate::CreateLambda([this, Done]
+            {
+                TestTrue("Image is back for the next level openings", Loading.IsValid() && Loading->IsShowingImage());
+                TestTrue("The new level knows it's a restart", Loading.IsValid() && Loading->IsLevelRestarted());
+                TestTrue("Restart is found from the level world", ULevelLoadingSubsystem::IsLevelRestarted(GetGameWorld()));
+                TArray<UUserWidget*> Hints;
+                UWidgetBlueprintLibrary::GetAllWidgetsOfClass(GetGameWorld(), Hints, UControlsHintWidget::StaticClass(), false);
+                TestEqual("No controls table on the restarted level", Hints.Num(), 0);
                 Done.Execute();
             });
             WaitUntil(OnLoaded, [this]

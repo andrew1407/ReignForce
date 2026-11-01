@@ -63,17 +63,27 @@ void ULevelLoadingSubsystem::Deinitialize()
     Super::Deinitialize();
 }
 
-void ULevelLoadingSubsystem::OpenLevel(const UObject* WorldContextObject, FName LevelName, bool bAbsolute, const FString& Options)
+bool ULevelLoadingSubsystem::IsLevelRestarted(const UObject* WorldContextObject)
+{
+    const ULevelLoadingSubsystem* Subsystem = Get(WorldContextObject);
+    return IsValid(Subsystem) && Subsystem->IsLevelRestarted();
+}
+
+void ULevelLoadingSubsystem::OpenLevel(const UObject* WorldContextObject, FName LevelName, bool bAbsolute, const FString& Options, bool bRestart)
 {
     ULevelLoadingSubsystem* Subsystem = Get(WorldContextObject);
-    if (IsValid(Subsystem)) return Subsystem->OpenLevelAsync(LevelName, bAbsolute, Options);
+    if (IsValid(Subsystem)) return Subsystem->OpenLevelAsync(LevelName, bAbsolute, Options, bRestart);
     UGameplayStatics::OpenLevel(WorldContextObject, LevelName, bAbsolute, Options);
 }
 
-void ULevelLoadingSubsystem::OpenLevelAsync(FName LevelName, bool bAbsolute, const FString& Options)
+void ULevelLoadingSubsystem::OpenLevelAsync(FName LevelName, bool bAbsolute, const FString& Options, bool bRestart)
 {
     if (bLoading || LevelName.IsNone()) return;
     bLoading = true;
+    bShowImage = !bRestart;
+    // Remembered for the new level (its HUD checks it on the begin play), the previous one is back if the travel fails
+    bPreviousLevelRestarted = bLevelRestarted;
+    bLevelRestarted = bRestart;
     PendingLevel = LevelName;
     bPendingAbsolute = bAbsolute;
     PendingOptions = Options;
@@ -120,7 +130,8 @@ void ULevelLoadingSubsystem::ShowLoadingWidget()
 
     LoadingWidget = CreateWidget<ULoadingScreenWidget>(GameInstance, ULoadingScreenWidget::StaticClass());
     if (!IsValid(LoadingWidget)) return;
-    LoadingWidget->SetImage(GetLoadingImage());
+    // No image - the widget stays black
+    LoadingWidget->SetImage(bShowImage ? GetLoadingImage() : nullptr);
     LoadingWidget->AddToViewport(LOADING_SCREEN_Z_ORDER);
 }
 
@@ -160,6 +171,8 @@ void ULevelLoadingSubsystem::HandleTravelFailure(UWorld* World, ETravelFailure::
 {
     UE_LOG(LogTemp, Warning, TEXT("Level '%s' opening failed: %s"), *PendingLevel.ToString(), *Error);
     bLoading = false;
+    bShowImage = true;
+    bLevelRestarted = bPreviousLevelRestarted;
     HideLoadingWidget();
 }
 
@@ -167,7 +180,8 @@ void ULevelLoadingSubsystem::HandlePrepareLoadingScreen()
 {
     if (!GetMoviePlayer()) return;
 
-    UTexture2D* Image = GetLoadingImage();
+    // Plain black (only the loading indicator) for a level opened without the image
+    UTexture2D* Image = bShowImage ? GetLoadingImage() : nullptr;
     const UReignForceSettings* Settings = UReignForceSettings::Get();
 
     FLoadingScreenAttributes LoadingScreen;
@@ -212,6 +226,8 @@ void ULevelLoadingSubsystem::HandlePostLoadMap(UWorld* World)
 {
     LoadingWidget = nullptr;
     bLoading = false;
+    // Other map loads (the game start) show the image again
+    bShowImage = true;
 }
 
 UTexture2D* ULevelLoadingSubsystem::GetLoadingImage()

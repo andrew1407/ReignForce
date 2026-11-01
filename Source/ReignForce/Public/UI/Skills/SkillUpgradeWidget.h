@@ -97,6 +97,9 @@ private:
 	/** Cursor position of the last hover, hover moves the focus only after a real mouse move */
 	FVector2D HoverCursorPosition = FVector2D::ZeroVector;
 
+	/** The focus was given by a mouse hover (it doesn't select the skill, unlike the keyboard & gamepad navigation) */
+	bool bHoverFocus = false;
+
 	/** Progress state which images are being loaded (the last requested one wins) */
 	EStageProgress LoadingState = EStageProgress::None;
 
