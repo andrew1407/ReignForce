@@ -6,6 +6,7 @@
 #include "Subsystems/GameInstanceSubsystem.h"
 #include "UObject/UObjectGlobals.h"
 #include "Styling/SlateBrush.h"
+#include "Containers/Ticker.h"
 #include "LevelLoadingSubsystem.generated.h"
 
 
@@ -54,7 +55,9 @@ private:
 	FDelegateHandle PrepareLoadingScreenHandle;
 	FDelegateHandle PostLoadMapHandle;
 	FDelegateHandle TravelFailureHandle;
+	FTSTicker::FDelegateHandle TravelTickerHandle;
 
+	void StopMusic();
 	void ShowLoadingWidget();
 	void HideLoadingWidget();
 	void Travel();

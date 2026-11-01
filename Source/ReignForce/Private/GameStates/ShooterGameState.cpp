@@ -170,15 +170,17 @@ void AShooterGameState::StopEnemiesAttackForTarget(AActor* Target, float DelaySe
 		AActor* ShooterTarget = ShooterAIController->GetTargetFocus();
 		if (Target != ShooterTarget) continue;
 
-		GetWorldTimerManager().SetTimerForNextTick([this, DelaySec, ShooterAIController]
+		// Weak refs: the controller may be destroyed before the delayed reset (a raw pointer would dangle)
+		TWeakObjectPtr<AShooterAIController> WeakController(ShooterAIController);
+		GetWorldTimerManager().SetTimerForNextTick(FTimerDelegate::CreateWeakLambda(this, [this, DelaySec, WeakController]
         {
-			if (!IsValid(ShooterAIController)) return;
+			if (!WeakController.IsValid()) return;
 			FTimerHandle TimerHandle;
-			GetWorldTimerManager().SetTimer(TimerHandle, [ShooterAIController]
+			GetWorldTimerManager().SetTimer(TimerHandle, FTimerDelegate::CreateWeakLambda(WeakController.Get(), [WeakController]
 			{
-				if (IsValid(ShooterAIController)) ShooterAIController->ResetTargetFocus(nullptr);
-			}, DelaySec, false);
-        });
+				if (WeakController.IsValid()) WeakController->ResetTargetFocus(nullptr);
+			}), DelaySec, false);
+        }));
 	}
 }
 

@@ -56,7 +56,7 @@ UGamepadSchemeWidget::UGamepadSchemeWidget(const FObjectInitializer& ObjectIniti
         MakeCallout(EKeys::Gamepad_Left2D, TEXT("Move"), FVector2D(.258f, .3f), .31f, bLeft),
         MakeCallout(EKeys::Gamepad_Special_Left, TEXT("Save progress"), FVector2D(.431f, .313f), .43f, bLeft),
         MakeCallout(EKeys::Gamepad_Special_Right, TEXT("Pause menu"), FVector2D(.57f, .313f), .55f, bLeft),
-        MakeCallout(EKeys::Gamepad_DPad_Up, TEXT("Up: skills menu\nDown: start round"), FVector2D(.373f, .524f), .69f, bLeft),
+        MakeCallout(EKeys::Gamepad_DPad_Up, TEXT("Up: skills menu\nDown: start round\nLeft: previous weapon\nRight: next weapon"), FVector2D(.373f, .524f), .69f, bLeft),
         MakeCallout(EKeys::Gamepad_RightTrigger, TEXT("Shoot / attack"), FVector2D(.729f, .082f), .08f, !bLeft),
         MakeCallout(EKeys::Gamepad_RightShoulder, TEXT("Next weapon"), FVector2D(.812f, .136f), .18f, !bLeft),
         MakeCallout(EKeys::Gamepad_FaceButton_Top, TEXT("Movement mode"), FVector2D(.745f, .222f), .29f, !bLeft),
@@ -82,7 +82,6 @@ void UGamepadSchemeWidget::Setup(UButton* StyleTemplate)
     const FSlateFontInfo TitleFont = MakeFont(StyleTemplate, 44);
     const FSlateFontInfo LabelFont = MakeFont(StyleTemplate, 18);
     const FSlateFontInfo ButtonFont = MakeFont(StyleTemplate, 22);
-    const FSlateFontInfo HintFont = MakeFont(StyleTemplate, 14);
     const FSlateColor TextColor = FLinearColor::White;
 
     UVerticalBox* Column = ConstructMenuColumn(FText::FromString(TEXT("Gamepad")), TitleFont, SchemeSize.X, BackgroundColor);
@@ -126,10 +125,6 @@ void UGamepadSchemeWidget::Setup(UButton* StyleTemplate)
         BackSlot->SetHorizontalAlignment(HAlign_Center);
         BackSlot->SetPadding(FMargin(0, 24, 0, 12));
     }
-
-    UTextBlock* HintText = MakeText(FText::FromString(TEXT("Esc / B - back")), HintFont, FLinearColor(1, 1, 1, .7f));
-    if (UVerticalBoxSlot* HintSlot = Column->AddChildToVerticalBox(HintText))
-        HintSlot->SetHorizontalAlignment(HAlign_Center);
 }
 
 int32 UGamepadSchemeWidget::NativePaint(const FPaintArgs& Args, const FGeometry& AllottedGeometry, const FSlateRect& MyCullingRect, FSlateWindowElementList& OutDrawElements, int32 LayerId, const FWidgetStyle& InWidgetStyle, bool bParentEnabled) const

@@ -25,6 +25,26 @@ public:
 	virtual void NativeInitializeAnimation() override;
 	virtual void NativeUpdateAnimation(float DeltaSeconds) override;
 
+	/**
+	 * The jog blend space keeps the backward hemisphere (own idle, backward jog & strafes) shifted by it along the forward axis,
+	 * apart from the forward one, so the triangulation never mixes strafes of both hemispheres
+	 */
+	static constexpr float BACKWARD_STRAFES_OFFSET = 1.f;
+
+	/**
+	 * Maps the movement direction circle onto the jog blend space diamond (idle center + cardinal jogs, foot sync markers aligned):
+	 * keeps the movement magnitude as the jog weight, so a full speed diagonal (.7, .7) lands on the diamond edge (.5, .5)
+	 * blending two jogs fully instead of leaking into idle, and a half speed one blends half idle like cardinals do.
+	 *
+	 * Each hemisphere has its own strafes: a strafe leads with the leg (in front) that matches the forward or the backward jog,
+	 * otherwise the diagonal blend crosses the legs through each other (forward left & backward right used to break).
+	 * The backward hemisphere is shifted onto its own diamond (centered at -BACKWARD_STRAFES_OFFSET), the forward one is clamped to its side.
+	 */
+	static FVector2D ToBlendSpaceDirection(const FVector2D& Direction, bool bBackwardStrafes = false);
+
+	/** Picks the strafes hemisphere for a movement direction with a hysteresis, so a pure strafe doesn't flicker between both */
+	static bool ShouldUseBackwardStrafes(const FVector2D& Direction, bool bWasBackward);
+
 private:
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Refs", meta = (AllowPrivateAccess = true))
 	TWeakObjectPtr<AShooterCharacter> Character;
@@ -42,6 +62,9 @@ private:
 
 	UPROPERTY(VisibleAnywhere, BlueprintReadWrite, Category = "Locomotion", meta = (AllowPrivateAccess = true))
 	FVector2D MovementDirection;
+
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Locomotion", meta = (AllowPrivateAccess = true))
+	bool bBackwardStrafes;
 
 	UPROPERTY(VisibleAnywhere, BlueprintReadWrite, Category = "Locomotion", meta = (AllowPrivateAccess = true))
 	bool bRightMovementAiming;

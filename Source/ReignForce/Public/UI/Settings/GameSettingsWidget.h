@@ -46,12 +46,17 @@ protected:
 	TSubclassOf<UGamepadSchemeWidget> GamepadSchemeMenuClass;
 
 private:
+	/** The menu integration tests change options directly (a headless session has no keyboard focus for the rows) */
+	friend class FSettingsMenuIntegrationTests;
+
 	struct FOptionRow
 	{
 		FText Label;
 		TArray<FText> Names;
 		TArray<int32> Values;
 		int32 Index = 0;
+		/** The value the settings have now (read or applied last), Apply is enabled only when some row differs from it */
+		int32 AppliedIndex = 0;
 		bool bLive = false;
 		TWeakObjectPtr<UButton> Button;
 		TWeakObjectPtr<UTextBlock> ValueText;
@@ -69,6 +74,9 @@ private:
 
 	UPROPERTY()
 	TObjectPtr<UButton> ApplyButton;
+
+	UPROPERTY()
+	TObjectPtr<UTextBlock> ApplyLabel;
 
 	UPROPERTY()
 	TObjectPtr<UButton> BackButton;
@@ -106,4 +114,8 @@ private:
 	void RefreshRowText(int32 RowIndex);
 	int32 FindActiveRow(bool bPreferHovered) const;
 	void DiscardChanges();
+
+	bool HasPendingChanges() const;
+	/** Enables Apply only with pending changes & keeps the gamepad / keyboard navigation off it while it's disabled */
+	void RefreshApplyState();
 };

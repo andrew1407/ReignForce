@@ -79,7 +79,8 @@ private:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "AILearning|Connection", meta = (AllowPrivateAccess = true, ClampMin = 0, UIMin = 0, Units = "Seconds"))
 	float RequestFrequency;
 
-	TMap<APawn*, TPair<int32, FAIClientInput>> PawnsInput;
+	/** Episode step & previous input per enemy; weak keys pruned on new pawns (respawned enemies every round, raw keys only grew and could alias reused addresses) */
+	TMap<TWeakObjectPtr<APawn>, TPair<int32, FAIClientInput>> PawnsInput;
 
 	#pragma endregion
 

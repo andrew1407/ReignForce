@@ -11,9 +11,24 @@
 
 void UWebSocketClient::BeginDestroy()
 {
-    if (Socket.IsValid()) Socket->Close();
+    ReleaseSocket();
 
     Super::BeginDestroy();
+}
+
+void UWebSocketClient::ReleaseSocket()
+{
+    if (UWorld* World = GetWorld()) World->GetTimerManager().ClearTimer(ConnectionTimer);
+    if (!Socket.IsValid()) return;
+
+    // Handlers are dropped before closing: the socket outlives this client in the websockets module until it's closed,
+    // its callbacks (and the delegates they captured) mustn't fire into a released client
+    Socket->OnConnected().Clear();
+    Socket->OnConnectionError().Clear();
+    Socket->OnClosed().Clear();
+    Socket->OnMessage().Clear();
+    if (Socket->IsConnected()) Socket->Close();
+    Socket.Reset();
 }
 
 bool UWebSocketClient::IsConnected() const
@@ -25,12 +40,18 @@ bool UWebSocketClient::Connect(FClientConnectionOptions Options)
 {
     if (IsConnected()) return false;
 
+    // A previous (pending / failed) connection socket is released, not leaked with its handlers
+    ReleaseSocket();
+
     const FString Url = FString::Printf(TEXT("ws://%s:%d/"), *Options.Host, Options.Port);
     Socket = FWebSocketsModule::Get().CreateWebSocket(Url);
-    
-    const TFunction<void(bool)> HandleConnection = [&, OnConnect = Options.OnConnect] (bool bState)
+
+    const TWeakObjectPtr<UWebSocketClient> WeakSelf(this);
+    const TFunction<void(bool)> HandleConnection = [WeakSelf, OnConnect = Options.OnConnect] (bool bState)
     {
-        GetWorld()->GetTimerManager().ClearTimer(ConnectionTimer);
+        UWebSocketClient* Self = WeakSelf.Get();
+        if (!Self) return;
+        if (UWorld* World = Self->GetWorld()) World->GetTimerManager().ClearTimer(Self->ConnectionTimer);
         OnConnect.ExecuteIfBound(bState);
     };
 
@@ -52,8 +73,11 @@ bool UWebSocketClient::Connect(FClientConnectionOptions Options)
 
     Socket->Connect();
 
-    GetWorld()->GetTimerManager()
-        .SetTimer(ConnectionTimer, [OnConnect = Options.OnConnect] { OnConnect.ExecuteIfBound(false); }, Options.ConnectionTimeout, false);
+    if (UWorld* World = GetWorld())
+    {
+        FTimerDelegate OnTimeout = FTimerDelegate::CreateWeakLambda(this, [OnConnect = Options.OnConnect] { OnConnect.ExecuteIfBound(false); });
+        World->GetTimerManager().SetTimer(ConnectionTimer, OnTimeout, Options.ConnectionTimeout, false);
+    }
 
     return true;
 }
@@ -63,6 +87,7 @@ bool UWebSocketClient::Disconnect()
     bool bCanDisconnect = IsConnected();
     if (bCanDisconnect)
     {
+        // Closed with the handlers kept, so the disconnection is still reported, then released
         Socket->Close();
         Socket.Reset();
     }

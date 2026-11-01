@@ -83,6 +83,7 @@ TArray<float> UAICommandsUtils::ConvertClientInputToModelInput(const FAIClientIn
 
 EShooterAICommand UAICommandsUtils::GetPredictedOutputCommand(const TArray<float>& Outputs)
 {
+    if (Outputs.IsEmpty()) return EShooterAICommand::None;  // a failed inference has no outputs (max element would be null)
     const int32 Index = Outputs.Find(*Algo::MaxElement(Outputs));
     const int32 MaxValue = static_cast<uint8>(EShooterAICommand::Retreat);
     bool bIndexValid = Index > INDEX_NONE && Index <= MaxValue;

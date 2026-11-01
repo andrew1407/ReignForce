@@ -141,7 +141,6 @@ void UKeyBindingsWidget::Setup(UButton* StyleTemplate)
     const FSlateFontInfo RowFont = MakeFont(StyleTemplate, 20);
     const FSlateFontInfo CategoryFont = MakeFont(StyleTemplate, 18);
     const FSlateFontInfo ResetFont = MakeFont(StyleTemplate, 16);
-    const FSlateFontInfo HintFont = MakeFont(StyleTemplate, 14);
     const FSlateColor TextColor = FLinearColor::White;
 
     UVerticalBox* Column = ConstructMenuColumn(FText::FromString(TEXT("Controls")), TitleFont, MenuWidth, BackgroundColor);
@@ -220,11 +219,6 @@ void UKeyBindingsWidget::Setup(UButton* StyleTemplate)
     }
     if (UVerticalBoxSlot* ActionsSlot = Column->AddChildToVerticalBox(Actions))
         ActionsSlot->SetPadding(FMargin(0, 24, 0, 12));
-
-    const FText Hint = FText::FromString(TEXT("Enter / A - change key (then press the new one),  Esc / B - cancel & back,  taken keys are swapped"));
-    UTextBlock* HintText = MakeText(Hint, HintFont, FLinearColor(1, 1, 1, .7f));
-    if (UVerticalBoxSlot* HintSlot = Column->AddChildToVerticalBox(HintText))
-        HintSlot->SetHorizontalAlignment(HAlign_Center);
 
     RefreshRows();
 }

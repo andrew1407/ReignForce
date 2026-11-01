@@ -18,6 +18,8 @@ UDamageTakerComponent::UDamageTakerComponent(const FObjectInitializer& ObjectIni
 
 EWeaponType UDamageTakerComponent::DefineDamage(AActor* Target, TSubclassOf<AActor> PunchCauser) const
 {
+	// No causer for damage without a source (fall on an actorless surface, scripted damage): used to crash on a null target
+	if (!IsValid(Target)) return EWeaponType::None;
 	if (PunchCauser && Target->IsA(PunchCauser)) return EWeaponType::Unarmed;
 	else if (auto Weapon = Cast<AWeapon>(Target)) return Weapon->GetType();
 	return EWeaponType::None;

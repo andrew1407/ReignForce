@@ -67,4 +67,6 @@ private:
 	FTimerHandle ConnectionTimer;
 
 	TSharedPtr<IWebSocket> Socket;
+
+	void ReleaseSocket();
 };

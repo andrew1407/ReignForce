@@ -15,16 +15,28 @@ namespace
     constexpr float MIN_MOVE_DEVIATION = .05f;
     constexpr float START_MOVE_SPEED = 10;
 
-    /**
-     * Stretches the direction circle onto the blend space square: diagonal samples sit in its corners,
-     * so a full speed diagonal move (.7, .7) plays the diagonal run instead of half blending into idle (legs sliding)
-     */
-    FVector2D ToBlendSpaceDirection(const FVector2D& Direction)
-    {
-        const float MaxAxis = FMath::Max(FMath::Abs(Direction.X), FMath::Abs(Direction.Y));
-        if (MaxAxis <= KINDA_SMALL_NUMBER) return Direction;
-        return Direction * (Direction.Size() / MaxAxis);
-    }
+    // Movement direction cosine to the forward axis: enters the backward strafes below the first one, leaves above the second
+    constexpr float BACKWARD_STRAFES_ENTER = -.15f;
+    constexpr float BACKWARD_STRAFES_EXIT = -.02f;
+}
+
+FVector2D UShooterAnimInstance::ToBlendSpaceDirection(const FVector2D& Direction, bool bBackwardStrafes)
+{
+    const float AxesSum = FMath::Abs(Direction.X) + FMath::Abs(Direction.Y);
+    if (AxesSum <= KINDA_SMALL_NUMBER) return FVector2D::ZeroVector;
+    FVector2D Result = Direction * (FMath::Min(Direction.Size(), 1.f) / AxesSum);
+
+    if (bBackwardStrafes) Result.X = FMath::Min(Result.X, 0.) - BACKWARD_STRAFES_OFFSET;
+    else Result.X = FMath::Max(Result.X, 0.);
+    return Result;
+}
+
+bool UShooterAnimInstance::ShouldUseBackwardStrafes(const FVector2D& Direction, bool bWasBackward)
+{
+    const double Size = Direction.Size();
+    if (Size <= KINDA_SMALL_NUMBER) return bWasBackward;
+    const double ForwardCos = Direction.X / Size;
+    return ForwardCos < (bWasBackward ? BACKWARD_STRAFES_EXIT : BACKWARD_STRAFES_ENTER);
 }
 
 UShooterAnimInstance::UShooterAnimInstance(const FObjectInitializer& ObjectInitializer) : Super(ObjectInitializer)
@@ -35,6 +47,7 @@ UShooterAnimInstance::UShooterAnimInstance(const FObjectInitializer& ObjectIniti
 
     bAiming = false;
     bRightMovementAiming = false;
+    bBackwardStrafes = false;
     bFalling = false;
     bShouldMove = false;
     bFirearmsWeapon = false;
@@ -57,18 +70,26 @@ void UShooterAnimInstance::NativeUpdateAnimation(float DeltaSeconds)
 
     if (!Character.IsValid()) return;
     UpdateCharacterParams();
-    UpdateCombatParams();
     UpdateMovementParams();
+    UpdateCombatParams();
     UpdateSlotParams();
 }
 
 void UShooterAnimInstance::UpdateCharacterParams()
 {
     Velocity = Character->GetVelocity();
-    Speed = Velocity.Length();
     SpeedXY = FVector2D(Velocity.X, Velocity.Y).Length();
-    MovementDirection = ToBlendSpaceDirection(Character->GetMovementDirection());
+    const FVector2D Direction = Character->GetMovementDirection();
+    bBackwardStrafes = ShouldUseBackwardStrafes(Direction, bBackwardStrafes);
+    MovementDirection = ToBlendSpaceDirection(Direction, bBackwardStrafes);
     Pitch = Character->GetAimOffsetPitch();
+
+    UPawnMovementComponent* MovementComponent = Character->GetMovementComponent();
+    bFalling = IsValid(MovementComponent) && MovementComponent->IsFalling();
+
+    // Ground locomotion speed: upper body holding poses switch to running (arms swinging) by it,
+    // so it's dropped while in the air (jump / fall) not to keep running arms with legs in a jump pose
+    Speed = bFalling ? 0 : Velocity.Length();
 }
 
 void UShooterAnimInstance::UpdateCombatParams()
@@ -86,9 +107,8 @@ void UShooterAnimInstance::UpdateMovementParams()
     UPawnMovementComponent* MovementComponent = Character->GetMovementComponent();
     if (!IsValid(MovementComponent)) return;
 
-    bFalling = MovementComponent->IsFalling();
     bool bHasAcceleration = MovementComponent->GetLastInputVector() != FVector::ZeroVector;
-    bShouldMove = bHasAcceleration && (Speed > START_MOVE_SPEED);
+    bShouldMove = bHasAcceleration && (SpeedXY > START_MOVE_SPEED);
 }
 
 void UShooterAnimInstance::UpdateSlotParams()

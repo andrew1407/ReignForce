@@ -57,7 +57,11 @@ bool UWeaponSlotsSystem::RemoveWeapon(EWeaponType Slot)
 
 void UWeaponSlotsSystem::RemoveAllWeapons()
 {
-	for (const auto &[Slot, _] : Weapons) RemoveWeapon(Slot);
+	// Slots are collected first: removing from the map while iterating it skipped weapons (left them spawned in the world)
+	TArray<EWeaponType> Slots;
+	Weapons.GetKeys(Slots);
+	for (EWeaponType Slot : Slots) RemoveWeapon(Slot);
+	Weapons.Empty();
 }
 
 bool UWeaponSlotsSystem::IsActiveWeaponValid() const

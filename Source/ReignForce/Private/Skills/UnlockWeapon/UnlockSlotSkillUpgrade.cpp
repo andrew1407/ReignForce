@@ -47,13 +47,14 @@ bool UUnlockSlotSkillUpgrade::UpgradeShooter_Implementation(AShooterCharacter* S
     Info.StatsComponent->SetWeaponModelOf(WeaponType, ModelIndex);
     Info.SkillsSystem->AvailableSlots.Add(WeaponType);
 
-    UAssetManager::GetStreamableManager().RequestAsyncLoad(WeaponClass.ToSoftObjectPath(), [this, ShooterCharacter, WeaponClass, Info]
+    // Weak lambda bound to the character: skipped if it's destroyed before the weapon is loaded
+    UAssetManager::GetStreamableManager().RequestAsyncLoad(WeaponClass.ToSoftObjectPath(), FStreamableDelegate::CreateWeakLambda(ShooterCharacter, [this, ShooterCharacter, WeaponClass, Info]
     {
         if (!(WeaponClass.IsValid() && IsValid(ShooterCharacter))) return;
         bool bAdded = ShooterCharacter->TryAddWeapon(WeaponClass.Get(), WeaponType);
         if (!bAdded) return;
         RefreshState(ShooterCharacter, Info);
-    });
+    }));
 
     return true;
 }
