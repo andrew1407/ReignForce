@@ -11,6 +11,7 @@
 #include "UI/Skills/DataAssets/SkillsDataAsset.h"
 #include "UI/Skills/SkillDescriptionWidget.h"
 #include "UI/Skills/SkillUpgradeWidget.h"
+#include "UI/Skills/SkillUpgradeConfirmationWidget.h"
 #include "UI/Skills/SkillsCountWidget.h"
 #include "UI/Skills/StageProgress.h"
 #include "UI/Skills/UpgradesProgressWidget.h"
@@ -21,6 +22,18 @@
 #include "Skills/ShooterSkillUpgrade.h"
 #include "PlayerCharacter/PlayerCharacter.h"
 
+
+USkillsProgressionWidget::USkillsProgressionWidget(const FObjectInitializer& ObjectInitializer) : Super(ObjectInitializer)
+{
+    UpgradeConfirmationClass = USkillUpgradeConfirmationWidget::StaticClass();
+}
+
+void USkillsProgressionWidget::NativeOnInitialized()
+{
+    Super::NativeOnInitialized();
+    // Skills grid scrolls when the screen is too short for all of its rows
+    WrapInScrollBox(SkillsContainer);
+}
 
 void USkillsProgressionWidget::NativeConstruct()
 {
@@ -52,7 +65,7 @@ void USkillsProgressionWidget::NativeConstruct()
 
     UButton* UpgradeSkillButton = SkillDescription->GetUpgradeSkillButton();
     if (IsValid(UpgradeSkillButton))
-        UpgradeSkillButton->OnClicked.AddDynamic(this, &USkillsProgressionWidget::UnlockUpgradeStageForSelectedSkill);
+        UpgradeSkillButton->OnClicked.AddDynamic(this, &USkillsProgressionWidget::RequestUpgradeConfirmation);
 
     bool bFirstChild = true;
     if (!IsValid(SkillsContainer)) return;
@@ -61,6 +74,7 @@ void USkillsProgressionWidget::NativeConstruct()
         auto UpgradeWidget = CreateWidget<USkillUpgradeWidget>(this, UpgradeClass);
         if (!IsValid(UpgradeWidget)) continue;
         UpgradeWidget->OnSkillSelected.AddDynamic(this, &USkillsProgressionWidget::HandleOnSkillSelected);
+        UpgradeWidget->OnUpgradeRequested.AddDynamic(this, &USkillsProgressionWidget::HandleSkillUpgradeRequested);
         SkillsContainer->AddChild(UpgradeWidget);
 
         FSkillUpgradeStages& Upgrade = Skills.Add(UpgradeWidget);
@@ -75,7 +89,57 @@ void USkillsProgressionWidget::NativeConstruct()
         const auto [AlreadyUpgraded, StageProgress] = GetStagesStatus(Upgrade, Character);
         UpgradeWidget->LoadProgressState(StageProgress, bFirstChild);
         bFirstChild = false;
+
+        if (UButton* SkillButton = UpgradeWidget->GetActionButton())
+        {
+            FCustomWidgetNavigationDelegate OnNavigation;
+            OnNavigation.BindUFunction(this, GET_FUNCTION_NAME_CHECKED(USkillsProgressionWidget, HandleSkillNavigation));
+            for (EUINavigation Direction : { EUINavigation::Left, EUINavigation::Right, EUINavigation::Up, EUINavigation::Down })
+                SkillButton->SetNavigationRuleCustom(Direction, OnNavigation);
+        }
     }
+}
+
+UWidget* USkillsProgressionWidget::HandleSkillNavigation(EUINavigation Direction)
+{
+    TArray<USkillUpgradeWidget*> SkillUpgrades = GetSkillUpgrades();
+    const int32 Current = SkillUpgrades.IndexOfByPredicate([] (const USkillUpgradeWidget* Skill)
+    {
+        return IsValid(Skill->GetActionButton()) && Skill->GetActionButton()->HasAnyUserFocus();
+    });
+    if (Current == INDEX_NONE) return nullptr;
+    auto ButtonAt = [&] (int32 Index) -> UWidget* { return SkillUpgrades.IsValidIndex(Index) ? SkillUpgrades[Index]->GetActionButton() : nullptr; };
+
+    // Skills are laid out in reading order, so the previous & next ones continue on the neighbour rows
+    if (Direction == EUINavigation::Left) return ButtonAt(Current - 1);
+    if (Direction == EUINavigation::Right) return ButtonAt(Current + 1);
+
+    const bool bDown = Direction == EUINavigation::Down;
+    const FGeometry& CurrentGeometry = SkillUpgrades[Current]->GetCachedGeometry();
+    const FVector2f CurrentCenter = CurrentGeometry.GetAbsolutePositionAtCoordinates(FVector2f(.5f));
+    const float RowThreshold = CurrentGeometry.GetAbsoluteSize().Y * .5f;
+
+    UWidget* Closest = nullptr;
+    float ClosestRowDistance = TNumericLimits<float>::Max();
+    float ClosestColumnDistance = TNumericLimits<float>::Max();
+    for (int32 i = 0; i < SkillUpgrades.Num(); ++i)
+    {
+        const FVector2f Center = SkillUpgrades[i]->GetCachedGeometry().GetAbsolutePositionAtCoordinates(FVector2f(.5f));
+        const float RowDistance = bDown ? Center.Y - CurrentCenter.Y : CurrentCenter.Y - Center.Y;
+        if (i == Current || RowDistance < RowThreshold) continue;
+        // The nearest row first, then the closest column in it
+        const float ColumnDistance = FMath::Abs(Center.X - CurrentCenter.X);
+        bool bNearerRow = RowDistance < ClosestRowDistance - RowThreshold;
+        bool bSameRow = FMath::Abs(RowDistance - ClosestRowDistance) <= RowThreshold;
+        if (bNearerRow || (bSameRow && ColumnDistance < ClosestColumnDistance))
+        {
+            Closest = ButtonAt(i);
+            ClosestRowDistance = RowDistance;
+            ClosestColumnDistance = ColumnDistance;
+        }
+    }
+    if (IsValid(Closest)) return Closest;
+    return bDown ? CloseMenuButton.Get() : nullptr;
 }
 
 UWidget* USkillsProgressionWidget::NativeGetDesiredFocusTarget() const
@@ -230,6 +294,47 @@ void USkillsProgressionWidget::HandleOnSkillSelected(USkillUpgradeWidget* Skill,
     FSkillUpgradeStages* Stages = Skills.Find(Skill);
     if (!Stages) return;
     FillDescription(Skill, *Stages);
+}
+
+void USkillsProgressionWidget::RequestUpgradeConfirmation()
+{
+    if (IsChildMenuOpened() || !IsValid(UpgradeConfirmationClass) || !IsValid(SkillDescription)) return;
+
+    auto Character = Cast<APlayerCharacter>(GetOwningPlayerPawn());
+    auto [Skill, Upgrade] = GetCurrentSkillState(Character);
+    if (!(IsValid(Skill) && IsValid(Upgrade) && CheckIfCanUpgrade(Upgrade, Character))) return;
+
+    const FSkillUpgradeStages* Stages = Skills.Find(Skill);
+    const int32 Total = Stages ? Stages->Stages.Num() : 0;
+    const int32 Stage = Stages ? Stages->Stages.IndexOfByKey(Upgrade) + 1 : 0;
+    const int32 Cost = Upgrade->GetSkillCost();
+
+    const FText Title = FText::Format(FText::FromString(TEXT("Upgrade {0}?")), FText::FromName(Skill->SkillName));
+    const FText Details = FText::Format(
+        FText::FromString(TEXT("Stage {0} of {1}: {2}\nCost: {3} {3}|plural(one=skill point,other=skill points)")),
+        Stage, Total, Upgrade->GetDescription(Character), Cost
+    );
+
+    auto Confirmation = CreateWidget<USkillUpgradeConfirmationWidget>(GetOwningPlayer(), UpgradeConfirmationClass);
+    if (!IsValid(Confirmation)) return;
+    Confirmation->Setup(SkillDescription->GetUpgradeSkillButton(), Title, Details);
+    Confirmation->OnConfirmation.AddDynamic(this, &USkillsProgressionWidget::HandleUpgradeConfirmation);
+    PushChildMenu(Confirmation, 20);
+}
+
+void USkillsProgressionWidget::HandleSkillUpgradeRequested(USkillUpgradeWidget* Skill)
+{
+    if (IsValid(Skill) && Skill->IsSelected()) RequestUpgradeConfirmation();
+}
+
+void USkillsProgressionWidget::HandleUpgradeConfirmation(bool bAccepted)
+{
+    CloseChildMenu();
+    if (bAccepted) UnlockUpgradeStageForSelectedSkill();
+
+    // Navigation continues from the skill the upgrade was asked for
+    UWidget* Target = GetDesiredFocusTarget();
+    if (IsValid(Target)) Target->SetFocus();
 }
 
 bool USkillsProgressionWidget::CheckIfCanUpgrade(UShooterSkillUpgrade* SkillUpgrade, APlayerCharacter* Character)

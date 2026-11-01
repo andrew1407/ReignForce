@@ -38,6 +38,13 @@ void UPauseMenuWidget::NativeOnInitialized()
     if (IsValid(SettingsButton))
         SettingsButton->OnClicked.AddDynamic(this, &UPauseMenuWidget::OnSettingsClick);
 
+    // One more item than the layout was made for: tighter gaps, the column is centered & scrolls on short screens
+    constexpr float ItemsGap = 16;
+    SetMenuItemsGap(ContinueButton, ItemsGap);
+    // Keeps the column clear of the title at the top
+    constexpr float ScreenMargin = 200;
+    MakeMenuItemsScrollableCentered(ContinueButton, ScreenMargin);
+
     // Continue (and back action) asks the owner (HUD) to close the menu
     if (IsValid(ContinueButton))
         ContinueButton->OnClicked.AddDynamic(this, &UReignForceActivatableWidget::RequestClose);

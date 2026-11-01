@@ -4,6 +4,9 @@
 #include "UI/Skills/SkillUpgradeWidget.h"
 #include "Kismet/GameplayStatics.h"
 #include "Engine/AssetManager.h"
+#include "Engine/Texture2D.h"
+#include "CommonInputSubsystem.h"
+#include "Framework/Application/SlateApplication.h"
 
 #include "Components/Button.h"
 #include "Components/Image.h"
@@ -15,8 +18,6 @@ USkillUpgradeWidget::USkillUpgradeWidget(const FObjectInitializer& ObjectInitial
     bSelected = false;
     bFocused = false;
 	ProgressState = EStageProgress::None;
-    FocusedScale = 1.18f;
-    FocusedTint = FLinearColor(1.3f, 1.3f, 1.3f, 1);
     SetIsFocusable(true);
 }
 
@@ -33,11 +34,6 @@ void USkillUpgradeWidget::SetFocusHighlight(bool bState)
     bFocused = bState;
     if (!IsValid(ActionButton)) return;
 
-    ActionButton->SetRenderTransformPivot(FVector2D(.5f));
-    ActionButton->SetRenderScale(FVector2D(bFocused ? FocusedScale : 1));
-    // Skill image is the button brush, so the background tint brightens it
-    ActionButton->SetBackgroundColor(bFocused ? DefaultActionBackground * FocusedTint : DefaultActionBackground);
-
     // Hover sound for the keyboard & gamepad navigation (mouse hover plays it on its own)
     bool bNavigated = bFocused && !ActionButton->IsHovered();
     if (bNavigated && IsValid(OnHoverActionSound))
@@ -46,6 +42,17 @@ void USkillUpgradeWidget::SetFocusHighlight(bool bState)
         constexpr float SoundVolume = 1;
 	    UGameplayStatics::SpawnSound2D(GetWorld(), OnHoverActionSound, SoundVolume, PitchMultiplier);
     }
+
+    // Moving over the skills with the gamepad (d-pad, left stick) or arrows shows their details right away
+    if (bNavigated) SetIsSelected(true);
+}
+
+FReply USkillUpgradeWidget::NativeOnFocusReceived(const FGeometry& InGeometry, const FFocusEvent& InFocusEvent)
+{
+    // The skill button takes the focus over, so the accept action (A / Enter) clicks it
+    TSharedPtr<SWidget> ButtonWidget = IsValid(ActionButton) ? ActionButton->GetCachedWidget() : nullptr;
+    if (ButtonWidget.IsValid()) return FReply::Handled().SetUserFocus(ButtonWidget.ToSharedRef(), InFocusEvent.GetCause());
+    return Super::NativeOnFocusReceived(InGeometry, InFocusEvent);
 }
 
 void USkillUpgradeWidget::NativeConstruct()
@@ -54,7 +61,9 @@ void USkillUpgradeWidget::NativeConstruct()
 
     if (IsValid(ActionButton))
     {
-        DefaultActionBackground = ActionButton->GetBackgroundColor();
+        if (FSlateApplication::IsInitialized()) HoverCursorPosition = FSlateApplication::Get().GetCursorPos();
+        // Skill details are shown in the description panel, the engine default text tooltip isn't needed
+        ActionButton->SetToolTipText(FText::GetEmpty());
         ActionButton->OnClicked.AddDynamic(this, &USkillUpgradeWidget::OnActionClick);
         ActionButton->OnHovered.AddDynamic(this, &USkillUpgradeWidget::OnActionHover);
     }
@@ -64,6 +73,7 @@ void USkillUpgradeWidget::NativeDestruct()
 {
     OnSkillProgressStateChanged.Clear();
     OnSkillSelected.Clear();
+    OnUpgradeRequested.Clear();
 
     Super::NativeDestruct();
 }
@@ -72,37 +82,54 @@ void USkillUpgradeWidget::SetIsSelected(bool bState)
 {
     if (bSelected == bState) return;
     bSelected = bState;
-
-    FSkillProgressionStyle* Style = ProgressStates.Find(ProgressState);
-    if (Style) SetActionSkillImage(Style->GetImageByState(bSelected).Get());
-
+    ApplyStateImage();
     OnSkillSelected.Broadcast(this, bSelected);
 }
 
 void USkillUpgradeWidget::LoadProgressState(EStageProgress State, bool bSelectedState)
 {
-    if (State == EStageProgress::None || ProgressState == State) return;
+    if (State == EStageProgress::None) return;
+    // The same state is skipped unless another one is being loaded (it would override this one)
+    bool bAlreadyApplied = ProgressState == State && LoadingState == EStageProgress::None;
+    if (bAlreadyApplied || LoadingState == State) return;
+
     FSkillProgressionStyle* Style = ProgressStates.Find(State);
-
     if (!(Style && Style->IsImagesSet())) return;
+    LoadingState = State;
 
-    UAssetManager::GetStreamableManager().RequestAsyncLoad(Style->GetImageLoadInfo(), [this, Style, State, bSelectedState]
+    // Selection changed by the player while the images are loading is kept over the requested one
+    const bool bSelectedOnRequest = bSelected;
+    TWeakObjectPtr<USkillUpgradeWidget> WeakThis(this);
+    UAssetManager::GetStreamableManager().RequestAsyncLoad(Style->GetImageLoadInfo(), [WeakThis, State, bSelectedState, bSelectedOnRequest]
     {
-        if (!(Style && Style->IsImagesLoaded())) return;
-    
-        EStageProgress PreviousState = ProgressState;
-        ProgressState = State;
-        bSelected = bSelectedState;
+        USkillUpgradeWidget* Self = WeakThis.Get();
+        if (!IsValid(Self) || Self->LoadingState != State) return;
+        Self->LoadingState = EStageProgress::None;
 
-        FSkillProgressionStyle* PreviousStyle = ProgressStates.Find(PreviousState);
-        if (PreviousStyle) PreviousStyle->Clear();
+        FSkillProgressionStyle* LoadedStyle = Self->ProgressStates.Find(State);
+        if (!LoadedStyle) return;
 
-        TSoftObjectPtr<UTexture2D>& Image = Style->GetImageByState(bSelected);
-        SetActionSkillImage(Image.Get());
+        const EStageProgress PreviousState = Self->ProgressState;
+        Self->ProgressState = State;
+        if (Self->bSelected == bSelectedOnRequest) Self->bSelected = bSelectedState;
+        Self->LoadedImages = { LoadedStyle->NormalImageState.Get(), LoadedStyle->SelectedImageState.Get() };
+        Self->ApplyStateImage();
 
-        OnSkillProgressStateChanged.Broadcast(this, ProgressState, bSelected, PreviousState);
-        OnSkillSelected.Broadcast(this, bSelected);
+        Self->OnSkillProgressStateChanged.Broadcast(Self, Self->ProgressState, Self->bSelected, PreviousState);
+        Self->OnSkillSelected.Broadcast(Self, Self->bSelected);
     });
+}
+
+void USkillUpgradeWidget::ApplyStateImage()
+{
+    FSkillProgressionStyle* Style = ProgressStates.Find(ProgressState);
+    if (!Style) return;
+    TSoftObjectPtr<UTexture2D>& Image = Style->GetImageByState(bSelected);
+    // Images of the current state are held by LoadedImages, the synchronous load is only a safety net
+    UTexture2D* Texture = Image.IsValid() ? Image.Get() : Image.LoadSynchronous();
+    if (!IsValid(Texture)) return;
+    LoadedImages.AddUnique(Texture);
+    SetActionSkillImage(Texture);
 }
 
 UTexture2D* USkillUpgradeWidget::GetBaseSkillIcon() const
@@ -115,7 +142,16 @@ UTexture2D* USkillUpgradeWidget::GetBaseSkillIcon() const
 
 void USkillUpgradeWidget::OnActionClick()
 {
-    if (bSelected) return;
+    if (bSelected)
+    {
+        // Gamepad & keyboard select skills by moving over them, so pressing on the selected one upgrades it;
+        // the mouse uses the description upgrade button
+        auto InputSubsystem = UCommonInputSubsystem::Get(GetOwningLocalPlayer());
+        bool bGamepad = InputSubsystem && InputSubsystem->GetCurrentInputType() == ECommonInputType::Gamepad;
+        bool bPointerClick = IsValid(ActionButton) && ActionButton->IsHovered();
+        if (bGamepad || !bPointerClick) OnUpgradeRequested.Broadcast(this);
+        return;
+    }
 
     if (IsValid(OnClickOnActionSound))
     {
@@ -129,8 +165,16 @@ void USkillUpgradeWidget::OnActionClick()
 
 void USkillUpgradeWidget::OnActionHover()
 {
-    // Mouse hover moves the focus as well, so gamepad & keyboard navigation continues from it
-    if (IsValid(ActionButton) && !ActionButton->HasAnyUserFocus()) ActionButton->SetFocus();
+    // Mouse hover moves the focus as well, so gamepad & keyboard navigation continues from it.
+    // Only a real mouse move does it: the skill under a resting cursor (menu just opened) keeps the navigation focus where it is
+    bool bMouseMoved = false;
+    if (FSlateApplication::IsInitialized())
+    {
+        const FVector2D CursorPosition = FSlateApplication::Get().GetCursorPos();
+        bMouseMoved = !CursorPosition.Equals(HoverCursorPosition, 1.);
+        HoverCursorPosition = CursorPosition;
+    }
+    if (bMouseMoved && IsValid(ActionButton) && !ActionButton->HasAnyUserFocus()) ActionButton->SetFocus();
 
     if (IsValid(OnHoverActionSound))
     {

@@ -55,6 +55,8 @@ private:
 		bool bLive = false;
 		TWeakObjectPtr<UButton> Button;
 		TWeakObjectPtr<UTextBlock> ValueText;
+		TWeakObjectPtr<UTextBlock> PreviousArrow;
+		TWeakObjectPtr<UTextBlock> NextArrow;
 
 		int32 GetValue() const { return Values.IsValidIndex(Index) ? Values[Index] : 0; }
 	};
@@ -102,6 +104,6 @@ private:
 	void ChangeOption(int32 RowIndex, int32 Delta, bool bWrap);
 	void PreviewOption(int32 RowIndex);
 	void RefreshRowText(int32 RowIndex);
-	int32 FindActiveRow() const;
+	int32 FindActiveRow(bool bPreferHovered) const;
 	void DiscardChanges();
 };

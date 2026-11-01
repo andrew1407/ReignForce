@@ -24,22 +24,16 @@ struct FSkillProgressionStyle
 
 	FORCEINLINE bool IsImagesSet() const
 	{
-		return !(NormalImageState.IsNull() || NormalImageState.IsNull());
+		return !(NormalImageState.IsNull() || SelectedImageState.IsNull());
 	}
 
 	FORCEINLINE bool IsImagesLoaded() const
 	{
-		return NormalImageState.IsValid() && NormalImageState.IsValid();
+		return NormalImageState.IsValid() && SelectedImageState.IsValid();
 	}
 
 	FORCEINLINE TSoftObjectPtr<UTexture2D>& GetImageByState(bool bSelected)
 	{
 		return bSelected ? SelectedImageState : NormalImageState;
-	}
-
-	void Clear()
-	{
-		NormalImageState.Reset();
-		SelectedImageState.Reset();
 	}
 };

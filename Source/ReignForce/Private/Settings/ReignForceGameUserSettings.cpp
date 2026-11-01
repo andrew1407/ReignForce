@@ -26,6 +26,11 @@ void UReignForceGameUserSettings::SetToDefaults()
 {
     Super::SetToDefaults();
 
+    // The engine default is borderless (r.FullScreenMode), the game starts in the real fullscreen at the desktop resolution
+    FullscreenMode = EWindowMode::Fullscreen;
+    LastConfirmedFullscreenMode = EWindowMode::Fullscreen;
+    PreferredFullscreenMode = EWindowMode::Fullscreen;
+
     MasterVolume = 1;
     MusicVolume = 1;
     EffectsVolume = 1;

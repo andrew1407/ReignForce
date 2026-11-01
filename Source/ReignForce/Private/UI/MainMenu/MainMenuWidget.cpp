@@ -33,6 +33,10 @@ void UMainMenuWidget::NativeOnInitialized()
     if (IsValid(SettingsButton))
         SettingsButton->OnClicked.AddDynamic(this, &UMainMenuWidget::OnSettingsClick);
 
+    // One more item than the layout was made for: tighter gaps keep the menu compact
+    constexpr float ItemsGap = 16;
+    SetMenuItemsGap(PlayNewGameButton, ItemsGap);
+
     RegisterFocusableButton(ContinuePlayingButton);
     RegisterFocusableButton(PlayNewGameButton);
     RegisterFocusableButton(SettingsButton);

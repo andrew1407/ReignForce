@@ -5,15 +5,21 @@
 #include "CoreMinimal.h"
 #include "CommonActivatableWidget.h"
 #include "Styling/SlateTypes.h"
+#include "UI/Common/FocusOutline.h"
 #include "ReignForceActivatableWidget.generated.h"
 
 
 class UButton;
 class UTextBlock;
 class UVerticalBox;
+class USizeBox;
+class UScrollBox;
 class UGameSettingsWidget;
 
 DECLARE_DYNAMIC_MULTICAST_DELEGATE(FOnMenuCloseRequested);
+
+/** Space around the scrolled menu content (focus frames stay inside the scroll box clipping) */
+constexpr float SCROLLED_CONTENT_INSET = 8;
 
 USTRUCT()
 struct FFocusableButtonState
@@ -25,9 +31,6 @@ struct FFocusableButtonState
 
 	UPROPERTY()
 	FButtonStyle DefaultStyle;
-
-	UPROPERTY()
-	FVector2D DefaultScale = FVector2D(1);
 
 	UPROPERTY()
 	bool bHighlighted = false;
@@ -58,7 +61,10 @@ public:
 
 protected:
 	virtual void NativeTick(const FGeometry& MyGeometry, float InDeltaTime) override;
+	virtual int32 NativePaint(const FPaintArgs& Args, const FGeometry& AllottedGeometry, const FSlateRect& MyCullingRect, FSlateWindowElementList& OutDrawElements, int32 LayerId, const FWidgetStyle& InWidgetStyle, bool bParentEnabled) const override;
 	virtual void NativeDestruct() override;
+	virtual void NativeOnActivated() override;
+	virtual void NativeOnDeactivated() override;
 	virtual UWidget* NativeGetDesiredFocusTarget() const override;
 	virtual bool NativeOnHandleBackAction() override;
 
@@ -80,6 +86,18 @@ protected:
 	/** Clones the template button style & label into a new button placed next to the template (same panel) */
 	UButton* CreateButtonLike(UButton* Template, const FText& Label, FName Name, int32 IndexOffset = 0);
 
+	/** Places the items of the panel the given item is in one after another with the given gap (spacers or paddings) */
+	void SetMenuItemsGap(UWidget* Item, float Gap);
+
+	/** Puts the content into a vertical scroll box which takes the content place (slot) inside a size box (returned) */
+	USizeBox* WrapInScrollBox(UWidget* Content, UScrollBox** OutScrollBox = nullptr);
+
+	/** The box height is limited to the screen height without the margins (top & bottom), the content scrolls beyond it */
+	void LimitHeightToScreen(USizeBox* Box, float ScreenMargin);
+
+	/** Items column (panel the given item is in, placed on a canvas) is centered vertically on the screen & scrolls when it doesn't fit */
+	void MakeMenuItemsScrollableCentered(UWidget* Item, float ScreenMargin);
+
 	#pragma region NATIVE_LAYOUT
 
 	/** Template button label font of the given size (engine default bold font without a template) */
@@ -95,11 +113,9 @@ protected:
 
 	#pragma endregion
 
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Focus", meta = (ClampMin = 1, UIMin = 1))
-	float FocusedButtonScale;
-
+	/** Frame around the focused button (the button keeps its own look & size, so the layout and navigation aren't affected) */
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Focus")
-	FLinearColor FocusedButtonTint;
+	FFocusOutlineStyle FocusOutlineStyle;
 
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Focus")
 	bool bRestoreLostFocus;
@@ -116,10 +132,26 @@ private:
 
 	TWeakObjectPtr<UButton> LastFocusedButton;
 
+	TWeakObjectPtr<UButton> ChildMenuOpener;
+
+	UPROPERTY()
+	TObjectPtr<USizeBox> ScreenHeightLimitedBox;
+
+	float ScreenHeightMargin = 0;
+
+	/** Deactivated menu isn't hit-testable (so not navigable) until it is activated again */
+	ESlateVisibility VisibilityBeforeDeactivation = ESlateVisibility::SelfHitTestInvisible;
+	bool bNavigationBlocked = false;
+
+	/** Cursor position of the last focus change by the mouse hover */
+	FVector2D HoverCursorPosition = FVector2D::ZeroVector;
+
 	UFUNCTION()
 	void HandleButtonHovered();
 
+	/** Hover moves the focus only when the mouse itself moved (not the menu appearing under a resting cursor or the gamepad) */
+	bool IsHoverFromMouseMove();
+
 	void UpdateButtonsHighlight();
-	void SetButtonHighlight(FFocusableButtonState& State, bool bHighlight);
 	bool IsButtonAvailable(const UButton* Button) const;
 };

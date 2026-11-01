@@ -16,6 +16,7 @@ class USkillUpgradeWidget;
 
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_FourParams(FOnSkillProgressStateChanged, USkillUpgradeWidget*, SelfWidget, EStageProgress, StageProgress, bool, bSelected, EStageProgress, PreviousState);
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_TwoParams(FOnSkillSelected, USkillUpgradeWidget*, SelfWidget, bool, bState);
+DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnSkillUpgradeRequested, USkillUpgradeWidget*, SelfWidget);
 
 /**
  * 
@@ -37,6 +38,10 @@ public:
 	UPROPERTY(BlueprintAssignable)
 	FOnSkillSelected OnSkillSelected;
 
+	/** Selected skill is activated again by the gamepad or keyboard (A / Enter) */
+	UPROPERTY(BlueprintAssignable)
+	FOnSkillUpgradeRequested OnUpgradeRequested;
+
 	UFUNCTION(BlueprintCallable)
 	void SetIsSelected(bool bState);
 
@@ -55,6 +60,7 @@ protected:
 	virtual void NativeConstruct() override;
 	virtual void NativeDestruct() override;
 	virtual void NativeTick(const FGeometry& MyGeometry, float InDeltaTime) override;
+	virtual FReply NativeOnFocusReceived(const FGeometry& InGeometry, const FFocusEvent& InFocusEvent) override;
 
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "SkillsProgression", meta = (BindWidget))
 	TObjectPtr<UButton> ActionButton;
@@ -69,16 +75,8 @@ private:
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "SkillsProgression|Sounds", meta = (AllowPrivateAccess = true))
 	TObjectPtr<USoundBase> OnHoverActionSound;
 
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "SkillsProgression|Focus", meta = (AllowPrivateAccess = true, ClampMin = 1, UIMin = 1))
-	float FocusedScale;
-
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "SkillsProgression|Focus", meta = (AllowPrivateAccess = true))
-	FLinearColor FocusedTint;
-
 	UPROPERTY(BlueprintReadOnly, meta = (AllowPrivateAccess = true))
 	bool bFocused;
-
-	FLinearColor DefaultActionBackground = FLinearColor::White;
 
 	UPROPERTY(BlueprintReadOnly, meta = (AllowPrivateAccess = true))
 	bool bSelected;
@@ -92,6 +90,17 @@ private:
 	UFUNCTION()
 	void OnActionHover();
 
+	/** Images of the current progress state, kept referenced so they aren't garbage collected after the async load */
+	UPROPERTY()
+	TArray<TObjectPtr<UTexture2D>> LoadedImages;
+
+	/** Cursor position of the last hover, hover moves the focus only after a real mouse move */
+	FVector2D HoverCursorPosition = FVector2D::ZeroVector;
+
+	/** Progress state which images are being loaded (the last requested one wins) */
+	EStageProgress LoadingState = EStageProgress::None;
+
 	void SetFocusHighlight(bool bState);
 	void SetActionSkillImage(UTexture2D* Image);
+	void ApplyStateImage();
 };
