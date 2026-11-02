@@ -51,7 +51,9 @@ void AShooterHUD::BeginPlay()
     if (bShowControlsHint && !bRestarted && IsValid(ControlsHintClass) && IsValid(Controller) && Controller->IsLocalController())
     {
         ControlsHintWidget = CreateWidget<UControlsHintWidget>(Controller, ControlsHintClass);
-        if (IsValid(ControlsHintWidget)) ControlsHintWidget->AddToViewport();
+        // Over the other HUD widgets (the skills counter shares the top left corner)
+        constexpr int32 ControlsHintZOrder = 50;
+        if (IsValid(ControlsHintWidget)) ControlsHintWidget->AddToViewport(ControlsHintZOrder);
     }
 
 	auto GameState = GetWorld()->GetGameState<AShooterGameState>();

@@ -40,7 +40,7 @@ enum class EControlsHintPhase : uint8
 };
 
 /**
- * Main controls table shown for a few seconds when the game level is opened (top right corner, slides in from & out to the right side):
+ * Main controls table shown for a few seconds when the game level is opened (top left corner over the HUD, slides in from & out to the left side):
  * keyboard & mouse keys (the player's bindings) or gamepad button icons, switched with the used input device
  */
 UCLASS()
@@ -95,7 +95,7 @@ protected:
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Layout")
 	float PanelMinWidth;
 
-	/** Distance from the screen top right corner */
+	/** Distance from the screen top left corner */
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Layout")
 	FVector2D ScreenOffset;
 

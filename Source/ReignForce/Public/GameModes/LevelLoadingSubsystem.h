@@ -32,8 +32,8 @@ public:
 	static void OpenLevel(const UObject* WorldContextObject, FName LevelName, bool bAbsolute = true, const FString& Options = FString(), bool bRestart = false);
 
 	/**
-	 * A restart (the same level again: pause menu restart, the countdown after a lost round) loads behind a plain black screen
-	 * with the loading indicator, and the restarted level doesn't show the opening hints (the controls table)
+	 * A restart (the same level again: pause menu restart, the countdown after a lost round) has no loading screen: the game stays
+	 * on the screen with the input disabled until the level is reopened, and the restarted level doesn't show the opening hints (the controls table)
 	 */
 	UFUNCTION(BlueprintCallable, Category = "Loading")
 	void OpenLevelAsync(FName LevelName, bool bAbsolute = true, const FString& Options = TEXT(""), bool bRestart = false);
@@ -84,6 +84,8 @@ private:
 	void StopMusic();
 	/** Menus of the current world stop (or resume) handling the input */
 	void SetMenusActive(bool bActive);
+	/** The local player's gameplay input (movement, attacks, pause toggling) */
+	void SetPlayerInputEnabled(bool bEnabled);
 	void ShowLoadingWidget();
 	void HideLoadingWidget();
 	void PreloadLevel();
