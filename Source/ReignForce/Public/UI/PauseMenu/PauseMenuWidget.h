@@ -57,6 +57,10 @@ private:
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Menu", meta = (AllowPrivateAccess = true))
 	bool bSaveOnGoToMenu;
 
+	/** Blur of the game behind the menu (under the designed dim), 0 turns it off */
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Menu", meta = (AllowPrivateAccess = true, ClampMin = 0))
+	float BackgroundBlurStrength;
+
 	#pragma region MODALS
 
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Menu|Modals", meta = (AllowPrivateAccess = true))
@@ -119,4 +123,6 @@ private:
 	/** Up & down go between the available items only (the disabled ones are skipped) */
 	void ChainMenuNavigation();
 	void OpenModalWindow(const TSubclassOf<UConfirmationModalWidget>& WidgetClass);
+	/** Puts the blur under the other root canvas layers, stretched over the screen */
+	void AddBackgroundBlur();
 };

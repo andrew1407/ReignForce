@@ -352,7 +352,7 @@ void USkillsProgressionWidget::RequestUpgradeConfirmation()
     if (!IsValid(Confirmation)) return;
     Confirmation->Setup(SkillDescription->GetUpgradeSkillButton(), Title, Details);
     Confirmation->OnConfirmation.AddDynamic(this, &USkillsProgressionWidget::HandleUpgradeConfirmation);
-    PushChildMenu(Confirmation, 20);
+    PushChildMenu(Confirmation);
 }
 
 void USkillsProgressionWidget::HandleSkillUpgradeRequested(USkillUpgradeWidget* Skill)

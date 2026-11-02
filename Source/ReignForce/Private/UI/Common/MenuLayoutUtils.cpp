@@ -27,6 +27,19 @@ namespace
     const FVector2D TEXT_SHADOW_OFFSET(1);
     const FLinearColor TEXT_SHADOW_COLOR(0, 0, 0, .6f);
     constexpr float TITLE_GAP = 24;
+
+    // Disabled menu button: its fill washed toward a warm gray, a bit see-through (the label also gets the engine fade on top)
+    const FLinearColor DISABLED_WASH_COLOR(FColor(196, 186, 174));
+    constexpr float DISABLED_WASH = .35f;
+    constexpr float DISABLED_FILL_OPACITY = .75f;
+    const FLinearColor DISABLED_LABEL_TINT(1, .9f, .78f, 1);
+
+    FLinearColor WashDisabled(const FLinearColor& Color)
+    {
+        FLinearColor Washed = FMath::Lerp(Color, DISABLED_WASH_COLOR, DISABLED_WASH);
+        Washed.A = Color.A * DISABLED_FILL_OPACITY;
+        return Washed;
+    }
 }
 
 FSlateFontInfo MenuLayoutUtils::MakeFont(const UButton* StyleTemplate, int32 Size)
@@ -108,6 +121,23 @@ UButton* MenuLayoutUtils::CreateButtonLike(UWidgetTree* WidgetTree, UButton* Tem
     const int32 SpacerIndex = IsValid(PreviousSpacer) ? Index + 1 : Index;
     Parent->InsertChildAt(SpacerIndex, Spacer, SpacerTemplate->Slot);
     return Button;
+}
+
+void MenuLayoutUtils::SetButtonAvailable(UButton* Button, bool bAvailable)
+{
+    if (!IsValid(Button)) return;
+    Button->SetIsEnabled(bAvailable);
+
+    FButtonStyle Style = Button->GetStyle();
+    if (Style.Disabled.DrawAs == ESlateBrushDrawType::NoDrawType)
+    {
+        Style.Disabled = Style.Normal;
+        Style.Disabled.TintColor = WashDisabled(Style.Normal.TintColor.GetSpecifiedColor());
+        Style.Disabled.OutlineSettings.Color = WashDisabled(Style.Normal.OutlineSettings.Color.GetSpecifiedColor());
+        Style.DisabledForeground = DISABLED_LABEL_TINT;
+        Button->SetStyle(Style);
+    }
+    Button->SetColorAndOpacity(bAvailable ? FLinearColor::White : DISABLED_LABEL_TINT);
 }
 
 UVerticalBox* MenuLayoutUtils::ConstructMenuColumn(UWidgetTree* WidgetTree, const FText& Title, const FSlateFontInfo& TitleFont, float Width, const FLinearColor& Background)

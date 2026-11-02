@@ -28,13 +28,9 @@
 #include "Settings/ReignForceSettings.h"
 #include "GameModes/Components/BackgroundMusicComponent.h"
 #include "UI/Loading/LoadingScreenWidget.h"
+#include "UI/Common/ViewportLayers.h"
 
-
-namespace
-{
-    constexpr int32 LOADING_SCREEN_Z_ORDER = 1000;
-}
-
+
 ULevelLoadingSubsystem* ULevelLoadingSubsystem::Get(const UObject* WorldContextObject)
 {
     UWorld* World = GEngine ? GEngine->GetWorldFromContextObject(WorldContextObject, EGetWorldErrorMode::ReturnNull) : nullptr;
@@ -169,7 +165,7 @@ void ULevelLoadingSubsystem::ShowLoadingWidget()
     LoadingWidget->SetImage(bShowImage ? GetLoadingImage() : nullptr);
     // A restart keeps the game on the screen until the level is reopened: the widget only takes the clicks
     LoadingWidget->SetInvisible(!bShowImage);
-    LoadingWidget->AddToViewport(LOADING_SCREEN_Z_ORDER);
+    LoadingWidget->AddToViewport(ViewportLayers::LOADING_SCREEN);
 }
 
 void ULevelLoadingSubsystem::HideLoadingWidget()

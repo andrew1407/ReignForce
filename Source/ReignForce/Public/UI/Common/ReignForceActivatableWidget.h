@@ -8,6 +8,7 @@
 #include "InputCoreTypes.h"
 #include "UI/Common/FocusOutline.h"
 #include "UI/Common/ButtonGamepadPrompt.h"
+#include "UI/Common/ViewportLayers.h"
 #include "ReignForceActivatableWidget.generated.h"
 
 
@@ -85,7 +86,7 @@ protected:
 	virtual bool HandleBackAction();
 
 	/** Shows the menu over this one, which is deactivated until the child requests closing */
-	void PushChildMenu(UReignForceActivatableWidget* Child, int32 ZOrder = 10);
+	void PushChildMenu(UReignForceActivatableWidget* Child, int32 ZOrder = ViewportLayers::SUBMENU);
 
 	UFUNCTION(BlueprintCallable)
 	void CloseChildMenu();
