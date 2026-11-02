@@ -26,6 +26,7 @@
 #include "UI/Rounds/RoundProgressWidget.h"
 #include "UI/Rounds/StartRoundWidget.h"
 #include "UI/ControlsHint/ControlsHintWidget.h"
+#include "UI/Common/ViewportLayers.h"
 #include "GameModes/LevelLoadingSubsystem.h"
 
 
@@ -51,9 +52,7 @@ void AShooterHUD::BeginPlay()
     if (bShowControlsHint && !bRestarted && IsValid(ControlsHintClass) && IsValid(Controller) && Controller->IsLocalController())
     {
         ControlsHintWidget = CreateWidget<UControlsHintWidget>(Controller, ControlsHintClass);
-        // Over the other HUD widgets (the skills counter shares the top left corner)
-        constexpr int32 ControlsHintZOrder = 50;
-        if (IsValid(ControlsHintWidget)) ControlsHintWidget->AddToViewport(ControlsHintZOrder);
+        if (IsValid(ControlsHintWidget)) ControlsHintWidget->AddToViewport(ViewportLayers::CONTROLS_HINT);
     }
 
 	auto GameState = GetWorld()->GetGameState<AShooterGameState>();
@@ -149,7 +148,7 @@ bool AShooterHUD::OpenSkillsProgressionMenu()
     if (!IsValid(SkillsProgressionWidget)) return false;
     SkillsProgressionWidget->OnCloseRequested.AddDynamic(this, &AShooterHUD::CloseSkillsMenuAction);
 
-    SkillsProgressionWidget->AddToViewport();
+    SkillsProgressionWidget->AddToViewport(ViewportLayers::MENU);
     SetSkillsMenuMusicPlayState(true);
 
     USoundBase* SkillsProgressionSound = GetSkillsProgressionSound();
@@ -189,7 +188,7 @@ bool AShooterHUD::OpenPauseMenu()
     if (!IsValid(PauseMenuWidget)) return false;
     PauseMenuWidget->OnCloseRequested.AddDynamic(this, &AShooterHUD::ClosePauseMenuAction);
 
-    PauseMenuWidget->AddToViewport();
+    PauseMenuWidget->AddToViewport(ViewportLayers::MENU);
     SetPauseMenuMusicPlayState(true);
 
     if (IsValid(PauseMenuWidgetSound))

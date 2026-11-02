@@ -42,6 +42,9 @@ namespace MenuLayoutUtils
     /** Clones the template button style & label into a new button placed next to the template (same panel) */
     REIGNFORCE_API UButton* CreateButtonLike(UWidgetTree* WidgetTree, UButton* Template, const FText& Label, FName Name, int32 IndexOffset = 0);
 
+    /** Enables the button or shows it disabled with a see-through, paler orange of its own fill (without a disabled brush Slate only fades the button) */
+    REIGNFORCE_API void SetButtonAvailable(UButton* Button, bool bAvailable);
+
     /** Dimmed fullscreen background (the tree root) with a centered titled column (menu content is added to it) */
     REIGNFORCE_API UVerticalBox* ConstructMenuColumn(UWidgetTree* WidgetTree, const FText& Title, const FSlateFontInfo& TitleFont, float Width, const FLinearColor& Background);
 

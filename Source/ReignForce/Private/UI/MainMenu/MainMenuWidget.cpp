@@ -17,6 +17,7 @@
 #include "GameModes/ReignForceGameMode.h"
 #include "GameModes/LevelLoadingSubsystem.h"
 #include "UI/Common/MenuLayoutUtils.h"
+#include "UI/Common/ViewportLayers.h"
 #include "GameModes/Components/BackgroundMusicComponent.h"
 
 
@@ -64,7 +65,7 @@ void UMainMenuWidget::NativeConstruct()
     if (IsValid(ContinuePlayingButton))
     {
         ContinuePlayingButton->OnClicked.AddDynamic(this, &UMainMenuWidget::OnContinuePlayingClick);
-        ContinuePlayingButton->SetIsEnabled(bPlayerHasLoadedSavesState);
+        MenuLayoutUtils::SetButtonAvailable(ContinuePlayingButton, bPlayerHasLoadedSavesState);
         if (bPlayerHasLoadedSavesState) FocusButton(ContinuePlayingButton);
     }
 
@@ -202,7 +203,7 @@ void UMainMenuWidget::OpenModalWindow(const TSubclassOf<UConfirmationModalWidget
     CloseCurrentOpenedModal();
     CurrentOpenedModal = CreateWidget<UConfirmationModalWidget>(GetWorld(), WidgetClass);
     if (!IsValid(CurrentOpenedModal)) return;
-    CurrentOpenedModal->AddToViewport();
+    CurrentOpenedModal->AddToViewport(ViewportLayers::MENU);
     // The modal takes the input & focus over
     DeactivateWidget();
 }

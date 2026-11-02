@@ -5,6 +5,9 @@
 #include "GameFramework/PlayerController.h"
 #include "Components/Button.h"
 #include "Components/PanelWidget.h"
+#include "Components/CanvasPanelSlot.h"
+#include "Components/BackgroundBlur.h"
+#include "Blueprint/WidgetTree.h"
 
 #include "Kismet/KismetSystemLibrary.h"
 #include "Kismet/GameplayStatics.h"
@@ -16,30 +19,25 @@
 #include "GameStates/ShooterGameState.h"
 #include "UI/Modals/ConfirmationModalWidget.h"
 #include "UI/Common/MenuLayoutUtils.h"
+#include "UI/Common/ViewportLayers.h"
 
 #include "PlayerCharacter/PlayerCharacter.h"
 #include "PlayerCharacter/ShooterPlayerController.h"
 #include "PlayerCharacter/PlayerInteractionMode.h"
 
 
-namespace
-{
-    // Pale orange washed with white/gray (sRGB values)
-    const FLinearColor DISABLED_BUTTON_COLOR(FColor(226, 204, 176));
-    const FLinearColor DISABLED_BUTTON_OUTLINE_COLOR(FColor(240, 232, 222));
-    const FLinearColor DISABLED_LABEL_TINT(.08f, .08f, .08f, 1);
-}
-
-
 UPauseMenuWidget::UPauseMenuWidget(const FObjectInitializer& ObjectInitializer) : Super(ObjectInitializer)
 {
     MenuLevelName = NAME_None;
     bSaveOnGoToMenu = false;
+    BackgroundBlurStrength = 3;
 }
 
 void UPauseMenuWidget::NativeOnInitialized()
 {
     Super::NativeOnInitialized();
+
+    AddBackgroundBlur();
 
     if (!IsValid(SettingsButton))
     {
@@ -96,21 +94,7 @@ void UPauseMenuWidget::RefreshSaveAvailability()
     auto Character = Cast<APlayerCharacter>(GetOwningPlayerPawn());
     const bool bCanSave = IsValid(Character) && Character->CanSaveProgress();
     for (UButton* Button : { SaveProgressButton.Get(), SaveAndExitButton.Get() })
-    {
-        if (!IsValid(Button)) continue;
-        Button->SetIsEnabled(bCanSave);
-        // Without a disabled brush Slate fades the whole button (alpha * .45): an opaque pale orange one instead
-        FButtonStyle Style = Button->GetStyle();
-        if (Style.Disabled.DrawAs == ESlateBrushDrawType::NoDrawType)
-        {
-            Style.Disabled = Style.Normal;
-            Style.Disabled.TintColor = DISABLED_BUTTON_COLOR;
-            Style.Disabled.OutlineSettings.Color = DISABLED_BUTTON_OUTLINE_COLOR;
-            Button->SetStyle(Style);
-        }
-        // The label still gets the engine fade: a dark one reads as gray on the pale button
-        Button->SetColorAndOpacity(bCanSave ? FLinearColor::White : DISABLED_LABEL_TINT);
-    }
+        MenuLayoutUtils::SetButtonAvailable(Button, bCanSave);
     ChainMenuNavigation();
 }
 
@@ -286,7 +270,21 @@ void UPauseMenuWidget::OpenModalWindow(const TSubclassOf<UConfirmationModalWidge
     CloseCurrentOpenedModal();
     CurrentOpenedModal = CreateWidget<UConfirmationModalWidget>(GetWorld(), WidgetClass);
     if (!IsValid(CurrentOpenedModal)) return;
-    CurrentOpenedModal->AddToViewport();
+    CurrentOpenedModal->AddToViewport(ViewportLayers::MENU);
     // The modal takes the input & focus over
     DeactivateWidget();
+}
+
+void UPauseMenuWidget::AddBackgroundBlur()
+{
+    auto Root = Cast<UPanelWidget>(GetRootWidget());
+    if (BackgroundBlurStrength <= 0 || !IsValid(Root) || !IsValid(WidgetTree)) return;
+
+    auto Blur = WidgetTree->ConstructWidget<UBackgroundBlur>(UBackgroundBlur::StaticClass(), TEXT("BackgroundBlur"));
+    Blur->SetBlurStrength(BackgroundBlurStrength);
+    // The first child is drawn first: the dim & the menu column stay sharp over the blur
+    auto BlurSlot = Cast<UCanvasPanelSlot>(Root->InsertChildAt(0, Blur));
+    if (!IsValid(BlurSlot)) return;
+    BlurSlot->SetAnchors(FAnchors(0, 0, 1, 1));
+    BlurSlot->SetOffsets(FMargin(0));
 }
