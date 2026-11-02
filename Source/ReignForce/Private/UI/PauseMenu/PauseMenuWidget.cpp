@@ -90,8 +90,10 @@ void UPauseMenuWidget::RefreshSaveAvailability()
     {
         if (!IsValid(Button)) continue;
         Button->SetIsEnabled(bCanSave);
-        // The menu buttons style has no disabled look of its own
-        Button->SetRenderOpacity(bCanSave ? 1.f : .4f);
+        // The menu buttons style has no disabled look of its own: a pale (whitened, slightly see-through) button that's still readable
+        Button->SetRenderOpacity(bCanSave ? 1.f : .85f);
+        Button->SetBackgroundColor(bCanSave ? FLinearColor::White : FLinearColor(1, 1, 1, .6f));
+        Button->SetColorAndOpacity(bCanSave ? FLinearColor::White : FLinearColor(.8f, .8f, .8f, 1));
     }
     ChainMenuNavigation();
 }
@@ -194,13 +196,11 @@ void UPauseMenuWidget::RestartClickConfirmation(bool bAccepted)
         return;
     }
 
-    APlayerController* PlayerController = GetOwningPlayer();
-    if (IsValid(PlayerController))
-    {
-		auto Controller = GetOwningPlayer<AShooterPlayerController>();
-        if (IsValid(Controller))
-            Controller->SetInteractionMode(EPlayerInteractionMode::GameplayInput);
-    }
+    // The level reloads right away without a loading screen (the last frame stays): no modal left on it
+    CloseCurrentOpenedModal();
+    auto Controller = GetOwningPlayer<AShooterPlayerController>();
+    if (IsValid(Controller))
+        Controller->SetInteractionMode(EPlayerInteractionMode::GameplayInput);
 
     auto GameState = GetWorld()->GetGameState<AShooterGameState>();
     if (IsValid(GameState)) GameState->RestartLevel();

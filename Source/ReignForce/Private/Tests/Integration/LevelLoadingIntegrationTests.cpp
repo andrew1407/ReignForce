@@ -61,7 +61,7 @@ void FLevelLoadingIntegrationTests::Define()
             }, WORLD_LOAD_TIMEOUT);
         });
 
-        // Restart reloads the same level behind a plain black screen & without the controls table,
+        // Restart reloads the same level without a loading screen & without the controls table,
         // levels opened from the main menu show the black & white image & the table
         LatentIt("RestartsWithoutTheLoadingImageAndControlsHint", [this](const FDoneDelegate& Done)
         {

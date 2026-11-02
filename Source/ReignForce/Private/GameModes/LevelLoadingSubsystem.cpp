@@ -9,6 +9,7 @@
 #include "Kismet/GameplayStatics.h"
 #include "Blueprint/WidgetBlueprintLibrary.h"
 #include "GameFramework/GameModeBase.h"
+#include "GameFramework/PlayerController.h"
 #include "Containers/Ticker.h"
 #include "Misc/PackageName.h"
 #include "UObject/Package.h"
@@ -158,14 +159,16 @@ void ULevelLoadingSubsystem::ShowLoadingWidget()
 {
     if (!IsValid(GetCurrentWorld())) return;
 
-    // Menus underneath stop handling the input (back actions, focus) while the level is loading
+    // Menus underneath & the player stop handling the input (back actions, focus, gameplay) while the level is loading
     constexpr bool bActive = false;
     SetMenusActive(bActive);
+    SetPlayerInputEnabled(bActive);
 
     LoadingWidget = CreateWidget<ULoadingScreenWidget>(GetGameInstance(), ULoadingScreenWidget::StaticClass());
     if (!IsValid(LoadingWidget)) return;
-    // No image - the widget stays black
     LoadingWidget->SetImage(bShowImage ? GetLoadingImage() : nullptr);
+    // A restart keeps the game on the screen until the level is reopened: the widget only takes the clicks
+    LoadingWidget->SetInvisible(!bShowImage);
     LoadingWidget->AddToViewport(LOADING_SCREEN_Z_ORDER);
 }
 
@@ -177,6 +180,16 @@ void ULevelLoadingSubsystem::HideLoadingWidget()
     // The level stays the same, so its menus get the input back
     constexpr bool bActive = true;
     SetMenusActive(bActive);
+    SetPlayerInputEnabled(bActive);
+}
+
+void ULevelLoadingSubsystem::SetPlayerInputEnabled(bool bEnabled)
+{
+    UWorld* World = GetCurrentWorld();
+    APlayerController* Controller = IsValid(World) ? World->GetFirstPlayerController() : nullptr;
+    if (!IsValid(Controller)) return;
+    if (bEnabled) Controller->EnableInput(Controller);
+    else Controller->DisableInput(Controller);
 }
 
 void ULevelLoadingSubsystem::SetMenusActive(bool bActive)
@@ -220,10 +233,10 @@ void ULevelLoadingSubsystem::HandleTravelFailure(UWorld* World, ETravelFailure::
 
 void ULevelLoadingSubsystem::HandlePrepareLoadingScreen()
 {
-    if (!GetMoviePlayer()) return;
+    // A restart has no loading screen: the last game frame stays while the same level is reopened
+    if (!GetMoviePlayer() || !bShowImage) return;
 
-    // Plain black (only the loading indicator) for a level opened without the image
-    UTexture2D* Image = bShowImage ? GetLoadingImage() : nullptr;
+    UTexture2D* Image = GetLoadingImage();
     const UReignForceSettings* Settings = UReignForceSettings::Get();
 
     FLoadingScreenAttributes LoadingScreen;

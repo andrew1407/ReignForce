@@ -151,10 +151,10 @@ void UControlsHintWidget::Build()
     Panel->SetPadding(FMargin(20, 12, 20, 14));
     if (UCanvasPanelSlot* PanelSlot = Root->AddChildToCanvas(Panel))
     {
-        PanelSlot->SetAnchors(FAnchors(1, 0));
-        PanelSlot->SetAlignment(FVector2D(1, 0));
+        PanelSlot->SetAnchors(FAnchors(0, 0));
+        PanelSlot->SetAlignment(FVector2D(0, 0));
         PanelSlot->SetAutoSize(true);
-        PanelSlot->SetPosition(FVector2D(-ScreenOffset.X, ScreenOffset.Y));
+        PanelSlot->SetPosition(ScreenOffset);
     }
 
     auto Frame = WidgetTree->ConstructWidget<USizeBox>(USizeBox::StaticClass(), TEXT("Frame"));
@@ -183,7 +183,7 @@ void UControlsHintWidget::Build()
     Column->AddChildToVerticalBox(Table);
 
     FillTable(UInputDeviceUtils::IsGamepadUsed(GetOwningLocalPlayer()));
-    // Off screen (right side) until it slides in
+    // Off screen (left side) until it slides in
     ApplySlide(0);
 }
 
@@ -375,9 +375,9 @@ void UControlsHintWidget::AdvancePhase(float DeltaTime)
 void UControlsHintWidget::ApplySlide(float Shown)
 {
     if (!IsValid(Panel)) return;
-    // Fully hidden past the screen right edge, shown at its place
+    // Fully hidden past the screen left edge, shown at its place
     const float PanelTotalWidth = FMath::Max(Panel->GetDesiredSize().X, PanelMinWidth + 40);
-    const float Offset = (1 - Shown) * (PanelTotalWidth + ScreenOffset.X + HIDDEN_PANEL_MARGIN);
+    const float Offset = -(1 - Shown) * (PanelTotalWidth + ScreenOffset.X + HIDDEN_PANEL_MARGIN);
     Panel->SetRenderTranslation(FVector2D(Offset, 0));
     Panel->SetRenderOpacity(FMath::Clamp(Shown * 1.5f, 0.f, 1.f));
 }

@@ -23,6 +23,22 @@ void ULoadingScreenWidget::SetImage(UTexture2D* Image)
     if (IsValid(ImageWidget) && IsValid(Image)) ImageWidget->SetBrushFromTexture(Image, true);
 }
 
+void ULoadingScreenWidget::SetInvisible(bool bInInvisible)
+{
+    bInvisible = bInInvisible;
+    ApplyInvisible();
+}
+
+void ULoadingScreenWidget::ApplyInvisible()
+{
+    if (!IsValid(WidgetTree)) return;
+    // The cover stays hit testable (fully transparent, not hidden), so the menus under it don't get the clicks
+    if (auto Background = WidgetTree->FindWidget<UImage>(TEXT("Background")))
+        Background->SetRenderOpacity(bInvisible ? 0.f : 1.f);
+    if (UWidget* Indicator = WidgetTree->FindWidget(TEXT("Indicator")))
+        Indicator->SetVisibility(bInvisible ? ESlateVisibility::Collapsed : ESlateVisibility::HitTestInvisible);
+}
+
 TSharedRef<SWidget> ULoadingScreenWidget::RebuildWidget()
 {
     if (!bBuilt) Build();
@@ -71,4 +87,5 @@ void ULoadingScreenWidget::Build()
         IndicatorSlot->SetVerticalAlignment(VAlign_Bottom);
         IndicatorSlot->SetPadding(FMargin(48));
     }
+    ApplyInvisible();
 }

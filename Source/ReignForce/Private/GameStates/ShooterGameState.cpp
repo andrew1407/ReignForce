@@ -203,8 +203,8 @@ void AShooterGameState::RestartLevel()
 {
 	UWorld* Level = GetWorld();
 	constexpr bool bAbsolute = false;
-	// The same level again (pause menu restart & the countdown after a lost round): a plain black loading screen
-	// (not the black & white menu image) and no controls table on the restarted level
+	// The same level again (pause menu restart & the countdown after a lost round): no loading screen, the game waits with the input disabled
+	// and no controls table on the restarted level
 	constexpr bool bRestart = true;
 	ULevelLoadingSubsystem::OpenLevel(Level, *GetNameSafe(Level), bAbsolute, FString(), bRestart);
 }
