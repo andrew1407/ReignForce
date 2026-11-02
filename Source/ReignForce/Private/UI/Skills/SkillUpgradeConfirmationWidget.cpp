@@ -17,6 +17,16 @@
 #include "Components/VerticalBox.h"
 #include "Components/VerticalBoxSlot.h"
 
+#include "UI/Common/MenuLayoutUtils.h"
+
+
+using namespace MenuLayoutUtils;
+
+namespace
+{
+    constexpr float BUTTON_RADIUS = 4;
+    constexpr float BUTTON_OUTLINE_WIDTH = 1;
+}
 
 USkillUpgradeConfirmationWidget::USkillUpgradeConfirmationWidget(const FObjectInitializer& ObjectInitializer) : Super(ObjectInitializer)
 {
@@ -37,14 +47,9 @@ USkillUpgradeConfirmationWidget::USkillUpgradeConfirmationWidget(const FObjectIn
 
 FButtonStyle USkillUpgradeConfirmationWidget::MakeModalButtonStyle() const
 {
-    auto MakeBrush = [](const FLinearColor& Color, const FLinearColor& Outline)
+    auto MakeBrush = [] (const FLinearColor& Color, const FLinearColor& Outline)
     {
-        FSlateBrush Brush;
-        Brush.DrawAs = ESlateBrushDrawType::RoundedBox;
-        Brush.TintColor = Color;
-        Brush.OutlineSettings = FSlateBrushOutlineSettings(FVector4(4, 4, 4, 4), FSlateColor(Outline), 1);
-        Brush.OutlineSettings.RoundingType = ESlateBrushRoundingType::FixedRadius;
-        return Brush;
+        return MakeRoundedBrush(Color, Outline, BUTTON_RADIUS, BUTTON_OUTLINE_WIDTH);
     };
 
     FButtonStyle Style;
@@ -59,8 +64,8 @@ FButtonStyle USkillUpgradeConfirmationWidget::MakeModalButtonStyle() const
 
 UButton* USkillUpgradeConfirmationWidget::MakeModalButton(const FText& Label, const FSlateFontInfo& Font, FName Name)
 {
-    UTextBlock* Text = MakeText(Label, Font, FLinearColor::White);
-    UButton* Button = MakeButton(nullptr, Text, Name);
+    UTextBlock* Text = MakeText(WidgetTree, Label, Font, FLinearColor::White);
+    UButton* Button = MakeButton(WidgetTree, nullptr, Text, Name);
     Button->SetStyle(MakeModalButtonStyle());
     if (auto TextSlot = Cast<UButtonSlot>(Text->Slot))
     {
@@ -140,7 +145,7 @@ void USkillUpgradeConfirmationWidget::Setup(UButton* StyleTemplate, const FText&
     auto Column = WidgetTree->ConstructWidget<UVerticalBox>(UVerticalBox::StaticClass(), TEXT("Column"));
     Panel->SetContent(Column);
 
-    UTextBlock* Title = MakeText(SkillTitle, TitleFont, TextColor);
+    UTextBlock* Title = MakeText(WidgetTree, SkillTitle, TitleFont, TextColor);
     Title->SetJustification(ETextJustify::Center);
     Title->SetAutoWrapText(true);
     if (UVerticalBoxSlot* TitleSlot = Column->AddChildToVerticalBox(Title))
@@ -148,7 +153,7 @@ void USkillUpgradeConfirmationWidget::Setup(UButton* StyleTemplate, const FText&
 
     if (!Details.IsEmpty())
     {
-        UTextBlock* DetailsText = MakeText(Details, DetailsFont, FLinearColor(1, 1, 1, .9f));
+        UTextBlock* DetailsText = MakeText(WidgetTree, Details, DetailsFont, FLinearColor(1, 1, 1, .9f));
         DetailsText->SetJustification(ETextJustify::Center);
         DetailsText->SetAutoWrapText(true);
         if (UVerticalBoxSlot* DetailsSlot = Column->AddChildToVerticalBox(DetailsText))

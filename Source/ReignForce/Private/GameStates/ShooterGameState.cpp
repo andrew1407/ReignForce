@@ -35,7 +35,7 @@ AShooterGameState::AShooterGameState(const FObjectInitializer& ObjectInitializer
 	CharacterStateSlot = TEXT("ShooterSaveSlot");
 	RoundState = ERoundState::None;
 	RoundSoundVolume = 1;
-	PlayerSlotFromSave = EWeaponType::None;
+	PlayerSlotFromSave = EWeaponType::NONE;
 
 	EnemySpawnerComponent = CreateDefaultSubobject<UEnemySpawnerComponent>(GET_MEMBER_NAME_CHECKED(AShooterGameState, EnemySpawnerComponent));
 	EnemyEquipSystem = CreateDefaultSubobject<UEnemyEquipSystem>(GET_MEMBER_NAME_CHECKED(AShooterGameState, EnemyEquipSystem));

@@ -149,18 +149,18 @@ void FProgressionTests::Define()
         {
             auto Skills = NewObject<UShooterSkillsSystem>(GetTransientPackage());
             TestFalse("No progression asset", Skills->IsProgressionAssetValid());
-            TestTrue("Unarmed slot available by default", Skills->AvailableSlots.Contains(EWeaponType::Unarmed));
+            TestTrue("Unarmed slot available by default", Skills->AvailableSlots.Contains(EWeaponType::UNARMED));
 
             TestEqual("Aiming rate default", Skills->GetAimingRateOrDefault(1.5f), 1.5f);
             TestEqual("Swapping rate default", Skills->GetSwappingRateOrDefault(), 1.f);
             TestEqual("Reload rate default", Skills->GetWeaponReloadRateOrDefault(), 1.f);
             TestEqual("Health default", Skills->GetHealthOrDefault(77), 77);
-            TestEqual("Ammo default", Skills->GetAmmoCapacityOrDefault(EWeaponType::Pistol, 9), 9);
-            TestTrue("Recoil modifier default", Skills->GetRecoilModifierOrDefault(EWeaponType::Rifle).Equals(FVector2D(1, 1)));
-            TestEqual("Hit chance default", Skills->GetAttackHitChanceOrDefault(EWeaponType::Melee), 1.f);
-            TestTrue("Spread default", Skills->GetFirearmsProjectileSpreadOrDefault(EWeaponType::Rifle).IsZero());
+            TestEqual("Ammo default", Skills->GetAmmoCapacityOrDefault(EWeaponType::PISTOL, 9), 9);
+            TestTrue("Recoil modifier default", Skills->GetRecoilModifierOrDefault(EWeaponType::RIFLE).Equals(FVector2D(1, 1)));
+            TestEqual("Hit chance default", Skills->GetAttackHitChanceOrDefault(EWeaponType::MELEE), 1.f);
+            TestTrue("Spread default", Skills->GetFirearmsProjectileSpreadOrDefault(EWeaponType::RIFLE).IsZero());
             TestTrue("No aim by default", Skills->GetAimAvailabilityOrDefault() == EAimAvailability::NoAim);
-            TestTrue("Continuous attack default", Skills->GetContituousAttackOrDefault(EWeaponType::Rifle, true));
+            TestTrue("Continuous attack default", Skills->GetContituousAttackOrDefault(EWeaponType::RIFLE, true));
         });
 
         It("ResolvesStatsByRanks", [this]
@@ -171,9 +171,9 @@ void FProgressionTests::Define()
             Progression->AimAvailability = { EAimAvailability::NoAim, EAimAvailability::AimPresent };
             Progression->FirearmsAutoReload = ESkillUnlockAbility::AlwaysTrue;
             Progression->AmmoSaveMode = ESkillUnlockAbility::FromFalseToTrue;
-            Progression->ContinuousAttacks = { { EWeaponType::Rifle, ESkillUnlockAbility::FromTrueToFalse }, { EWeaponType::Pistol, ESkillUnlockAbility::FromFalseToTrue } };
-            Progression->AmmoStats.Add(EWeaponType::Pistol).MaxCount = { 12, 18 };
-            Progression->WeaponRecoilModifiers.Add(EWeaponType::Rifle).Collection = { FVector2D(1, 1), FVector2D(.5f, .25f) };
+            Progression->ContinuousAttacks = { { EWeaponType::RIFLE, ESkillUnlockAbility::FromTrueToFalse }, { EWeaponType::PISTOL, ESkillUnlockAbility::FromFalseToTrue } };
+            Progression->AmmoStats.Add(EWeaponType::PISTOL).MaxCount = { 12, 18 };
+            Progression->WeaponRecoilModifiers.Add(EWeaponType::RIFLE).Collection = { FVector2D(1, 1), FVector2D(.5f, .25f) };
 
             auto Skills = NewObject<UShooterSkillsSystem>(GetTransientPackage());
             if (!TestTrue("Progression asset set", SetPropertyValue(Skills, TEXT("ProgressionAsset"), TObjectPtr<UShooterSkillsProgression>(Progression)))) return;
@@ -183,15 +183,15 @@ void FProgressionTests::Define()
             const FRanksProgression& Ranks = Skills->RanksProgression;
             TestTrue("Always true auto reload enabled", Ranks.bWeaponAutoReloadMode);
             TestFalse("Locked ammo save mode disabled", Ranks.bSaveAmmoMode);
-            TestTrue("Continuous rifle attack enabled initially", Skills->GetContituousAttackOrDefault(EWeaponType::Rifle));
-            TestFalse("Continuous pistol attack locked initially", Skills->GetContituousAttackOrDefault(EWeaponType::Pistol));
-            TestFalse("Unknown weapon has no continuous attack", Skills->GetContituousAttackOrDefault(EWeaponType::Melee, true));
-            TestTrue("Ammo rank initialized", Ranks.AmmoCapacity.Contains(EWeaponType::Pistol));
+            TestTrue("Continuous rifle attack enabled initially", Skills->GetContituousAttackOrDefault(EWeaponType::RIFLE));
+            TestFalse("Continuous pistol attack locked initially", Skills->GetContituousAttackOrDefault(EWeaponType::PISTOL));
+            TestFalse("Unknown weapon has no continuous attack", Skills->GetContituousAttackOrDefault(EWeaponType::MELEE, true));
+            TestTrue("Ammo rank initialized", Ranks.AmmoCapacity.Contains(EWeaponType::PISTOL));
 
-            TestEqual("Initial pistol ammo", Skills->GetAmmoCapacityOrDefault(EWeaponType::Pistol), 12);
-            Skills->RanksProgression.AmmoCapacity[EWeaponType::Pistol] = 1;
-            TestEqual("Upgraded pistol ammo", Skills->GetAmmoCapacityOrDefault(EWeaponType::Pistol), 18);
-            TestEqual("Rifle ammo not in progression", Skills->GetAmmoCapacityOrDefault(EWeaponType::Rifle, 5), 5);
+            TestEqual("Initial pistol ammo", Skills->GetAmmoCapacityOrDefault(EWeaponType::PISTOL), 12);
+            Skills->RanksProgression.AmmoCapacity[EWeaponType::PISTOL] = 1;
+            TestEqual("Upgraded pistol ammo", Skills->GetAmmoCapacityOrDefault(EWeaponType::PISTOL), 18);
+            TestEqual("Rifle ammo not in progression", Skills->GetAmmoCapacityOrDefault(EWeaponType::RIFLE, 5), 5);
 
             Skills->RanksProgression.Aiming = 2;
             TestEqual("Top aiming rank", Skills->GetAimingRateOrDefault(), 2.f);
@@ -201,8 +201,8 @@ void FProgressionTests::Define()
             Skills->RanksProgression.Health = 1;
             TestEqual("Upgraded health", Skills->GetHealthOrDefault(), 150);
 
-            Skills->RanksProgression.WeaponRecoilModifiers[EWeaponType::Rifle] = 1;
-            TestTrue("Upgraded recoil", Skills->GetRecoilModifierOrDefault(EWeaponType::Rifle).Equals(FVector2D(.5f, .25f)));
+            Skills->RanksProgression.WeaponRecoilModifiers[EWeaponType::RIFLE] = 1;
+            TestTrue("Upgraded recoil", Skills->GetRecoilModifierOrDefault(EWeaponType::RIFLE).Equals(FVector2D(.5f, .25f)));
 
             Skills->RanksProgression.AimAvailability = 1;
             TestTrue("Aim unlocked", Skills->GetAimAvailabilityOrDefault() == EAimAvailability::AimPresent);

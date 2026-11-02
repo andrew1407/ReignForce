@@ -16,7 +16,7 @@ namespace
 // Sets default values for this component's properties
 UShooterSkillsSystem::UShooterSkillsSystem(const FObjectInitializer& ObjectInitializer) : Super(ObjectInitializer)
 {
-	AvailableSlots = { EWeaponType::Unarmed };
+	AvailableSlots = { EWeaponType::UNARMED };
 }
 
 void UShooterSkillsSystem::InitializeDefaultRanks()

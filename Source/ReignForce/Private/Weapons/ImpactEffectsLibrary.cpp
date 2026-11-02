@@ -30,7 +30,7 @@ bool UImpactEffectsLibrary::SpawnSurfaceImpact(const UObject* WorldContextObject
     UWorld* World = GEngine ? GEngine->GetWorldFromContextObject(WorldContextObject, EGetWorldErrorMode::ReturnNull) : nullptr;
     if (!(IsValid(ImpactEffects) && IsValid(World) && Hit.bBlockingHit)) return false;
     // Characters have own (blood) hit effects
-    if (Cast<APawn>(Hit.GetActor())) return false;
+    if (IsValid(Hit.GetActor()) && Hit.GetActor()->IsA<APawn>()) return false;
 
     const EPhysicalSurface Surface = UPhysicalMaterial::DetermineSurfaceType(Hit.PhysMaterial.Get());
     bool bSurfaceEffect = ImpactEffects->Surfaces.Contains(Surface);

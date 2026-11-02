@@ -39,7 +39,7 @@ BEGIN_DEFINE_SPEC(FSkillsMenuIntegrationTests, "ReignForce.Integration.SkillsMen
 
     UWidget* Navigate(EUINavigation Direction) const
     {
-        return Menu.IsValid() ? Menu->HandleSkillNavigation(Direction) : nullptr;
+        return Menu.IsValid() ? Menu->NavigateSkills(Direction) : nullptr;
     }
 
 END_DEFINE_SPEC(FSkillsMenuIntegrationTests);
@@ -114,7 +114,7 @@ void FSkillsMenuIntegrationTests::Define()
             if (!TestNotNull("Player controller", Controller)) return;
             UControlsHintWidget* Hint = CreateWidget<UControlsHintWidget>(Controller, UControlsHintWidget::StaticClass());
             if (!TestNotNull("Controls hint", Hint)) return;
-            TestTrue("Waits before sliding in", Hint->GetPhase() == EControlsHintPhase::Waiting);
+            TestTrue("Waits before sliding in", Hint->GetPhase() == EControlsHintPhase::WAITING);
 
             Hint->AddToViewport();
             Hint->ShowInputDevice(true);
@@ -149,10 +149,10 @@ void FSkillsMenuIntegrationTests::Define()
                 TestTrue(FString::Printf(TEXT("Phase %d lasts %.2f s (was %.2f s)"), static_cast<int32>(Phase), Duration, Elapsed),
                     FMath::IsNearlyEqual(Elapsed, Duration, Frame * 2.5f));
             };
-            StepThrough(EControlsHintPhase::Waiting, EControlsHintPhase::SlidingIn, StartDelay);
-            StepThrough(EControlsHintPhase::SlidingIn, EControlsHintPhase::Shown, SlideDuration);
-            StepThrough(EControlsHintPhase::Shown, EControlsHintPhase::SlidingOut, ShowDuration);
-            StepThrough(EControlsHintPhase::SlidingOut, EControlsHintPhase::Finished, SlideDuration);
+            StepThrough(EControlsHintPhase::WAITING, EControlsHintPhase::SLIDING_IN, StartDelay);
+            StepThrough(EControlsHintPhase::SLIDING_IN, EControlsHintPhase::SHOWN, SlideDuration);
+            StepThrough(EControlsHintPhase::SHOWN, EControlsHintPhase::SLIDING_OUT, ShowDuration);
+            StepThrough(EControlsHintPhase::SLIDING_OUT, EControlsHintPhase::FINISHED, SlideDuration);
             TestFalse("Removed from the screen", Hint->IsInViewport());
         });
     });

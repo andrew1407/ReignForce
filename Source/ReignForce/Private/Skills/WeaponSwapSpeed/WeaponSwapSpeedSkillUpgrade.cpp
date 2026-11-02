@@ -59,6 +59,6 @@ bool UWeaponSwapSpeedSkillUpgrade::CanUpgrade_Implementation(AShooterCharacter* 
     UShooterSkillsSystem* SkillsSystem = ShooterCharacter->GetSkillsSystem();
     if (!IsValid(SkillsSystem)) return false;
 
-    const uint8 ToCompare = SkillsSystem->AvailableSlots.Contains(EWeaponType::Unarmed) ? 1 : 0;
+    const uint8 ToCompare = SkillsSystem->AvailableSlots.Contains(EWeaponType::UNARMED) ? 1 : 0;
     return SkillsSystem->AvailableSlots.Num() > ToCompare;
 }

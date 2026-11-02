@@ -81,58 +81,58 @@ void FShooterStatsTests::Define()
     {
         It("TreatsMissingWeaponAsEmpty", [this]
         {
-            TestEqual("No ammo", Stats->GetAmmoCount(EWeaponType::Rifle), 0);
-            TestEqual("No max ammo", Stats->GetMaxAmmoCount(EWeaponType::Rifle), 0);
-            TestTrue("Empty", Stats->IsAmmoEmpty(EWeaponType::Rifle));
-            TestFalse("Not full", Stats->IsAmmoFull(EWeaponType::Rifle));
-            TestFalse("Can't add ammo", Stats->AddAmmoTo(EWeaponType::Rifle, 5));
-            TestFalse("Can't set ammo", Stats->SetWeaponAmmo(EWeaponType::Rifle, 5));
-            TestEqual("Nothing to take", Stats->GetAmmoAsRest(EWeaponType::Rifle, 5), 0);
-            TestFalse("Nothing to remove", Stats->RemoveWeaponAmmo(EWeaponType::Rifle));
+            TestEqual("No ammo", Stats->GetAmmoCount(EWeaponType::RIFLE), 0);
+            TestEqual("No max ammo", Stats->GetMaxAmmoCount(EWeaponType::RIFLE), 0);
+            TestTrue("Empty", Stats->IsAmmoEmpty(EWeaponType::RIFLE));
+            TestFalse("Not full", Stats->IsAmmoFull(EWeaponType::RIFLE));
+            TestFalse("Can't add ammo", Stats->AddAmmoTo(EWeaponType::RIFLE, 5));
+            TestFalse("Can't set ammo", Stats->SetWeaponAmmo(EWeaponType::RIFLE, 5));
+            TestEqual("Nothing to take", Stats->GetAmmoAsRest(EWeaponType::RIFLE, 5), 0);
+            TestFalse("Nothing to remove", Stats->RemoveWeaponAmmo(EWeaponType::RIFLE));
         });
 
         It("AddsWeaponAmmoOnce", [this]
         {
-            TestTrue("Full pistol ammo added", Stats->AddWeaponAmmo(EWeaponType::Pistol, PISTOL_AMMO));
-            TestTrue("Pistol is full", Stats->IsAmmoFull(EWeaponType::Pistol));
-            TestFalse("Weapon ammo is added only once", Stats->AddWeaponAmmo(EWeaponType::Pistol, 99));
-            TestEqual("Max ammo kept", Stats->GetMaxAmmoCount(EWeaponType::Pistol), PISTOL_AMMO);
+            TestTrue("Full pistol ammo added", Stats->AddWeaponAmmo(EWeaponType::PISTOL, PISTOL_AMMO));
+            TestTrue("Pistol is full", Stats->IsAmmoFull(EWeaponType::PISTOL));
+            TestFalse("Weapon ammo is added only once", Stats->AddWeaponAmmo(EWeaponType::PISTOL, 99));
+            TestEqual("Max ammo kept", Stats->GetMaxAmmoCount(EWeaponType::PISTOL), PISTOL_AMMO);
 
             constexpr bool bFull = false;
-            TestTrue("Empty rifle ammo added", Stats->AddWeaponAmmo(EWeaponType::Rifle, 30, bFull));
-            TestTrue("Rifle is empty", Stats->IsAmmoEmpty(EWeaponType::Rifle));
-            TestEqual("Rifle max ammo", Stats->GetMaxAmmoCount(EWeaponType::Rifle), 30);
+            TestTrue("Empty rifle ammo added", Stats->AddWeaponAmmo(EWeaponType::RIFLE, 30, bFull));
+            TestTrue("Rifle is empty", Stats->IsAmmoEmpty(EWeaponType::RIFLE));
+            TestEqual("Rifle max ammo", Stats->GetMaxAmmoCount(EWeaponType::RIFLE), 30);
         });
 
         It("TakesAmmoAsRest", [this]
         {
-            Stats->AddWeaponAmmo(EWeaponType::Pistol, PISTOL_AMMO);
+            Stats->AddWeaponAmmo(EWeaponType::PISTOL, PISTOL_AMMO);
 
-            TestEqual("Enough ammo taken fully", Stats->GetAmmoAsRest(EWeaponType::Pistol, 5), 5);
-            TestEqual("Ammo left", Stats->GetAmmoCount(EWeaponType::Pistol), PISTOL_AMMO - 5);
+            TestEqual("Enough ammo taken fully", Stats->GetAmmoAsRest(EWeaponType::PISTOL, 5), 5);
+            TestEqual("Ammo left", Stats->GetAmmoCount(EWeaponType::PISTOL), PISTOL_AMMO - 5);
 
-            TestEqual("Only the rest is taken", Stats->GetAmmoAsRest(EWeaponType::Pistol, 100), PISTOL_AMMO - 5);
-            TestTrue("Ammo spent", Stats->IsAmmoEmpty(EWeaponType::Pistol));
-            TestEqual("Nothing to take when empty", Stats->GetAmmoAsRest(EWeaponType::Pistol, 1), 0);
+            TestEqual("Only the rest is taken", Stats->GetAmmoAsRest(EWeaponType::PISTOL, 100), PISTOL_AMMO - 5);
+            TestTrue("Ammo spent", Stats->IsAmmoEmpty(EWeaponType::PISTOL));
+            TestEqual("Nothing to take when empty", Stats->GetAmmoAsRest(EWeaponType::PISTOL, 1), 0);
         });
 
         It("ClampsAmmoToCapacity", [this]
         {
-            Stats->AddWeaponAmmo(EWeaponType::Pistol, PISTOL_AMMO, false);
+            Stats->AddWeaponAmmo(EWeaponType::PISTOL, PISTOL_AMMO, false);
 
-            TestTrue("Ammo added", Stats->AddAmmoTo(EWeaponType::Pistol, 100));
-            TestEqual("Added ammo clamped", Stats->GetAmmoCount(EWeaponType::Pistol), PISTOL_AMMO);
-            TestFalse("Full weapon takes no ammo", Stats->AddAmmoTo(EWeaponType::Pistol, 1));
+            TestTrue("Ammo added", Stats->AddAmmoTo(EWeaponType::PISTOL, 100));
+            TestEqual("Added ammo clamped", Stats->GetAmmoCount(EWeaponType::PISTOL), PISTOL_AMMO);
+            TestFalse("Full weapon takes no ammo", Stats->AddAmmoTo(EWeaponType::PISTOL, 1));
 
-            TestTrue("Ammo set", Stats->SetWeaponAmmo(EWeaponType::Pistol, -5));
-            TestEqual("Negative ammo clamped", Stats->GetAmmoCount(EWeaponType::Pistol), 0);
+            TestTrue("Ammo set", Stats->SetWeaponAmmo(EWeaponType::PISTOL, -5));
+            TestEqual("Negative ammo clamped", Stats->GetAmmoCount(EWeaponType::PISTOL), 0);
 
-            TestTrue("Capacity raised", Stats->SetWeaponMaxAmmo(EWeaponType::Pistol, 20));
-            Stats->SetWeaponAmmo(EWeaponType::Pistol, 18);
-            TestEqual("Ammo fits the raised capacity", Stats->GetAmmoCount(EWeaponType::Pistol), 18);
+            TestTrue("Capacity raised", Stats->SetWeaponMaxAmmo(EWeaponType::PISTOL, 20));
+            Stats->SetWeaponAmmo(EWeaponType::PISTOL, 18);
+            TestEqual("Ammo fits the raised capacity", Stats->GetAmmoCount(EWeaponType::PISTOL), 18);
 
-            TestTrue("Weapon ammo removed", Stats->RemoveWeaponAmmo(EWeaponType::Pistol));
-            TestEqual("Removed weapon has no capacity", Stats->GetMaxAmmoCount(EWeaponType::Pistol), 0);
+            TestTrue("Weapon ammo removed", Stats->RemoveWeaponAmmo(EWeaponType::PISTOL));
+            TestEqual("Removed weapon has no capacity", Stats->GetMaxAmmoCount(EWeaponType::PISTOL), 0);
         });
     });
 
@@ -140,15 +140,15 @@ void FShooterStatsTests::Define()
     {
         It("ReturnsDefaultForMissingModel", [this]
         {
-            TestEqual("Default model", Stats->GetWeaponModelOrDefault(EWeaponType::Rifle, 3), 3);
+            TestEqual("Default model", Stats->GetWeaponModelOrDefault(EWeaponType::RIFLE, 3), 3);
         });
 
         It("OverwritesModel", [this]
         {
-            Stats->SetWeaponModelOf(EWeaponType::Rifle, 1);
-            TestEqual("Model set", Stats->GetWeaponModelOrDefault(EWeaponType::Rifle), 1);
-            Stats->SetWeaponModelOf(EWeaponType::Rifle, 2);
-            TestEqual("Model changed", Stats->GetWeaponModelOrDefault(EWeaponType::Rifle), 2);
+            Stats->SetWeaponModelOf(EWeaponType::RIFLE, 1);
+            TestEqual("Model set", Stats->GetWeaponModelOrDefault(EWeaponType::RIFLE), 1);
+            Stats->SetWeaponModelOf(EWeaponType::RIFLE, 2);
+            TestEqual("Model changed", Stats->GetWeaponModelOrDefault(EWeaponType::RIFLE), 2);
         });
     });
 

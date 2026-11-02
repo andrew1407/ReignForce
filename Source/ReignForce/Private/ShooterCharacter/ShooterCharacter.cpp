@@ -118,7 +118,7 @@ void AShooterCharacter::EndPlay(const EEndPlayReason::Type EndPlayReason)
 		CombatSystem->OnPunchDamageCaused.RemoveDynamic(this, &AShooterCharacter::ReactOnDamageCaused);
 		for (const auto& WeaponType : SkillsSystem->AvailableSlots)
 		{
-			if (WeaponType == EWeaponType::Unarmed || WeaponType == EWeaponType::None) continue;
+			if (WeaponType == EWeaponType::UNARMED || WeaponType == EWeaponType::NONE) continue;
 			AWeapon* Weapon = WeaponSlotsSystem->GetWeaponFromSlot(WeaponType);
 			if (IsValid(Weapon))
 				Weapon->OnDamageCaused.RemoveDynamic(this, &AShooterCharacter::ReactOnDamageCaused);
@@ -175,10 +175,10 @@ void AShooterCharacter::SwitchWeapon(EWeaponType Slot)
 	if (ShooterState != EShooterState::Idle) return;
 	EWeaponType ActiveWeapon = WeaponSlotsSystem->GetActiveWeaponSlot();
 	bool bFirearms = WeaponSlotsSystem->IsFirearmsActive();
-	bool bCancelled = Slot != EWeaponType::Unarmed && WeaponSlotsSystem->HasFreeSlot(Slot);
+	bool bCancelled = Slot != EWeaponType::UNARMED && WeaponSlotsSystem->HasFreeSlot(Slot);
 	if (bCancelled) return OnWeaponActionUnavailable();
 	ShooterState = EShooterState::SwitchingWeapon;
-	EWeaponType SwapTarget = Slot == ActiveWeapon ? EWeaponType::Unarmed : Slot;
+	EWeaponType SwapTarget = Slot == ActiveWeapon ? EWeaponType::UNARMED : Slot;
 	float SwappingRate = SkillsSystem->GetSwappingRateOrDefault();
 
 	bool IsAbleToSwap = WeaponSlotsSystem->SwapActiveWeapon(SwapTarget, SwappingRate);
@@ -218,7 +218,7 @@ bool AShooterCharacter::IsDead() const
 
 EWeaponType AShooterCharacter::GetSelectedWeaponType() const
 {
-	return IsValid(WeaponSlotsSystem) ? WeaponSlotsSystem->GetActiveWeaponSlot() : EWeaponType::None;
+	return IsValid(WeaponSlotsSystem) ? WeaponSlotsSystem->GetActiveWeaponSlot() : EWeaponType::NONE;
 }
 
 float AShooterCharacter::GetHealthPoints(bool bAsPercent) const
@@ -257,7 +257,7 @@ void AShooterCharacter::DefineStats()
 
 	for (const auto& WeaponType : SkillsSystem->AvailableSlots)
 	{
-		if (WeaponType == EWeaponType::Unarmed || WeaponType == EWeaponType::None) continue;
+		if (WeaponType == EWeaponType::UNARMED || WeaponType == EWeaponType::NONE) continue;
 		int32 WeaponModel = StatsComponent->GetWeaponModelOrDefault(WeaponType);
 		StatsComponent->SetWeaponModelOf(WeaponType, WeaponModel);
 		int32 ModelIndex = StatsComponent->GetWeaponModelOrDefault(WeaponType);
@@ -302,7 +302,7 @@ void AShooterCharacter::DefineDamageHitReactions()
 	CombatSystem->OnPunchDamageCaused.AddDynamic(this, &AShooterCharacter::ReactOnDamageCaused);
 	for (const auto& WeaponType : SkillsSystem->AvailableSlots)
 	{
-		if (WeaponType == EWeaponType::Unarmed || WeaponType == EWeaponType::None) continue;
+		if (WeaponType == EWeaponType::UNARMED || WeaponType == EWeaponType::NONE) continue;
 		AWeapon* Weapon = WeaponSlotsSystem->GetWeaponFromSlot(WeaponType);
 		if (IsValid(Weapon))
 			Weapon->OnDamageCaused.AddDynamic(this, &AShooterCharacter::ReactOnDamageCaused);
@@ -321,7 +321,7 @@ float AShooterCharacter::TakeDamage(float DamageAmount, FDamageEvent const& Dama
 	OnHealthChanged.Broadcast(-DamageTaken, StatsComponent->GetCurrentHealth(), HealthBeforeSustraction, EPointsModifierType::Damage);
 
 	bool bLethal = StatsComponent->HasNoHealth();
-	EWeaponType WeaponType = EWeaponType::None;
+	EWeaponType WeaponType = EWeaponType::NONE;
 	if (auto Weapon = Cast<AWeapon>(DamageCauser))
 		WeaponType = Weapon->GetType();
 	else if (auto Shooter = Cast<AShooterCharacter>(DamageCauser))
@@ -548,7 +548,7 @@ void AShooterCharacter::SwapReservedWeapon()
 {
 	if (IsDead() || !IsShooterComponentsValid()) return;
 	EWeaponType ToEquip = WeaponSlotsSystem->GetReservedWeaponSlot();
-    if (ToEquip != EWeaponType::Unarmed)
+    if (ToEquip != EWeaponType::UNARMED)
     {
         bool bCanEquip = WeaponSlotsSystem->EquipFromSlot(ToEquip, SkillsSystem->GetSwappingRateOrDefault());
         if (bCanEquip) return;
@@ -634,7 +634,7 @@ bool AShooterCharacter::TryActivateMeleeCollision(bool bState, int32 Index)
 bool AShooterCharacter::TryAddWeapon(TSubclassOf<AWeapon> WeaponClass, EWeaponType Slot)
 {
 	if (!IsValid(WeaponSlotsSystem)) return false;
-	if (Slot == EWeaponType::None || !IsValid(WeaponClass)) return false;
+	if (Slot == EWeaponType::NONE || !IsValid(WeaponClass)) return false;
 	bool bFirearmsSlot = UWeaponSlotsSystem::IsFirearmsType(Slot);
 	bool bFirearmsClass = WeaponClass->IsChildOf(AFirearmsWeapon::StaticClass());
 	if (bFirearmsSlot != bFirearmsClass) return false;
@@ -714,7 +714,6 @@ void AShooterCharacter::DeactivateMelee()
 		TryActivateMeleeCollision(false);
 	}
 }
-
 
 bool AShooterCharacter::CanReact() const
 {

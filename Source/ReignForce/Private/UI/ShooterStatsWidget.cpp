@@ -12,10 +12,10 @@ UShooterStatsWidget::UShooterStatsWidget(const FObjectInitializer& ObjectInitial
 {
     WeaponSlots =
     {
-        EWeaponType::Unarmed,
-        EWeaponType::Melee,
-        EWeaponType::Pistol,
-        EWeaponType::Rifle,
+        EWeaponType::UNARMED,
+        EWeaponType::MELEE,
+        EWeaponType::PISTOL,
+        EWeaponType::RIFLE,
     };
 }
 
@@ -23,10 +23,10 @@ UWeaponItemWidget* UShooterStatsWidget::GetWeaponItemOf(EWeaponType WeaponType) 
 {
     switch (WeaponType)
     {
-        case EWeaponType::Unarmed: return UnarmedItem;
-        case EWeaponType::Melee: return MeleeItem;
-        case EWeaponType::Pistol: return PistolItem;
-        case EWeaponType::Rifle: return RifleItem;
+        case EWeaponType::UNARMED: return UnarmedItem;
+        case EWeaponType::MELEE: return MeleeItem;
+        case EWeaponType::PISTOL: return PistolItem;
+        case EWeaponType::RIFLE: return RifleItem;
     }
     return nullptr;
 }
@@ -35,8 +35,8 @@ UFirearmsItemWidget* UShooterStatsWidget::GetFirearmsItemOf(EWeaponType WeaponTy
 {
     switch (WeaponType)
     {
-        case EWeaponType::Pistol: return PistolItem;
-        case EWeaponType::Rifle: return RifleItem;
+        case EWeaponType::PISTOL: return PistolItem;
+        case EWeaponType::RIFLE: return RifleItem;
     }
     return nullptr;
 }

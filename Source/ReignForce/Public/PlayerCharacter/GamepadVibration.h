@@ -27,8 +27,8 @@ struct FGamepadVibration
 UENUM(BlueprintType)
 enum class EDamageVibrationSource : uint8
 {
-	None,
-	Bullet,
-	Machete,
-	Fist,
+	NONE UMETA(DisplayName="None"),
+	BULLET UMETA(DisplayName="Bullet"),
+	MACHETE UMETA(DisplayName="Machete"),
+	FIST UMETA(DisplayName="Fist"),
 };

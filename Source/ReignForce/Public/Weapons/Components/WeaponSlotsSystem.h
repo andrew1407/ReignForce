@@ -79,7 +79,7 @@ public:
 	TArray<EWeaponType> GetAvailableWeaponSlots() const;
 
 	UFUNCTION(BlueprintPure)
-	FORCEINLINE bool IsUnarmedActive() const { return ActiveWeapon == EWeaponType::Unarmed; }
+	FORCEINLINE bool IsUnarmedActive() const { return ActiveWeapon == EWeaponType::UNARMED; }
 
 	#pragma endregion
 
@@ -102,7 +102,7 @@ public:
 	bool SetReservedToActive();
 
 	UFUNCTION(BlueprintCallable)
-	FORCEINLINE void ClearReservedWeaponSlot() { ReservedSlot = EWeaponType::None; }
+	FORCEINLINE void ClearReservedWeaponSlot() { ReservedSlot = EWeaponType::NONE; }
 
 	UFUNCTION(BlueprintCallable)
 	bool AttachWeaponToSlot(EWeaponType Slot);
@@ -114,7 +114,7 @@ public:
 	bool AttachToActiveDirectly(EWeaponType Slot);
 
 	UFUNCTION(BlueprintCallable)
-	bool AttachActiveToSlotDirectly(EWeaponType Slot, EWeaponType Default = EWeaponType::Unarmed);
+	bool AttachActiveToSlotDirectly(EWeaponType Slot, EWeaponType Default = EWeaponType::UNARMED);
 
 	#pragma endregion
 

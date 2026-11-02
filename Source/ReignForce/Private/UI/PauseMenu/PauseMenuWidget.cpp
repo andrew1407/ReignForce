@@ -15,6 +15,7 @@
 
 #include "GameStates/ShooterGameState.h"
 #include "UI/Modals/ConfirmationModalWidget.h"
+#include "UI/Common/MenuLayoutUtils.h"
 
 #include "PlayerCharacter/PlayerCharacter.h"
 #include "PlayerCharacter/ShooterPlayerController.h"
@@ -34,14 +35,14 @@ void UPauseMenuWidget::NativeOnInitialized()
     if (!IsValid(SettingsButton))
     {
         constexpr int32 AfterRestart = 1;
-        SettingsButton = CreateButtonLike(RestartButton, FText::FromString(TEXT("Settings")), TEXT("SettingsButton"), AfterRestart);
+        SettingsButton = MenuLayoutUtils::CreateButtonLike(WidgetTree, RestartButton, FText::FromString(TEXT("Settings")), TEXT("SettingsButton"), AfterRestart);
     }
     if (IsValid(SettingsButton))
         SettingsButton->OnClicked.AddDynamic(this, &UPauseMenuWidget::OnSettingsClick);
 
     // One more item than the layout was made for: tighter gaps, the column is centered & scrolls on short screens
     constexpr float ItemsGap = 16;
-    SetMenuItemsGap(ContinueButton, ItemsGap);
+    MenuLayoutUtils::SetMenuItemsGap(ContinueButton, ItemsGap);
     // Keeps the column clear of the title at the top
     constexpr float ScreenMargin = 200;
     MakeMenuItemsScrollableCentered(ContinueButton, ScreenMargin);
@@ -101,19 +102,12 @@ void UPauseMenuWidget::ChainMenuNavigation()
     if (!IsValid(Column)) return;
 
     // The items in their column order (the settings item is inserted in the middle), only the enabled ones
-    TArray<UButton*> Items;
-    for (UWidget* Child : Column->GetAllChildren())
+    const TArray<UWidget*> Items = Column->GetAllChildren().FilterByPredicate([this] (const UWidget* Child)
     {
-        auto Button = Cast<UButton>(Child);
-        if (IsValid(Button) && Button->GetIsEnabled() && Button->IsVisible()) Items.Add(Button);
-    }
-    for (int32 i = 0; i < Items.Num(); ++i)
-    {
-        if (i > 0) Items[i]->SetNavigationRuleExplicit(EUINavigation::Up, Items[i - 1]);
-        else Items[i]->SetNavigationRuleBase(EUINavigation::Up, EUINavigationRule::Stop);
-        if (i + 1 < Items.Num()) Items[i]->SetNavigationRuleExplicit(EUINavigation::Down, Items[i + 1]);
-        else Items[i]->SetNavigationRuleBase(EUINavigation::Down, EUINavigationRule::Stop);
-    }
+        return IsButtonAvailable(Cast<UButton>(Child));
+    });
+    constexpr bool bStopAfterLast = true;
+    MenuLayoutUtils::ChainVerticalNavigation(Items, bStopAfterLast);
 }
 
 void UPauseMenuWidget::NativeDestruct()

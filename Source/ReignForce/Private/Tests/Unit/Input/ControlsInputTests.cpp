@@ -153,21 +153,21 @@ void FControlsInputTests::Define()
     {
         It("TellsTheDamageSourceByItsCauser", [this]
         {
-            TestTrue("Firearm hit is a bullet", APlayerCharacter::GetDamageVibrationSource(GetDefault<AFirearmsWeapon>()) == EDamageVibrationSource::Bullet);
-            TestTrue("Melee weapon hit is a machete", APlayerCharacter::GetDamageVibrationSource(GetDefault<AMeleeWeapon>()) == EDamageVibrationSource::Machete);
-            TestTrue("Character hit is a punch", APlayerCharacter::GetDamageVibrationSource(GetDefault<AShooterCharacter>()) == EDamageVibrationSource::Fist);
-            TestTrue("No causer (fall) has no rumble", APlayerCharacter::GetDamageVibrationSource(nullptr) == EDamageVibrationSource::None);
-            TestTrue("Other actors (land surface) have no rumble", APlayerCharacter::GetDamageVibrationSource(GetDefault<AActor>()) == EDamageVibrationSource::None);
+            TestTrue("Firearm hit is a bullet", APlayerCharacter::GetDamageVibrationSource(GetDefault<AFirearmsWeapon>()) == EDamageVibrationSource::BULLET);
+            TestTrue("Melee weapon hit is a machete", APlayerCharacter::GetDamageVibrationSource(GetDefault<AMeleeWeapon>()) == EDamageVibrationSource::MACHETE);
+            TestTrue("Character hit is a punch", APlayerCharacter::GetDamageVibrationSource(GetDefault<AShooterCharacter>()) == EDamageVibrationSource::FIST);
+            TestTrue("No causer (fall) has no rumble", APlayerCharacter::GetDamageVibrationSource(nullptr) == EDamageVibrationSource::NONE);
+            TestTrue("Other actors (land surface) have no rumble", APlayerCharacter::GetDamageVibrationSource(GetDefault<AActor>()) == EDamageVibrationSource::NONE);
         });
 
         It("GetsStrongerFromBulletsToMacheteToFists", [this]
         {
             const APlayerCharacter* Player = GetDefault<APlayerCharacter>();
-            const FGamepadVibration* Bullet = Player->FindDamageVibration(EDamageVibrationSource::Bullet);
-            const FGamepadVibration* Machete = Player->FindDamageVibration(EDamageVibrationSource::Machete);
-            const FGamepadVibration* Fist = Player->FindDamageVibration(EDamageVibrationSource::Fist);
+            const FGamepadVibration* Bullet = Player->FindDamageVibration(EDamageVibrationSource::BULLET);
+            const FGamepadVibration* Machete = Player->FindDamageVibration(EDamageVibrationSource::MACHETE);
+            const FGamepadVibration* Fist = Player->FindDamageVibration(EDamageVibrationSource::FIST);
             if (!TestTrue("Every source rumbles", Bullet && Machete && Fist)) return;
-            TestNull("No rumble without a source", Player->FindDamageVibration(EDamageVibrationSource::None));
+            TestNull("No rumble without a source", Player->FindDamageVibration(EDamageVibrationSource::NONE));
             TestTrue("Bullet is the lightest", Bullet->Intensity > 0 && Bullet->Intensity < Machete->Intensity);
             TestTrue("Fist is the strongest", Machete->Intensity < Fist->Intensity && Fist->Intensity <= 1);
             TestTrue("Heavier hits rumble longer", Bullet->Duration <= Machete->Duration && Machete->Duration <= Fist->Duration);

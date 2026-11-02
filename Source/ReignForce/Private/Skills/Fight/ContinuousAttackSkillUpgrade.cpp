@@ -10,7 +10,7 @@
 
 UContinuousAttackSkillUpgrade::UContinuousAttackSkillUpgrade(const FObjectInitializer& ObjectInitializer) : Super(ObjectInitializer)
 {
-    WeaponType = EWeaponType::None;
+    WeaponType = EWeaponType::NONE;
     BaseDescription = FText::FromString(TEXT("Unlock continuous attack."));
 }
 
@@ -51,9 +51,9 @@ FText UContinuousAttackSkillUpgrade::GetDescription_Implementation(AShooterChara
 {
     switch (WeaponType)
     {
-        case EWeaponType::Unarmed: return FText::FromString(TEXT("Unarmed continuous attack."));
-        case EWeaponType::Melee: return FText::FromString(TEXT("Melee continuous attack."));
-        case EWeaponType::Pistol: return FText::FromString(TEXT("Pistol continuous attack."));
+        case EWeaponType::UNARMED: return FText::FromString(TEXT("Unarmed continuous attack."));
+        case EWeaponType::MELEE: return FText::FromString(TEXT("Melee continuous attack."));
+        case EWeaponType::PISTOL: return FText::FromString(TEXT("Pistol continuous attack."));
         default: return BaseDescription;
     }
 }

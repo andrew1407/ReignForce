@@ -21,6 +21,7 @@
 
 #include "Skills/ShooterSkillUpgrade.h"
 #include "PlayerCharacter/PlayerCharacter.h"
+#include "UI/Common/MenuLayoutUtils.h"
 
 
 USkillsProgressionWidget::USkillsProgressionWidget(const FObjectInitializer& ObjectInitializer) : Super(ObjectInitializer)
@@ -32,7 +33,7 @@ void USkillsProgressionWidget::NativeOnInitialized()
 {
     Super::NativeOnInitialized();
     // Skills grid scrolls when the screen is too short for all of its rows
-    WrapInScrollBox(SkillsContainer);
+    MenuLayoutUtils::WrapInScrollBox(WidgetTree, SkillsContainer);
 }
 
 void USkillsProgressionWidget::NativeConstruct()
@@ -94,14 +95,14 @@ void USkillsProgressionWidget::NativeConstruct()
         if (UButton* SkillButton = UpgradeWidget->GetActionButton())
         {
             FCustomWidgetNavigationDelegate OnNavigation;
-            OnNavigation.BindUFunction(this, GET_FUNCTION_NAME_CHECKED(USkillsProgressionWidget, HandleSkillNavigation));
+            OnNavigation.BindUFunction(this, GET_FUNCTION_NAME_CHECKED(USkillsProgressionWidget, NavigateSkills));
             for (EUINavigation Direction : { EUINavigation::Left, EUINavigation::Right, EUINavigation::Up, EUINavigation::Down })
                 SkillButton->SetNavigationRuleCustom(Direction, OnNavigation);
         }
     }
 }
 
-UWidget* USkillsProgressionWidget::HandleSkillNavigation(EUINavigation Direction)
+UWidget* USkillsProgressionWidget::NavigateSkills(EUINavigation Direction)
 {
     TArray<USkillUpgradeWidget*> SkillUpgrades = GetSkillUpgrades();
     // Navigation goes from the focused skill (the selected one if the focus isn't on the skills, e.g. no window focus)
@@ -163,17 +164,15 @@ int32 USkillsProgressionWidget::GetCurrentSkillIndex(const TArray<USkillUpgradeW
 FKey USkillsProgressionWidget::GetGamepadPromptKey(const UButton* Button, bool bFocused) const
 {
     // A on the selected skill upgrades it: the upgrade button shows A while the navigation is on the skills
-    bool bUpgradeButton = IsValid(SkillDescription) && Button == SkillDescription->GetUpgradeSkillButton();
-    if (bUpgradeButton && !bFocused && IsActivated() && SkillDescription->IsVisible() && IsValid(Button) && Button->GetIsEnabled() && Button->IsVisible())
+    const bool bUpgradeButton = IsValid(SkillDescription) && Button == SkillDescription->GetUpgradeSkillButton();
+    if (!bUpgradeButton || bFocused || !IsActivated() || !SkillDescription->IsVisible() || !IsButtonAvailable(Button))
+        return Super::GetGamepadPromptKey(Button, bFocused);
+
+    const bool bSelectedSkillFocused = GetSkillUpgrades().ContainsByPredicate([] (const USkillUpgradeWidget* Skill)
     {
-        TArray<USkillUpgradeWidget*> SkillUpgrades = GetSkillUpgrades();
-        const int32 Focused = SkillUpgrades.IndexOfByPredicate([] (const USkillUpgradeWidget* Skill)
-        {
-            return Skill->IsSelected() && IsValid(Skill->GetActionButton()) && Skill->GetActionButton()->HasAnyUserFocus();
-        });
-        if (Focused != INDEX_NONE) return EKeys::Gamepad_FaceButton_Bottom;
-    }
-    return Super::GetGamepadPromptKey(Button, bFocused);
+        return Skill->IsSelected() && IsValid(Skill->GetActionButton()) && Skill->GetActionButton()->HasAnyUserFocus();
+    });
+    return bSelectedSkillFocused ? EKeys::Gamepad_FaceButton_Bottom : Super::GetGamepadPromptKey(Button, bFocused);
 }
 
 UWidget* USkillsProgressionWidget::NativeGetDesiredFocusTarget() const
@@ -423,7 +422,7 @@ TPair<int32, EStageProgress> USkillsProgressionWidget::GetStagesStatus(const FSk
 
 void USkillsProgressionWidget::PlayOnUpgradeSound(EStageProgress StageProgress)
 {
-    if ((ProgressState.IsValid() && !IsValid(SkillDescription))) return;
+    if (!(ProgressState.IsValid() && IsValid(SkillDescription))) return;
 
     ESkillUpgradeActionType UpgradeType = ESkillUpgradeActionType::SingleSkill;
     if (ProgressState->IsFullyUpgraded()) UpgradeType = ESkillUpgradeActionType::Fully;

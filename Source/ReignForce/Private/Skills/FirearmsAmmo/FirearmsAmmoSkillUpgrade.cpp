@@ -10,7 +10,7 @@
 
 UFirearmsAmmoSkillUpgrade::UFirearmsAmmoSkillUpgrade(const FObjectInitializer& ObjectInitializer) : Super(ObjectInitializer)
 {
-    WeaponType = EWeaponType::None;
+    WeaponType = EWeaponType::NONE;
     Index = 0;
     BaseDescription = FText::FromString(TEXT("Increase capacity to {0} bullets."));
     bRefillAmmoAfterUpgrade = true;

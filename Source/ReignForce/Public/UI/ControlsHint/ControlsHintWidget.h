@@ -32,11 +32,11 @@ struct FControlsHintEntry
 UENUM(BlueprintType)
 enum class EControlsHintPhase : uint8
 {
-	Waiting,
-	SlidingIn,
-	Shown,
-	SlidingOut,
-	Finished,
+	WAITING UMETA(DisplayName="Waiting"),
+	SLIDING_IN UMETA(DisplayName="Sliding in"),
+	SHOWN UMETA(DisplayName="Shown"),
+	SLIDING_OUT UMETA(DisplayName="Sliding out"),
+	FINISHED UMETA(DisplayName="Finished"),
 };
 
 /**
@@ -121,7 +121,7 @@ private:
 	UPROPERTY()
 	TObjectPtr<UGridPanel> Table;
 
-	EControlsHintPhase Phase = EControlsHintPhase::Waiting;
+	EControlsHintPhase Phase = EControlsHintPhase::WAITING;
 	float PhaseTime = 0;
 	bool bBuilt = false;
 	bool bShowingGamepad = false;
@@ -135,6 +135,7 @@ private:
 	UWidget* MakeKeyCap(const FKey& Key, const FSlateFontInfo& Font);
 	UWidget* MakeGamepadIcon(const FKey& Key, const FSlateFontInfo& Font);
 	void ApplySlide(float Shown);
-	bool IsGamepadUsed() const;
+	void AdvanceDeviceSwitch(float DeltaTime);
+	void AdvancePhase(float DeltaTime);
 	bool IsGamePaused() const;
 };

@@ -10,7 +10,7 @@
 
 UFirearmsRecoilSkillUpgrade::UFirearmsRecoilSkillUpgrade(const FObjectInitializer& ObjectInitializer) : Super(ObjectInitializer)
 {
-    WeaponType = EWeaponType::None;
+    WeaponType = EWeaponType::NONE;
     Index = 0;
     BaseDescription = FText::FromString(TEXT("Reduce recoil by {0} times (from the previous)."));
 }

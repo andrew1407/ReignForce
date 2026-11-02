@@ -20,7 +20,7 @@ AWeapon::AWeapon(const FObjectInitializer& ObjectInitializer) : Super(ObjectInit
 
 	Damage = 0;
 	Distance = 0;
-	Type = EWeaponType::None;
+	Type = EWeaponType::NONE;
 }
 
 bool AWeapon::Aim(FHitResult& HitResult, const FVector& Direction) const

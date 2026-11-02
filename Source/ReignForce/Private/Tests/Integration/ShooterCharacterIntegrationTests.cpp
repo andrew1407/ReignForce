@@ -184,8 +184,8 @@ void FShooterCharacterIntegrationTests::Define()
             if (!TestTrue("Enemy alive", Enemy.IsValid())) return;
             UClass* PistolClass = LoadBlueprintClass(PISTOL_BLUEPRINT_PATH);
             if (!TestNotNull("Pistol class", PistolClass)) return;
-            TestFalse("Firearms in the melee slot", Enemy->TryAddWeapon(PistolClass, EWeaponType::Melee));
-            TestFalse("No slot", Enemy->TryAddWeapon(PistolClass, EWeaponType::None));
+            TestFalse("Firearms in the melee slot", Enemy->TryAddWeapon(PistolClass, EWeaponType::MELEE));
+            TestFalse("No slot", Enemy->TryAddWeapon(PistolClass, EWeaponType::NONE));
         });
 
         It("DestroysAttachedWeaponsWithTheCharacter", [this]
@@ -196,11 +196,11 @@ void FShooterCharacterIntegrationTests::Define()
             UClass* MacheteClass = LoadBlueprintClass(MACHETE_BLUEPRINT_PATH);
             if (!TestNotNull("Pistol class", PistolClass) || !TestNotNull("Machete class", MacheteClass)) return;
 
-            if (Slots->HasFreeSlot(EWeaponType::Pistol)) TestTrue("Pistol added", Enemy->TryAddWeapon(PistolClass, EWeaponType::Pistol));
-            if (Slots->HasFreeSlot(EWeaponType::Melee)) TestTrue("Machete added", Enemy->TryAddWeapon(MacheteClass, EWeaponType::Melee));
+            if (Slots->HasFreeSlot(EWeaponType::PISTOL)) TestTrue("Pistol added", Enemy->TryAddWeapon(PistolClass, EWeaponType::PISTOL));
+            if (Slots->HasFreeSlot(EWeaponType::MELEE)) TestTrue("Machete added", Enemy->TryAddWeapon(MacheteClass, EWeaponType::MELEE));
 
             TArray<TWeakObjectPtr<AWeapon>> Weapons;
-            for (EWeaponType Slot : { EWeaponType::Pistol, EWeaponType::Melee, EWeaponType::Rifle })
+            for (EWeaponType Slot : { EWeaponType::PISTOL, EWeaponType::MELEE, EWeaponType::RIFLE })
                 if (AWeapon* Weapon = Slots->GetWeaponFromSlot(Slot)) Weapons.Add(Weapon);
             TestTrue("Several weapons attached", Weapons.Num() >= 2);
 
@@ -217,13 +217,13 @@ void FShooterCharacterIntegrationTests::Define()
             UClass* PistolClass = LoadBlueprintClass(PISTOL_BLUEPRINT_PATH);
             UClass* MacheteClass = LoadBlueprintClass(MACHETE_BLUEPRINT_PATH);
             if (!TestNotNull("Pistol class", PistolClass) || !TestNotNull("Machete class", MacheteClass)) return;
-            if (Slots->HasFreeSlot(EWeaponType::Pistol)) Enemy->TryAddWeapon(PistolClass, EWeaponType::Pistol);
-            if (Slots->HasFreeSlot(EWeaponType::Melee)) Enemy->TryAddWeapon(MacheteClass, EWeaponType::Melee);
+            if (Slots->HasFreeSlot(EWeaponType::PISTOL)) Enemy->TryAddWeapon(PistolClass, EWeaponType::PISTOL);
+            if (Slots->HasFreeSlot(EWeaponType::MELEE)) Enemy->TryAddWeapon(MacheteClass, EWeaponType::MELEE);
 
             Slots->RemoveAllWeapons();
-            TestTrue("Pistol slot free", Slots->HasFreeSlot(EWeaponType::Pistol));
-            TestTrue("Melee slot free", Slots->HasFreeSlot(EWeaponType::Melee));
-            TestTrue("Unarmed is always valid", Slots->IsWeaponInSlotValid(EWeaponType::Unarmed));
+            TestTrue("Pistol slot free", Slots->HasFreeSlot(EWeaponType::PISTOL));
+            TestTrue("Melee slot free", Slots->HasFreeSlot(EWeaponType::MELEE));
+            TestTrue("Unarmed is always valid", Slots->IsWeaponInSlotValid(EWeaponType::UNARMED));
         });
     });
 }

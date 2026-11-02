@@ -110,8 +110,8 @@ void AShooterHUD::SetVisibleSlots(const TSet<EWeaponType>& Slots)
     for (const auto& Slot : ShooterStatsWidget->GetWeaponSlots())
         ShooterStatsWidget->SetWeaponItemVisibility(Slot, Slots.Contains(Slot));
 
-    if (!Slots.Contains(EWeaponType::Unarmed))
-        ShooterStatsWidget->SetWeaponItemVisibility(EWeaponType::Unarmed, true);
+    if (!Slots.Contains(EWeaponType::UNARMED))
+        ShooterStatsWidget->SetWeaponItemVisibility(EWeaponType::UNARMED, true);
 }
 
 void AShooterHUD::SetHealthValue(int32 Value, float Percent)
