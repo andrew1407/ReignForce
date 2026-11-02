@@ -22,6 +22,15 @@
 #include "PlayerCharacter/PlayerInteractionMode.h"
 
 
+namespace
+{
+    // Pale orange washed with white/gray (sRGB values)
+    const FLinearColor DISABLED_BUTTON_COLOR(FColor(226, 204, 176));
+    const FLinearColor DISABLED_BUTTON_OUTLINE_COLOR(FColor(240, 232, 222));
+    const FLinearColor DISABLED_LABEL_TINT(.08f, .08f, .08f, 1);
+}
+
+
 UPauseMenuWidget::UPauseMenuWidget(const FObjectInitializer& ObjectInitializer) : Super(ObjectInitializer)
 {
     MenuLevelName = NAME_None;
@@ -90,10 +99,17 @@ void UPauseMenuWidget::RefreshSaveAvailability()
     {
         if (!IsValid(Button)) continue;
         Button->SetIsEnabled(bCanSave);
-        // The menu buttons style has no disabled look of its own: a pale (whitened, slightly see-through) button that's still readable
-        Button->SetRenderOpacity(bCanSave ? 1.f : .85f);
-        Button->SetBackgroundColor(bCanSave ? FLinearColor::White : FLinearColor(1, 1, 1, .6f));
-        Button->SetColorAndOpacity(bCanSave ? FLinearColor::White : FLinearColor(.8f, .8f, .8f, 1));
+        // Without a disabled brush Slate fades the whole button (alpha * .45): an opaque pale orange one instead
+        FButtonStyle Style = Button->GetStyle();
+        if (Style.Disabled.DrawAs == ESlateBrushDrawType::NoDrawType)
+        {
+            Style.Disabled = Style.Normal;
+            Style.Disabled.TintColor = DISABLED_BUTTON_COLOR;
+            Style.Disabled.OutlineSettings.Color = DISABLED_BUTTON_OUTLINE_COLOR;
+            Button->SetStyle(Style);
+        }
+        // The label still gets the engine fade: a dark one reads as gray on the pale button
+        Button->SetColorAndOpacity(bCanSave ? FLinearColor::White : DISABLED_LABEL_TINT);
     }
     ChainMenuNavigation();
 }
