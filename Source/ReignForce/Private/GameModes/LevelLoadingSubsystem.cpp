@@ -10,6 +10,8 @@
 #include "Blueprint/WidgetBlueprintLibrary.h"
 #include "GameFramework/GameModeBase.h"
 #include "Containers/Ticker.h"
+#include "Misc/PackageName.h"
+#include "UObject/Package.h"
 #include "MoviePlayer.h"
 
 #include "Styling/CoreStyle.h"
@@ -90,12 +92,44 @@ void ULevelLoadingSubsystem::OpenLevelAsync(FName LevelName, bool bAbsolute, con
 
     StopMusic();
     ShowLoadingWidget();
+    PreloadLevel();
+}
 
-    // The loading screen is drawn first, then the movie player keeps it on screen while the map loads.
-    // The map package isn't preloaded: only the package would stay referenced, its world was collected
-    // before the travel and the travel failed with "Failed to load package".
-    // The core ticker is used, not a world timer: those don't tick while the game is paused, so a level opened
-    // from the pause menu (restart, go to menu) never travelled and the loading screen stayed forever
+void ULevelLoadingSubsystem::PreloadLevel()
+{
+    const FString PackageName = FindPreloadablePackage();
+    if (PackageName.IsEmpty()) return ScheduleTravel();
+
+    LoadPackageAsync(PackageName, FLoadPackageAsyncDelegate::CreateUObject(this, &ULevelLoadingSubsystem::HandleLevelPreloaded));
+}
+
+FString ULevelLoadingSubsystem::FindPreloadablePackage() const
+{
+    // PIE travels use their own package names
+    const UWorld* World = GetCurrentWorld();
+    if (!IsValid(World) || World->WorldType != EWorldType::Game) return FString();
+
+    FString PackageName = PendingLevel.ToString();
+    if (FPackageName::IsValidObjectPath(PackageName)) PackageName = FPackageName::ObjectPathToPackageName(PackageName);
+    const bool bFound = FPackageName::IsValidLongPackageName(PackageName)
+        || FPackageName::SearchForPackageOnDisk(PackageName + FPackageName::GetMapPackageExtension(), &PackageName);
+
+    // A restart: holding the current world would block its cleanup
+    const bool bCurrentLevel = PackageName == World->GetPackage()->GetName();
+    return bFound && !bCurrentLevel ? PackageName : FString();
+}
+
+void ULevelLoadingSubsystem::HandleLevelPreloaded(const FName& PackageName, UPackage* Package, EAsyncLoadingResult::Type Result)
+{
+    // The world is held, its package alone doesn't keep it from the travel garbage collection
+    const bool bLoaded = Result == EAsyncLoadingResult::Succeeded && IsValid(Package);
+    PreloadedWorld = bLoaded ? UWorld::FindWorldInPackage(Package) : nullptr;
+    ScheduleTravel();
+}
+
+void ULevelLoadingSubsystem::ScheduleTravel()
+{
+    // Not from the async loading callback; the core ticker runs while the game is paused, unlike world timers
     if (TravelTickerHandle.IsValid()) FTSTicker::GetCoreTicker().RemoveTicker(TravelTickerHandle);
     TravelTickerHandle = FTSTicker::GetCoreTicker().AddTicker(FTickerDelegate::CreateWeakLambda(this, [this] (float)
     {
@@ -105,10 +139,15 @@ void ULevelLoadingSubsystem::OpenLevelAsync(FName LevelName, bool bAbsolute, con
     }));
 }
 
+UWorld* ULevelLoadingSubsystem::GetCurrentWorld() const
+{
+    const UGameInstance* GameInstance = GetGameInstance();
+    return IsValid(GameInstance) ? GameInstance->GetWorld() : nullptr;
+}
+
 void ULevelLoadingSubsystem::StopMusic()
 {
-    UGameInstance* GameInstance = GetGameInstance();
-    UWorld* World = IsValid(GameInstance) ? GameInstance->GetWorld() : nullptr;
+    UWorld* World = GetCurrentWorld();
     AGameModeBase* GameMode = IsValid(World) ? World->GetAuthGameMode() : nullptr;
     UBackgroundMusicComponent* Music = IsValid(GameMode) ? GameMode->FindComponentByClass<UBackgroundMusicComponent>() : nullptr;
     // No music under the loading screen: the playing tracks are stopped & the ones still being loaded won't start
@@ -117,18 +156,13 @@ void ULevelLoadingSubsystem::StopMusic()
 
 void ULevelLoadingSubsystem::ShowLoadingWidget()
 {
-    UGameInstance* GameInstance = GetGameInstance();
-    UWorld* World = IsValid(GameInstance) ? GameInstance->GetWorld() : nullptr;
-    if (!IsValid(World)) return;
+    if (!IsValid(GetCurrentWorld())) return;
 
     // Menus underneath stop handling the input (back actions, focus) while the level is loading
-    TArray<UUserWidget*> Menus;
-    constexpr bool bTopLevelOnly = true;
-    UWidgetBlueprintLibrary::GetAllWidgetsOfClass(World, Menus, UCommonActivatableWidget::StaticClass(), bTopLevelOnly);
-    for (UUserWidget* Menu : Menus)
-        if (auto Activatable = Cast<UCommonActivatableWidget>(Menu)) Activatable->DeactivateWidget();
+    constexpr bool bActive = false;
+    SetMenusActive(bActive);
 
-    LoadingWidget = CreateWidget<ULoadingScreenWidget>(GameInstance, ULoadingScreenWidget::StaticClass());
+    LoadingWidget = CreateWidget<ULoadingScreenWidget>(GetGameInstance(), ULoadingScreenWidget::StaticClass());
     if (!IsValid(LoadingWidget)) return;
     // No image - the widget stays black
     LoadingWidget->SetImage(bShowImage ? GetLoadingImage() : nullptr);
@@ -140,28 +174,35 @@ void ULevelLoadingSubsystem::HideLoadingWidget()
     if (IsValid(LoadingWidget)) LoadingWidget->RemoveFromParent();
     LoadingWidget = nullptr;
 
-    UGameInstance* GameInstance = GetGameInstance();
-    UWorld* World = IsValid(GameInstance) ? GameInstance->GetWorld() : nullptr;
+    // The level stays the same, so its menus get the input back
+    constexpr bool bActive = true;
+    SetMenusActive(bActive);
+}
+
+void ULevelLoadingSubsystem::SetMenusActive(bool bActive)
+{
+    UWorld* World = GetCurrentWorld();
     if (!IsValid(World)) return;
 
-    // The level stays the same, so its menus get the input back
     TArray<UUserWidget*> Menus;
     constexpr bool bTopLevelOnly = true;
     UWidgetBlueprintLibrary::GetAllWidgetsOfClass(World, Menus, UCommonActivatableWidget::StaticClass(), bTopLevelOnly);
     for (UUserWidget* Menu : Menus)
     {
         auto Activatable = Cast<UCommonActivatableWidget>(Menu);
-        if (IsValid(Activatable) && Activatable->IsInViewport() && !Activatable->IsActivated()) Activatable->ActivateWidget();
+        if (!IsValid(Activatable)) continue;
+        if (!bActive) Activatable->DeactivateWidget();
+        else if (Activatable->IsInViewport() && !Activatable->IsActivated()) Activatable->ActivateWidget();
     }
 }
 
 void ULevelLoadingSubsystem::Travel()
 {
-    UGameInstance* GameInstance = GetGameInstance();
-    UWorld* World = IsValid(GameInstance) ? GameInstance->GetWorld() : nullptr;
+    UWorld* World = GetCurrentWorld();
     if (!IsValid(World))
     {
         bLoading = false;
+        PreloadedWorld = nullptr;
         return;
     }
     UGameplayStatics::OpenLevel(World, PendingLevel, bPendingAbsolute, PendingOptions);
@@ -173,6 +214,7 @@ void ULevelLoadingSubsystem::HandleTravelFailure(UWorld* World, ETravelFailure::
     bLoading = false;
     bShowImage = true;
     bLevelRestarted = bPreviousLevelRestarted;
+    PreloadedWorld = nullptr;
     HideLoadingWidget();
 }
 
@@ -225,6 +267,7 @@ void ULevelLoadingSubsystem::HandlePrepareLoadingScreen()
 void ULevelLoadingSubsystem::HandlePostLoadMap(UWorld* World)
 {
     LoadingWidget = nullptr;
+    PreloadedWorld = nullptr;
     bLoading = false;
     // Other map loads (the game start) show the image again
     bShowImage = true;

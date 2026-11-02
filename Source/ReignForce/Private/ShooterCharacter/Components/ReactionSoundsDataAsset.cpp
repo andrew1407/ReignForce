@@ -11,24 +11,24 @@ UReactionSoundsDataAsset::UReactionSoundsDataAsset(const FObjectInitializer& Obj
 
 	DamageTakenOptions =
 	{
-		{ EWeaponType::Unarmed, FSoundOptions() },
-		{ EWeaponType::Melee, FSoundOptions() },
-		{ EWeaponType::Pistol, FSoundOptions() },
-		{ EWeaponType::Rifle, FSoundOptions() },
+		{ EWeaponType::UNARMED, FSoundOptions() },
+		{ EWeaponType::MELEE, FSoundOptions() },
+		{ EWeaponType::PISTOL, FSoundOptions() },
+		{ EWeaponType::RIFLE, FSoundOptions() },
 	};
 	
-	DamageTakenOptions[EWeaponType::Unarmed].LoudnessRange = 500;
-	DamageTakenOptions[EWeaponType::Melee].LoudnessRange = 500;
-	DamageTakenOptions[EWeaponType::Pistol].LoudnessRange = 500;
-	DamageTakenOptions[EWeaponType::Rifle].LoudnessRange = 500;
+	DamageTakenOptions[EWeaponType::UNARMED].LoudnessRange = 500;
+	DamageTakenOptions[EWeaponType::MELEE].LoudnessRange = 500;
+	DamageTakenOptions[EWeaponType::PISTOL].LoudnessRange = 500;
+	DamageTakenOptions[EWeaponType::RIFLE].LoudnessRange = 500;
 	DefaultDamageOptions.LoudnessRange = 500;
 
 	DamageScreamChances =
 	{
-		{ EWeaponType::Unarmed, 1 },
-		{ EWeaponType::Melee, 1 },
-		{ EWeaponType::Pistol, 1 },
-		{ EWeaponType::Rifle, .5f },
+		{ EWeaponType::UNARMED, 1 },
+		{ EWeaponType::MELEE, 1 },
+		{ EWeaponType::PISTOL, 1 },
+		{ EWeaponType::RIFLE, .5f },
 	};
 
 	PerishSoundOptions.LoudnessRange = 1200;

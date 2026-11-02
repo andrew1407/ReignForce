@@ -53,7 +53,7 @@ UShooterAnimInstance::UShooterAnimInstance(const FObjectInitializer& ObjectIniti
     bFirearmsWeapon = false;
     bWeaponFreeUsage = false;
     
-    WeaponType = EWeaponType::Unarmed;
+    WeaponType = EWeaponType::UNARMED;
     ShooterState = EShooterState::Idle;
 }
 

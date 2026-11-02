@@ -38,7 +38,7 @@ void FAICommandsUtilsTests::Define()
     {
         It("ConvertsShooterMetricsInModelOrder", [this]
         {
-            const FShooterMetrics Metrics = MakeMetrics(EShooterState::Reloading, true, .25f, true, EWeaponType::Pistol);
+            const FShooterMetrics Metrics = MakeMetrics(EShooterState::Reloading, true, .25f, true, EWeaponType::PISTOL);
             const TArray<float> Input = UAICommandsUtils::ConvertShooterMetricsToModelInput(Metrics);
 
             if (!TestEqual("Shooter metrics inputs count", Input.Num(), SHOOTER_METRICS_INPUTS)) return;
@@ -46,7 +46,7 @@ void FAICommandsUtilsTests::Define()
             TestEqual("[1] is moving", Input[1], 1.f);
             TestEqual("[2] health percent (not raw health)", Input[2], .25f);
             TestEqual("[3] firearms active", Input[3], 1.f);
-            TestEqual("[4] active weapon", Input[4], static_cast<float>(EWeaponType::Pistol));
+            TestEqual("[4] active weapon", Input[4], static_cast<float>(EWeaponType::PISTOL));
         });
 
         It("ConvertsClientInputAsCoreThenSelfThenTarget", [this]
@@ -57,8 +57,8 @@ void FAICommandsUtilsTests::Define()
             ClientInput.DistanceState = static_cast<int32>(ETargetDistance::Near);
             ClientInput.TargetDistance = 1234;  // raw distance & reward aren't model inputs
             ClientInput.Reward = 42;
-            ClientInput.SelfMetrics = MakeMetrics(EShooterState::Attacking, false, 1, false, EWeaponType::Melee);
-            ClientInput.TargetMetrics = MakeMetrics(EShooterState::Idle, true, .5f, true, EWeaponType::Rifle);
+            ClientInput.SelfMetrics = MakeMetrics(EShooterState::Attacking, false, 1, false, EWeaponType::MELEE);
+            ClientInput.TargetMetrics = MakeMetrics(EShooterState::Idle, true, .5f, true, EWeaponType::RIFLE);
 
             const TArray<float> Input = UAICommandsUtils::ConvertClientInputToModelInput(ClientInput);
             if (!TestEqual("Model inputs count", Input.Num(), CLIENT_CORE_INPUTS + 2 * SHOOTER_METRICS_INPUTS)) return;

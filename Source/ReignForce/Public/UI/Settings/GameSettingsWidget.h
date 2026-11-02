@@ -4,18 +4,19 @@
 
 #include "CoreMinimal.h"
 #include "UI/Common/ReignForceActivatableWidget.h"
+#include "Settings/GameSettingsOption.h"
+#include "Settings/GameSettingsOptions.h"
 #include "GameSettingsWidget.generated.h"
 
 
 class UButton;
 class UTextBlock;
-class UPanelWidget;
-class UReignForceGameUserSettings;
+class UVerticalBox;
 class UKeyBindingsWidget;
 class UGamepadSchemeWidget;
 
 /**
- * Settings menu (video, audio & controls submenu) built natively; option rows change values with left/right navigation or a click
+ * Settings menu (video, audio & controls submenus) built natively; option rows change values with left/right navigation or a click
  */
 UCLASS()
 class REIGNFORCE_API UGameSettingsWidget : public UReignForceActivatableWidget
@@ -28,6 +29,21 @@ public:
 	/** Builds the menu taking buttons style from the template (should be called before adding to the viewport) */
 	UFUNCTION(BlueprintCallable)
 	void Setup(UButton* StyleTemplate);
+
+	/** Steps the option value like left / right on its row (bWrap - like a click: the last value goes on to the first one) */
+	UFUNCTION(BlueprintCallable)
+	void ChangeOption(EGameSettingsOption Option, int32 Delta, bool bWrap);
+
+	/** Applies & saves the changed options, the menu stays open with them as the new baseline */
+	UFUNCTION(BlueprintCallable)
+	void ApplyChanges();
+
+	/** Restores the live previewed options (volumes) from the saved settings */
+	UFUNCTION(BlueprintCallable)
+	void DiscardChanges();
+
+	UFUNCTION(BlueprintPure)
+	FORCEINLINE bool HasPendingChanges() const { return Options.HasPendingChanges(); }
 
 protected:
 	virtual TSharedRef<SWidget> RebuildWidget() override;
@@ -46,43 +62,17 @@ protected:
 	TSubclassOf<UGamepadSchemeWidget> GamepadSchemeMenuClass;
 
 private:
-	/** The menu integration tests change options directly (a headless session has no keyboard focus for the rows) */
-	friend class FSettingsMenuIntegrationTests;
-
-	struct FOptionRow
+	/** Widgets showing an option row */
+	struct FOptionRowView
 	{
-		FText Label;
-		TArray<FText> Names;
-		TArray<int32> Values;
-		int32 Index = 0;
-		/** The value the settings have now (read or applied last), Apply is enabled only when some row differs from it */
-		int32 AppliedIndex = 0;
-		bool bLive = false;
 		TWeakObjectPtr<UButton> Button;
 		TWeakObjectPtr<UTextBlock> ValueText;
 		TWeakObjectPtr<UTextBlock> PreviousArrow;
 		TWeakObjectPtr<UTextBlock> NextArrow;
-
-		int32 GetValue() const { return Values.IsValidIndex(Index) ? Values[Index] : 0; }
 	};
 
-	enum EOption : int32
-	{
-		WindowMode, Resolution, Quality, VSync, FrameRate, LookSensitivity, MasterVolume, MusicVolume, EffectsVolume,
-		InvertMouseX, InvertMouseY, InvertGamepadX, InvertGamepadY, Count
-	};
-
-	/** Look axis inversion rows: the device (mouse or gamepad stick) & the axis they flip */
-	struct FInversionOption
-	{
-		EOption Option;
-		bool bGamepad;
-		bool bVertical;
-	};
-	static TConstArrayView<FInversionOption> GetInversionOptions();
-
-	TArray<FOptionRow> Rows;
-	TArray<FIntPoint> Resolutions;
+	FGameSettingsOptions Options;
+	TArray<FOptionRowView> RowViews;
 	bool bBuilt;
 
 	UPROPERTY()
@@ -93,9 +83,6 @@ private:
 
 	UPROPERTY()
 	TObjectPtr<UButton> BackButton;
-
-	UPROPERTY()
-	TObjectPtr<UButton> ControlsButton;
 
 	UPROPERTY()
 	TObjectPtr<UButton> GamepadSchemeButton;
@@ -110,9 +97,6 @@ private:
 	void HandleOptionClicked();
 
 	UFUNCTION()
-	void HandleApplyClicked();
-
-	UFUNCTION()
 	void HandleControlsClicked();
 
 	UFUNCTION()
@@ -121,14 +105,13 @@ private:
 	UFUNCTION()
 	void HandleBackClicked();
 
-	void ReadOptions(const UReignForceGameUserSettings* Settings);
-	void ChangeOption(int32 RowIndex, int32 Delta, bool bWrap);
-	void PreviewOption(int32 RowIndex);
-	void RefreshRowText(int32 RowIndex);
-	int32 FindActiveRow(bool bPreferHovered) const;
-	void DiscardChanges();
+	void AddOptionRow(UVerticalBox* List, EGameSettingsOption Option, const FSlateFontInfo& Font);
+	UButton* AddSubmenuButton(UVerticalBox* List, const TCHAR* Label, FName Name, const FSlateFontInfo& Font);
+	void AddActions(UVerticalBox* Column, const FSlateFontInfo& Font);
+	void RefreshRowText(EGameSettingsOption Option);
+	/** Option of the row a click (hovered first) or left / right (focused) is for, COUNT if none */
+	EGameSettingsOption FindActiveOption(bool bPreferHovered) const;
 
-	bool HasPendingChanges() const;
 	/** Enables Apply only with pending changes & keeps the gamepad / keyboard navigation off it while it's disabled */
 	void RefreshApplyState();
 };

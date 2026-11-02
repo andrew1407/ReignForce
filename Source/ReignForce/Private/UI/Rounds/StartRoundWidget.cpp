@@ -11,7 +11,7 @@
 #include "Components/Overlay.h"
 #include "Components/OverlaySlot.h"
 #include "Components/SizeBox.h"
-#include "CommonInputSubsystem.h"
+#include "Utils/InputDeviceUtils.h"
 
 #include "UI/Common/ReignForceGamepadControllerData.h"
 
@@ -34,7 +34,7 @@ void UStartRoundWidget::NativeConstruct()
     Super::NativeConstruct();
 
     BuildGamepadPrompt();
-    bGamepadPrompt = IsGamepadUsed() && IsValid(GamepadIcon);
+    bGamepadPrompt = UInputDeviceUtils::IsGamepadUsed(GetOwningLocalPlayer()) && IsValid(GamepadIcon);
     GamepadBlend = bGamepadPrompt ? 1.f : 0.f;
     UpdateRoundTextBlockDescrition();
     ApplyKeyBlend();
@@ -44,7 +44,7 @@ void UStartRoundWidget::NativeTick(const FGeometry& MyGeometry, float InDeltaTim
 {
     Super::NativeTick(MyGeometry, InDeltaTime);
 
-    const bool bGamepad = IsGamepadUsed();
+    const bool bGamepad = UInputDeviceUtils::IsGamepadUsed(GetOwningLocalPlayer());
     if (bGamepad != bGamepadPrompt) SetGamepadPrompt(bGamepad);
 
     // The key slot cross-fades between the key name & the gamepad icon, the text around it stays still
@@ -136,10 +136,4 @@ void UStartRoundWidget::ApplyKeyBlend()
     const float Blend = FMath::InterpEaseInOut(0.f, 1.f, GamepadBlend, 2.f);
     if (IsValid(KeyText)) KeyText->SetRenderOpacity(1 - Blend);
     if (IsValid(GamepadIcon)) GamepadIcon->SetRenderOpacity(Blend);
-}
-
-bool UStartRoundWidget::IsGamepadUsed() const
-{
-    const UCommonInputSubsystem* InputSubsystem = UCommonInputSubsystem::Get(GetOwningLocalPlayer());
-    return InputSubsystem && InputSubsystem->GetCurrentInputType() == ECommonInputType::Gamepad;
 }

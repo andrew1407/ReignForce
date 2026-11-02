@@ -17,6 +17,10 @@
 #include "Components/VerticalBoxSlot.h"
 
 #include "Settings/ReignForceSettings.h"
+#include "UI/Common/MenuLayoutUtils.h"
+
+
+using namespace MenuLayoutUtils;
 
 
 namespace
@@ -84,7 +88,7 @@ void UGamepadSchemeWidget::Setup(UButton* StyleTemplate)
     const FSlateFontInfo ButtonFont = MakeFont(StyleTemplate, 22);
     const FSlateColor TextColor = FLinearColor::White;
 
-    UVerticalBox* Column = ConstructMenuColumn(FText::FromString(TEXT("Gamepad")), TitleFont, SchemeSize.X, BackgroundColor);
+    UVerticalBox* Column = ConstructMenuColumn(WidgetTree, FText::FromString(TEXT("Gamepad")), TitleFont, SchemeSize.X, BackgroundColor);
 
     auto SchemeFrame = WidgetTree->ConstructWidget<USizeBox>(USizeBox::StaticClass(), TEXT("SchemeFrame"));
     SchemeFrame->SetWidthOverride(SchemeSize.X);
@@ -108,7 +112,7 @@ void UGamepadSchemeWidget::Setup(UButton* StyleTemplate)
 
     for (const FGamepadSchemeCallout& Callout : Callouts)
     {
-        UTextBlock* Label = MakeText(Callout.Label, LabelFont, TextColor);
+        UTextBlock* Label = MakeText(WidgetTree, Callout.Label, LabelFont, TextColor);
         Label->SetJustification(Callout.bLeftSide ? ETextJustify::Right : ETextJustify::Left);
         UCanvasPanelSlot* LabelSlot = Scheme->AddChildToCanvas(Label);
         if (!IsValid(LabelSlot)) continue;
@@ -117,7 +121,7 @@ void UGamepadSchemeWidget::Setup(UButton* StyleTemplate)
         LabelSlot->SetPosition(GetLabelEdge(Callout));
     }
 
-    BackButton = MakeButton(StyleTemplate, MakeText(FText::FromString(TEXT("Back")), ButtonFont, TextColor), TEXT("BackButton"));
+    BackButton = MakeButton(WidgetTree, StyleTemplate, MakeText(WidgetTree, FText::FromString(TEXT("Back")), ButtonFont, TextColor), TEXT("BackButton"));
     BackButton->OnClicked.AddDynamic(this, &UReignForceActivatableWidget::RequestClose);
     RegisterFocusableButton(BackButton);
     SetBackActionButton(BackButton);

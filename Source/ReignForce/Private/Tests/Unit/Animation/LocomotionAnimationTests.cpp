@@ -197,11 +197,11 @@ void FLocomotionAnimationTests::Define()
     {
         It("RecognizesFirearms", [this]
         {
-            TestTrue("Rifle", UWeaponSlotsSystem::IsFirearmsType(EWeaponType::Rifle));
-            TestTrue("Pistol", UWeaponSlotsSystem::IsFirearmsType(EWeaponType::Pistol));
-            TestFalse("Melee", UWeaponSlotsSystem::IsFirearmsType(EWeaponType::Melee));
-            TestFalse("Unarmed", UWeaponSlotsSystem::IsFirearmsType(EWeaponType::Unarmed));
-            TestFalse("None", UWeaponSlotsSystem::IsFirearmsType(EWeaponType::None));
+            TestTrue("Rifle", UWeaponSlotsSystem::IsFirearmsType(EWeaponType::RIFLE));
+            TestTrue("Pistol", UWeaponSlotsSystem::IsFirearmsType(EWeaponType::PISTOL));
+            TestFalse("Melee", UWeaponSlotsSystem::IsFirearmsType(EWeaponType::MELEE));
+            TestFalse("Unarmed", UWeaponSlotsSystem::IsFirearmsType(EWeaponType::UNARMED));
+            TestFalse("None", UWeaponSlotsSystem::IsFirearmsType(EWeaponType::NONE));
         });
     });
 }

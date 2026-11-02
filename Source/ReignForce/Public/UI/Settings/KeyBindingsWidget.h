@@ -10,7 +10,8 @@
 class UButton;
 class UTextBlock;
 class UVerticalBox;
-class IInputProcessor;
+class UScrollBox;
+class FKeyCaptureInputProcessor;
 class UEnhancedInputUserSettings;
 struct FPlayerKeyMapping;
 
@@ -22,8 +23,6 @@ UCLASS()
 class REIGNFORCE_API UKeyBindingsWidget : public UReignForceActivatableWidget
 {
 	GENERATED_BODY()
-
-	friend class FKeyCaptureInputProcessor;
 
 public:
 	UKeyBindingsWidget(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
@@ -73,7 +72,7 @@ private:
 	int32 CapturingRow;
 	bool bBuilt;
 
-	TSharedPtr<IInputProcessor> KeyCapture;
+	TSharedPtr<FKeyCaptureInputProcessor> KeyCapture;
 
 	UPROPERTY()
 	TObjectPtr<UButton> ResetAllButton;
@@ -102,6 +101,8 @@ private:
 	void BindKey(int32 RowIndex, const FKey& Key);
 	void SaveBindings(UEnhancedInputUserSettings* Settings);
 	void RefreshRows();
+	void AddBindingRow(UScrollBox* List, const FBindingRow& GroupRow, UButton* StyleTemplate, const FSlateFontInfo& Font, const FSlateFontInfo& ResetFont);
+	/** Row a click is for (hovered first, then focused), by its binding or its reset button */
 	int32 FindActiveRow(bool bResetButton) const;
 	void PlayClickSound() const;
 };

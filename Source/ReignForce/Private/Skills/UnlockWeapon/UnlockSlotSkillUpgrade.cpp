@@ -20,7 +20,7 @@ UUnlockSlotSkillUpgrade::UUnlockSlotSkillUpgrade(const FObjectInitializer& Objec
 {
     bAttachWeapon = true;
     ModelIndex = 0;
-	WeaponType = EWeaponType::None;
+	WeaponType = EWeaponType::NONE;
     BaseDescription = FText::FromString(TEXT("Unlock weapon slot."));
 }
 
@@ -70,9 +70,9 @@ FText UUnlockSlotSkillUpgrade::GetDescription_Implementation(AShooterCharacter* 
 {
     switch (WeaponType)
     {
-        case EWeaponType::Melee: return FText::FromString(TEXT("Unlock melee slot."));
-        case EWeaponType::Pistol: return FText::FromString(TEXT("Unlock pistol slot."));
-        case EWeaponType::Rifle: return FText::FromString(TEXT("Unlock rifle slot."));
+        case EWeaponType::MELEE: return FText::FromString(TEXT("Unlock melee slot."));
+        case EWeaponType::PISTOL: return FText::FromString(TEXT("Unlock pistol slot."));
+        case EWeaponType::RIFLE: return FText::FromString(TEXT("Unlock rifle slot."));
         default: return BaseDescription;
     }
 }

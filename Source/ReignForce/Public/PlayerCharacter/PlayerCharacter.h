@@ -125,14 +125,8 @@ private:
 	float MinShotVibrationScale;
 
 	/** Damage taken rumbles: a bullet hit is the lightest one, a machete hit is stronger, a punch is the heaviest */
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Input|Vibration|Damage", meta = (AllowPrivateAccess = true))
-	FGamepadVibration BulletDamageVibration;
-
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Input|Vibration|Damage", meta = (AllowPrivateAccess = true))
-	FGamepadVibration MacheteDamageVibration;
-
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Input|Vibration|Damage", meta = (AllowPrivateAccess = true))
-	FGamepadVibration FistDamageVibration;
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Input|Vibration", meta = (AllowPrivateAccess = true))
+	TMap<EDamageVibrationSource, FGamepadVibration> DamageVibrations;
 
 	#pragma endregion
 

@@ -11,11 +11,7 @@
 
 UReignForceGameUserSettings::UReignForceGameUserSettings(const FObjectInitializer& ObjectInitializer) : Super(ObjectInitializer)
 {
-    MasterVolume = 1;
-    MusicVolume = 1;
-    EffectsVolume = 1;
-    LookSensitivity = 1;
-    bInvertMouseX = bInvertMouseY = bInvertGamepadX = bInvertGamepadY = false;
+    ResetCustomSettings();
 }
 
 UReignForceGameUserSettings* UReignForceGameUserSettings::GetReignForceGameUserSettings()
@@ -32,6 +28,11 @@ void UReignForceGameUserSettings::SetToDefaults()
     LastConfirmedFullscreenMode = EWindowMode::Fullscreen;
     PreferredFullscreenMode = EWindowMode::Fullscreen;
 
+    ResetCustomSettings();
+}
+
+void UReignForceGameUserSettings::ResetCustomSettings()
+{
     MasterVolume = 1;
     MusicVolume = 1;
     EffectsVolume = 1;
@@ -83,7 +84,6 @@ void UReignForceGameUserSettings::SetLookSensitivity(float Sensitivity)
 {
     LookSensitivity = FMath::Clamp(Sensitivity, .1f, 3.f);
 }
-
 
 bool UReignForceGameUserSettings::IsLookInverted(bool bGamepad, bool bVertical) const
 {

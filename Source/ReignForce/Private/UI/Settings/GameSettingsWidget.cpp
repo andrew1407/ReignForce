@@ -3,7 +3,7 @@
 
 #include "UI/Settings/GameSettingsWidget.h"
 #include "Blueprint/WidgetTree.h"
-#include "Kismet/KismetSystemLibrary.h"
+#include "Algo/Transform.h"
 #include "Framework/Application/SlateApplication.h"
 
 #include "Components/Button.h"
@@ -15,16 +15,37 @@
 #include "Components/VerticalBoxSlot.h"
 
 #include "Settings/ReignForceGameUserSettings.h"
+#include "UI/Common/MenuLayoutUtils.h"
 #include "UI/Settings/KeyBindingsWidget.h"
 #include "UI/Settings/GamepadSchemeWidget.h"
 
 
+using namespace MenuLayoutUtils;
+
 namespace
 {
-    constexpr int32 VOLUME_STEPS = 10;
-    constexpr int32 SENSITIVITY_PERCENT_STEP = 10;
+    constexpr int32 OPTION_FONT_SIZE = 22;
+    constexpr int32 HEADER_FONT_SIZE = 18;
+    constexpr float SCREEN_MARGIN = 12;
+    /** Half of the gap on each side of a row: 16 between the rows, as between the main & pause menus items */
+    constexpr float OPTION_ROW_GAP = 8;
+    constexpr float ARROW_GAP = 12;
+    const FLinearColor HEADER_COLOR(1, 1, 1, .75f);
+    const FLinearColor DISABLED_COLOR(1, 1, 1, .3f);
+    const FLinearColor DISABLED_LABEL_COLOR(1, 1, 1, .35f);
 
-    FText Percent(int32 Value) { return FText::FromString(FString::Printf(TEXT("%d%%"), Value)); }
+    struct FSettingsSection
+    {
+        const TCHAR* Title;
+        TArray<EGameSettingsOption> Options;
+    };
+
+    /** Menu sections with their option rows in order (the controls one ends with the submenus) */
+    const FSettingsSection SECTIONS[] = {
+        { TEXT("Graphics"), { EGameSettingsOption::WINDOW_MODE, EGameSettingsOption::RESOLUTION, EGameSettingsOption::QUALITY, EGameSettingsOption::VSYNC, EGameSettingsOption::FRAME_RATE } },
+        { TEXT("Audio"), { EGameSettingsOption::MASTER_VOLUME, EGameSettingsOption::MUSIC_VOLUME, EGameSettingsOption::EFFECTS_VOLUME } },
+        { TEXT("Controls"), { EGameSettingsOption::LOOK_SENSITIVITY, EGameSettingsOption::INVERT_MOUSE_X, EGameSettingsOption::INVERT_MOUSE_Y, EGameSettingsOption::INVERT_GAMEPAD_X, EGameSettingsOption::INVERT_GAMEPAD_Y } },
+    };
 }
 
 UGameSettingsWidget::UGameSettingsWidget(const FObjectInitializer& ObjectInitializer) : Super(ObjectInitializer)
@@ -48,161 +69,140 @@ void UGameSettingsWidget::Setup(UButton* StyleTemplate)
     if (bBuilt || !IsValid(WidgetTree)) return;
     bBuilt = true;
 
-    UReignForceGameUserSettings* Settings = UReignForceGameUserSettings::GetReignForceGameUserSettings();
-    ReadOptions(Settings);
-
-    const FSlateFontInfo TitleFont = MakeFont(StyleTemplate, 44);
-    const FSlateFontInfo RowFont = MakeFont(StyleTemplate, 22);
-    const FSlateColor TextColor = FLinearColor::White;
+    Options = FGameSettingsOptions::Of(UReignForceGameUserSettings::GetReignForceGameUserSettings());
+    RowViews.SetNum(static_cast<int32>(EGameSettingsOption::COUNT));
     ButtonsStyleTemplate = StyleTemplate;
+    const FSlateFontInfo RowFont = MakeFont(StyleTemplate, OPTION_FONT_SIZE);
+    const FSlateFontInfo HeaderFont = MakeFont(StyleTemplate, HEADER_FONT_SIZE);
 
-    UVerticalBox* Column = ConstructMenuColumn(FText::FromString(TEXT("Settings")), TitleFont, MenuWidth, BackgroundColor);
+    UVerticalBox* Column = ConstructMenuColumn(WidgetTree, FText::FromString(TEXT("Settings")), MakeFont(StyleTemplate, MENU_TITLE_FONT_SIZE), MenuWidth, BackgroundColor);
 
     // Options scroll on short screens, the actions (apply & back) under them are always visible
-    auto Options = WidgetTree->ConstructWidget<UVerticalBox>(UVerticalBox::StaticClass(), TEXT("Options"));
-    if (UVerticalBoxSlot* OptionsSlot = Column->AddChildToVerticalBox(Options))
-        OptionsSlot->SetSize(FSlateChildSize(ESlateSizeRule::Fill));
-    WrapInScrollBox(Options);
-    constexpr float ScreenMargin = 12;
-    LimitHeightToScreen(Cast<USizeBox>(Column->GetParent()), ScreenMargin);
+    auto List = WidgetTree->ConstructWidget<UVerticalBox>(UVerticalBox::StaticClass(), TEXT("Options"));
+    if (UVerticalBoxSlot* ListSlot = Column->AddChildToVerticalBox(List))
+        ListSlot->SetSize(FSlateChildSize(ESlateSizeRule::Fill));
+    WrapInScrollBox(WidgetTree, List);
+    LimitHeightToScreen(Cast<USizeBox>(Column->GetParent()), SCREEN_MARGIN);
 
-    const FSlateFontInfo HeaderFont = MakeFont(StyleTemplate, 18);
-    // Half of the gap on each side of a row: 16 between the rows, as between the main & pause menus items
-    constexpr float RowGap = 8;
-    bool bFirstSection = true;
-    auto AddSectionHeader = [&] (const TCHAR* Title)
+    for (const auto& [Title, SectionOptions] : SECTIONS)
     {
-        UTextBlock* Header = MakeText(FText::FromString(Title), HeaderFont, FLinearColor(1, 1, 1, .75f));
-        if (UVerticalBoxSlot* HeaderSlot = Options->AddChildToVerticalBox(Header))
-            HeaderSlot->SetPadding(FMargin(4, bFirstSection ? 0 : 6, 0, 0));
-        bFirstSection = false;
-    };
-
-    auto AddOptionRow = [&] (int32 RowIndex)
-    {
-        FOptionRow& Row = Rows[RowIndex];
-        auto Content = WidgetTree->ConstructWidget<UHorizontalBox>(UHorizontalBox::StaticClass());
-        UTextBlock* Label = MakeText(Row.Label, RowFont, TextColor);
-        UTextBlock* Value = MakeText(FText::GetEmpty(), RowFont, TextColor);
-        // Both arrows are always shown, the one which can't change the value further is dimmed
-        UTextBlock* PreviousArrow = MakeText(FText::FromString(TEXT("<")), RowFont, TextColor);
-        UTextBlock* NextArrow = MakeText(FText::FromString(TEXT(">")), RowFont, TextColor);
-        if (UHorizontalBoxSlot* LabelSlot = Content->AddChildToHorizontalBox(Label))
-        {
-            LabelSlot->SetSize(FSlateChildSize(ESlateSizeRule::Fill));
-            LabelSlot->SetVerticalAlignment(VAlign_Center);
-        }
-        const TPair<UTextBlock*, FMargin> ValueParts[] = {
-            { PreviousArrow, FMargin(0, 0, 12, 0) },
-            { Value, FMargin(0) },
-            { NextArrow, FMargin(12, 0, 0, 0) },
-        };
-        for (const auto& [Part, PartPadding] : ValueParts)
-        {
-            if (UHorizontalBoxSlot* PartSlot = Content->AddChildToHorizontalBox(Part))
-            {
-                PartSlot->SetVerticalAlignment(VAlign_Center);
-                PartSlot->SetPadding(PartPadding);
-            }
-        }
-
-        UButton* Button = MakeButton(StyleTemplate, Content, *FString::Printf(TEXT("Option_%d"), RowIndex));
-        Button->OnClicked.AddDynamic(this, &UGameSettingsWidget::HandleOptionClicked);
-
-        FCustomWidgetNavigationDelegate OnNavigation;
-        OnNavigation.BindUFunction(this, GET_FUNCTION_NAME_CHECKED(UGameSettingsWidget, HandleOptionNavigation));
-        Button->SetNavigationRuleCustom(EUINavigation::Left, OnNavigation);
-        Button->SetNavigationRuleCustom(EUINavigation::Right, OnNavigation);
-
-        if (UVerticalBoxSlot* RowSlot = Options->AddChildToVerticalBox(Button))
-            RowSlot->SetPadding(FMargin(0, RowGap));
-
-        Row.Button = Button;
-        Row.ValueText = Value;
-        Row.PreviousArrow = PreviousArrow;
-        Row.NextArrow = NextArrow;
-        RegisterFocusableButton(Button);
-        RefreshRowText(RowIndex);
-    };
+        UTextBlock* Header = MakeText(WidgetTree, FText::FromString(Title), HeaderFont, HEADER_COLOR);
+        if (UVerticalBoxSlot* HeaderSlot = List->AddChildToVerticalBox(Header))
+            HeaderSlot->SetPadding(FMargin(4, List->GetChildrenCount() > 1 ? 6 : 0, 0, 0));
+        for (EGameSettingsOption Option : SectionOptions) AddOptionRow(List, Option, RowFont);
+    }
 
     // Controls are separate menus: key bindings (changed keys are applied right away) & gamepad scheme
-    auto MakeSubmenuButton = [&] (const TCHAR* Label, FName Name)
-    {
-        auto Content = WidgetTree->ConstructWidget<UHorizontalBox>(UHorizontalBox::StaticClass());
-        if (UHorizontalBoxSlot* LabelSlot = Content->AddChildToHorizontalBox(MakeText(FText::FromString(Label), RowFont, TextColor)))
-            LabelSlot->SetSize(FSlateChildSize(ESlateSizeRule::Fill));
-        Content->AddChildToHorizontalBox(MakeText(FText::FromString(TEXT("...")), RowFont, TextColor));
-        UButton* Button = MakeButton(StyleTemplate, Content, Name);
-        RegisterFocusableButton(Button);
-        if (UVerticalBoxSlot* ButtonSlot = Options->AddChildToVerticalBox(Button))
-            ButtonSlot->SetPadding(FMargin(0, RowGap));
-        return Button;
-    };
-
-    AddSectionHeader(TEXT("Graphics"));
-    for (int32 RowIndex : { WindowMode, Resolution, Quality, VSync, FrameRate }) AddOptionRow(RowIndex);
-
-    AddSectionHeader(TEXT("Audio"));
-    for (int32 RowIndex : { MasterVolume, MusicVolume, EffectsVolume }) AddOptionRow(RowIndex);
-
-    AddSectionHeader(TEXT("Controls"));
-    AddOptionRow(LookSensitivity);
-    for (int32 RowIndex : { InvertMouseX, InvertMouseY, InvertGamepadX, InvertGamepadY }) AddOptionRow(RowIndex);
-    ControlsButton = MakeSubmenuButton(TEXT("Keyboard & mouse controls"), TEXT("ControlsButton"));
+    UButton* ControlsButton = AddSubmenuButton(List, TEXT("Keyboard & mouse controls"), TEXT("ControlsButton"), RowFont);
     ControlsButton->OnClicked.AddDynamic(this, &UGameSettingsWidget::HandleControlsClicked);
-    GamepadSchemeButton = MakeSubmenuButton(TEXT("Gamepad controls"), TEXT("GamepadSchemeButton"));
+    GamepadSchemeButton = AddSubmenuButton(List, TEXT("Gamepad controls"), TEXT("GamepadSchemeButton"), RowFont);
     GamepadSchemeButton->OnClicked.AddDynamic(this, &UGameSettingsWidget::HandleGamepadSchemeClicked);
 
     // Up & down go item by item through the options: the scroll box brings the next one into view (the default navigation
-    // only sees the items on the screen, so from the last visible row it jumped straight to the actions under the scroll box)
-    TArray<UButton*> OptionButtons;
-    for (UWidget* Child : Options->GetAllChildren())
+    // only sees the items on the screen, so from the last visible row it jumped straight to the actions under the scroll box).
+    // The last one leads to the actions (see RefreshApplyState)
+    TArray<UWidget*> ListButtons = List->GetAllChildren().FilterByPredicate([] (const UWidget* Child) { return Child->IsA<UButton>(); });
+    constexpr bool bStopAfterLast = false;
+    ChainVerticalNavigation(ListButtons, bStopAfterLast);
+
+    AddActions(Column, RowFont);
+    RefreshApplyState();
+}
+
+void UGameSettingsWidget::AddOptionRow(UVerticalBox* List, EGameSettingsOption Option, const FSlateFontInfo& Font)
+{
+    const FSlateColor TextColor = FLinearColor::White;
+    auto Content = WidgetTree->ConstructWidget<UHorizontalBox>(UHorizontalBox::StaticClass());
+    FOptionRowView& View = RowViews[static_cast<int32>(Option)];
+    View.ValueText = MakeText(WidgetTree, FText::GetEmpty(), Font, TextColor);
+    // Both arrows are always shown, the one which can't change the value further is dimmed
+    View.PreviousArrow = MakeText(WidgetTree, FText::FromString(TEXT("<")), Font, TextColor);
+    View.NextArrow = MakeText(WidgetTree, FText::FromString(TEXT(">")), Font, TextColor);
+
+    if (UHorizontalBoxSlot* LabelSlot = Content->AddChildToHorizontalBox(MakeText(WidgetTree, Options.GetRow(Option).Label, Font, TextColor)))
     {
-        if (auto OptionButton = Cast<UButton>(Child)) OptionButtons.Add(OptionButton);
+        LabelSlot->SetSize(FSlateChildSize(ESlateSizeRule::Fill));
+        LabelSlot->SetVerticalAlignment(VAlign_Center);
     }
-    for (int32 i = 0; i < OptionButtons.Num(); ++i)
+    const TPair<UTextBlock*, FMargin> ValueParts[] = {
+        { View.PreviousArrow.Get(), FMargin(0, 0, ARROW_GAP, 0) },
+        { View.ValueText.Get(), FMargin(0) },
+        { View.NextArrow.Get(), FMargin(ARROW_GAP, 0, 0, 0) },
+    };
+    for (const auto& [Part, PartPadding] : ValueParts)
     {
-        if (i > 0) OptionButtons[i]->SetNavigationRuleExplicit(EUINavigation::Up, OptionButtons[i - 1]);
-        else OptionButtons[i]->SetNavigationRuleBase(EUINavigation::Up, EUINavigationRule::Stop);
-        // The last one leads to the actions (see RefreshApplyState)
-        if (i + 1 < OptionButtons.Num()) OptionButtons[i]->SetNavigationRuleExplicit(EUINavigation::Down, OptionButtons[i + 1]);
+        if (UHorizontalBoxSlot* PartSlot = Content->AddChildToHorizontalBox(Part))
+        {
+            PartSlot->SetVerticalAlignment(VAlign_Center);
+            PartSlot->SetPadding(PartPadding);
+        }
     }
 
+    UButton* Button = MakeButton(WidgetTree, ButtonsStyleTemplate.Get(), Content, *FString::Printf(TEXT("Option_%d"), static_cast<int32>(Option)));
+    Button->OnClicked.AddDynamic(this, &UGameSettingsWidget::HandleOptionClicked);
+    FCustomWidgetNavigationDelegate OnNavigation;
+    OnNavigation.BindUFunction(this, GET_FUNCTION_NAME_CHECKED(UGameSettingsWidget, HandleOptionNavigation));
+    Button->SetNavigationRuleCustom(EUINavigation::Left, OnNavigation);
+    Button->SetNavigationRuleCustom(EUINavigation::Right, OnNavigation);
+    if (UVerticalBoxSlot* RowSlot = List->AddChildToVerticalBox(Button))
+        RowSlot->SetPadding(FMargin(0, OPTION_ROW_GAP));
+
+    View.Button = Button;
+    RegisterFocusableButton(Button);
+    RefreshRowText(Option);
+}
+
+UButton* UGameSettingsWidget::AddSubmenuButton(UVerticalBox* List, const TCHAR* Label, FName Name, const FSlateFontInfo& Font)
+{
+    const FSlateColor TextColor = FLinearColor::White;
+    auto Content = WidgetTree->ConstructWidget<UHorizontalBox>(UHorizontalBox::StaticClass());
+    if (UHorizontalBoxSlot* LabelSlot = Content->AddChildToHorizontalBox(MakeText(WidgetTree, FText::FromString(Label), Font, TextColor)))
+        LabelSlot->SetSize(FSlateChildSize(ESlateSizeRule::Fill));
+    Content->AddChildToHorizontalBox(MakeText(WidgetTree, FText::FromString(TEXT("...")), Font, TextColor));
+
+    UButton* Button = MakeButton(WidgetTree, ButtonsStyleTemplate.Get(), Content, Name);
+    RegisterFocusableButton(Button);
+    if (UVerticalBoxSlot* ButtonSlot = List->AddChildToVerticalBox(Button))
+        ButtonSlot->SetPadding(FMargin(0, OPTION_ROW_GAP));
+    return Button;
+}
+
+void UGameSettingsWidget::AddActions(UVerticalBox* Column, const FSlateFontInfo& Font)
+{
+    const FSlateColor TextColor = FLinearColor::White;
     auto Actions = WidgetTree->ConstructWidget<UHorizontalBox>(UHorizontalBox::StaticClass(), TEXT("Actions"));
-    ApplyLabel = MakeText(FText::FromString(TEXT("Apply")), RowFont, TextColor);
-    ApplyButton = MakeButton(StyleTemplate, ApplyLabel, TEXT("ApplyButton"));
-    BackButton = MakeButton(StyleTemplate, MakeText(FText::FromString(TEXT("Back")), RowFont, TextColor), TEXT("BackButton"));
-    ApplyButton->OnClicked.AddDynamic(this, &UGameSettingsWidget::HandleApplyClicked);
+    ApplyLabel = MakeText(WidgetTree, FText::FromString(TEXT("Apply")), Font, TextColor);
+    ApplyButton = MakeButton(WidgetTree, ButtonsStyleTemplate.Get(), ApplyLabel, TEXT("ApplyButton"));
+    BackButton = MakeButton(WidgetTree, ButtonsStyleTemplate.Get(), MakeText(WidgetTree, FText::FromString(TEXT("Back")), Font, TextColor), TEXT("BackButton"));
+    ApplyButton->OnClicked.AddDynamic(this, &UGameSettingsWidget::ApplyChanges);
     BackButton->OnClicked.AddDynamic(this, &UGameSettingsWidget::HandleBackClicked);
-    // The pair spans the same width as the rows above: the gap is only between the buttons
-    if (UHorizontalBoxSlot* ApplySlot = Actions->AddChildToHorizontalBox(ApplyButton))
-    {
-        ApplySlot->SetSize(FSlateChildSize(ESlateSizeRule::Fill));
-        ApplySlot->SetPadding(FMargin(0, 0, 6, 0));
-    }
-    if (UHorizontalBoxSlot* BackSlot = Actions->AddChildToHorizontalBox(BackButton))
-    {
-        BackSlot->SetSize(FSlateChildSize(ESlateSizeRule::Fill));
-        BackSlot->SetPadding(FMargin(6, 0, 0, 0));
-    }
-    RegisterFocusableButton(ApplyButton);
-    RegisterFocusableButton(BackButton);
-    SetBackActionButton(BackButton);
-    // Same inset as the scrolled options, so the actions line up with them
-    if (UVerticalBoxSlot* ActionsSlot = Column->AddChildToVerticalBox(Actions))
-        ActionsSlot->SetPadding(FMargin(SCROLLED_CONTENT_INSET, 8, SCROLLED_CONTENT_INSET, 6));
 
-    // The actions row is narrower & split in two, so the way to it and back is set explicitly
-    // (down from the options & left from Back lead to Apply only while it's enabled, see RefreshApplyState)
-    ApplyButton->SetNavigationRuleExplicit(EUINavigation::Up, GamepadSchemeButton);
-    BackButton->SetNavigationRuleExplicit(EUINavigation::Up, GamepadSchemeButton);
+    // The pair spans the same width as the rows above: the gap is only between the buttons
+    const TPair<UButton*, FMargin> ActionButtons[] = {
+        { ApplyButton.Get(), FMargin(0, 0, 6, 0) },
+        { BackButton.Get(), FMargin(6, 0, 0, 0) },
+    };
+    for (const auto& [Button, ButtonPadding] : ActionButtons)
+    {
+        if (UHorizontalBoxSlot* ActionSlot = Actions->AddChildToHorizontalBox(Button))
+        {
+            ActionSlot->SetSize(FSlateChildSize(ESlateSizeRule::Fill));
+            ActionSlot->SetPadding(ButtonPadding);
+        }
+        RegisterFocusableButton(Button);
+        // The actions row is narrower & split in two, so the way to it and back is set explicitly
+        // (down from the options & left from Back lead to Apply only while it's enabled, see RefreshApplyState)
+        Button->SetNavigationRuleExplicit(EUINavigation::Up, GamepadSchemeButton);
+        Button->SetNavigationRuleBase(EUINavigation::Down, EUINavigationRule::Stop);
+    }
+    SetBackActionButton(BackButton);
     ApplyButton->SetNavigationRuleExplicit(EUINavigation::Right, BackButton);
     ApplyButton->SetNavigationRuleBase(EUINavigation::Left, EUINavigationRule::Stop);
     BackButton->SetNavigationRuleBase(EUINavigation::Right, EUINavigationRule::Stop);
-    ApplyButton->SetNavigationRuleBase(EUINavigation::Down, EUINavigationRule::Stop);
-    BackButton->SetNavigationRuleBase(EUINavigation::Down, EUINavigationRule::Stop);
 
-    RefreshApplyState();
+    // Same inset as the scrolled options, so the actions line up with them
+    if (UVerticalBoxSlot* ActionsSlot = Column->AddChildToVerticalBox(Actions))
+        ActionsSlot->SetPadding(FMargin(SCROLLED_CONTENT_INSET, 8, SCROLLED_CONTENT_INSET, 6));
 }
 
 bool UGameSettingsWidget::HandleBackAction()
@@ -215,41 +215,45 @@ UWidget* UGameSettingsWidget::HandleOptionNavigation(EUINavigation Direction)
 {
     // Arrows & gamepad change the focused row, never the one under a resting mouse cursor
     constexpr bool bPreferHovered = false;
-    const int32 RowIndex = FindActiveRow(bPreferHovered);
     constexpr bool bWrap = false;
-    if (Direction == EUINavigation::Left) ChangeOption(RowIndex, -1, bWrap);
-    else if (Direction == EUINavigation::Right) ChangeOption(RowIndex, 1, bWrap);
+    const int32 Delta = Direction == EUINavigation::Left ? -1 : Direction == EUINavigation::Right ? 1 : 0;
+    ChangeOption(FindActiveOption(bPreferHovered), Delta, bWrap);
     // Focus stays on the option row
     return nullptr;
 }
 
 void UGameSettingsWidget::HandleOptionClicked()
 {
-    constexpr bool bWrap = true;
     constexpr bool bPreferHovered = true;
-    ChangeOption(FindActiveRow(bPreferHovered), 1, bWrap);
+    constexpr bool bWrap = true;
+    ChangeOption(FindActiveOption(bPreferHovered), 1, bWrap);
 }
 
-void UGameSettingsWidget::HandleApplyClicked()
+void UGameSettingsWidget::ChangeOption(EGameSettingsOption Option, int32 Delta, bool bWrap)
+{
+    if (!Options.Change(Option, Delta, bWrap)) return;
+
+    RefreshRowText(Option);
+    RefreshApplyState();
+    UReignForceGameUserSettings* Settings = UReignForceGameUserSettings::GetReignForceGameUserSettings();
+    if (Options.GetRow(Option).bLive && IsValid(Settings))
+    {
+        Options.PreviewTo(Settings, Option);
+        Settings->ApplyAudioSettings(this);
+    }
+
+    const UButton* Button = RowViews[static_cast<int32>(Option)].Button.Get();
+    if (IsValid(Button) && FSlateApplication::IsInitialized())
+        FSlateApplication::Get().PlaySound(Button->GetStyle().PressedSlateSound);
+}
+
+void UGameSettingsWidget::ApplyChanges()
 {
     if (!HasPendingChanges()) return;
     UReignForceGameUserSettings* Settings = UReignForceGameUserSettings::GetReignForceGameUserSettings();
-    if (IsValid(Settings) && Rows.Num() == EOption::Count)
+    if (IsValid(Settings))
     {
-        Settings->SetFullscreenMode(static_cast<EWindowMode::Type>(Rows[WindowMode].GetValue()));
-        const int32 ResolutionIndex = Rows[Resolution].GetValue();
-        if (Resolutions.IsValidIndex(ResolutionIndex)) Settings->SetScreenResolution(Resolutions[ResolutionIndex]);
-        const int32 QualityLevel = Rows[Quality].GetValue();
-        if (QualityLevel >= 0) Settings->SetOverallScalabilityLevel(QualityLevel);
-        Settings->SetVSyncEnabled(Rows[VSync].GetValue() != 0);
-        Settings->SetFrameRateLimit(Rows[FrameRate].GetValue());
-        Settings->SetLookSensitivity(Rows[LookSensitivity].GetValue() / 100.f);
-        for (const auto& [Option, bGamepad, bVertical] : GetInversionOptions())
-            Settings->SetLookInverted(bGamepad, bVertical, Rows[Option].GetValue() != 0);
-        Settings->SetMasterVolume(Rows[MasterVolume].GetValue() / static_cast<float>(VOLUME_STEPS));
-        Settings->SetMusicVolume(Rows[MusicVolume].GetValue() / static_cast<float>(VOLUME_STEPS));
-        Settings->SetEffectsVolume(Rows[EffectsVolume].GetValue() / static_cast<float>(VOLUME_STEPS));
-
+        Options.WriteTo(Settings);
         constexpr bool bCheckForCommandLineOverrides = false;
         Settings->ApplySettings(bCheckForCommandLineOverrides);
         // Unconfirmed window mode & resolution are reverted to the last confirmed ones on the next launch
@@ -258,206 +262,8 @@ void UGameSettingsWidget::HandleApplyClicked()
         Settings->ApplyAudioSettings(this);
     }
     // Stays in the settings: the applied values become the new baseline, Back no longer reverts them
-    for (FOptionRow& Row : Rows) Row.AppliedIndex = Row.Index;
+    Options.MarkApplied();
     RefreshApplyState();
-}
-
-void UGameSettingsWidget::HandleControlsClicked()
-{
-    if (!IsValid(KeyBindingsMenuClass)) return;
-    auto KeyBindings = CreateWidget<UKeyBindingsWidget>(GetOwningPlayer(), KeyBindingsMenuClass);
-    if (!IsValid(KeyBindings)) return;
-    KeyBindings->Setup(ButtonsStyleTemplate.Get());
-    PushChildMenu(KeyBindings);
-}
-
-void UGameSettingsWidget::HandleGamepadSchemeClicked()
-{
-    if (!IsValid(GamepadSchemeMenuClass)) return;
-    auto GamepadScheme = CreateWidget<UGamepadSchemeWidget>(GetOwningPlayer(), GamepadSchemeMenuClass);
-    if (!IsValid(GamepadScheme)) return;
-    GamepadScheme->Setup(ButtonsStyleTemplate.Get());
-    PushChildMenu(GamepadScheme);
-}
-
-void UGameSettingsWidget::HandleBackClicked()
-{
-    DiscardChanges();
-    RequestClose();
-}
-
-TConstArrayView<UGameSettingsWidget::FInversionOption> UGameSettingsWidget::GetInversionOptions()
-{
-    static const FInversionOption Options[] = {
-        { InvertMouseX, false, false },
-        { InvertMouseY, false, true },
-        { InvertGamepadX, true, false },
-        { InvertGamepadY, true, true },
-    };
-    return Options;
-}
-
-void UGameSettingsWidget::ReadOptions(const UReignForceGameUserSettings* Settings)
-{
-    Rows.SetNum(EOption::Count);
-    auto Select = [] (FOptionRow& Row, int32 Value)
-    {
-        int32 Closest = 0;
-        for (int32 i = 0; i < Row.Values.Num(); ++i)
-        {
-            if (FMath::Abs(Row.Values[i] - Value) < FMath::Abs(Row.Values[Closest] - Value)) Closest = i;
-        }
-        Row.Index = Closest;
-    };
-
-    FOptionRow& WindowModeRow = Rows[WindowMode];
-    WindowModeRow.Label = FText::FromString(TEXT("Window mode"));
-    WindowModeRow.Names = { FText::FromString(TEXT("Fullscreen")), FText::FromString(TEXT("Borderless")), FText::FromString(TEXT("Windowed")) };
-    WindowModeRow.Values = { EWindowMode::Fullscreen, EWindowMode::WindowedFullscreen, EWindowMode::Windowed };
-
-    UKismetSystemLibrary::GetSupportedFullscreenResolutions(Resolutions);
-    const FIntPoint CurrentResolution = IsValid(Settings) ? Settings->GetScreenResolution() : FIntPoint(1920, 1080);
-    Resolutions.AddUnique(CurrentResolution);
-    Resolutions.Sort([] (const FIntPoint& A, const FIntPoint& B) { return A.X == B.X ? A.Y < B.Y : A.X < B.X; });
-    FOptionRow& ResolutionRow = Rows[Resolution];
-    ResolutionRow.Label = FText::FromString(TEXT("Resolution"));
-    for (int32 i = 0; i < Resolutions.Num(); ++i)
-    {
-        ResolutionRow.Names.Add(FText::FromString(FString::Printf(TEXT("%d x %d"), Resolutions[i].X, Resolutions[i].Y)));
-        ResolutionRow.Values.Add(i);
-    }
-
-    FOptionRow& QualityRow = Rows[Quality];
-    QualityRow.Label = FText::FromString(TEXT("Graphics quality"));
-    QualityRow.Names = { FText::FromString(TEXT("Low")), FText::FromString(TEXT("Medium")), FText::FromString(TEXT("High")), FText::FromString(TEXT("Epic")), FText::FromString(TEXT("Cinematic")) };
-    QualityRow.Values = { 0, 1, 2, 3, 4 };
-    const int32 QualityLevel = IsValid(Settings) ? Settings->GetOverallScalabilityLevel() : 3;
-    if (QualityLevel < 0)
-    {
-        // Per-group custom scalability is kept untouched until another level is picked
-        QualityRow.Names.Insert(FText::FromString(TEXT("Custom")), 0);
-        QualityRow.Values.Insert(-1, 0);
-    }
-
-    FOptionRow& VSyncRow = Rows[VSync];
-    VSyncRow.Label = FText::FromString(TEXT("VSync"));
-    VSyncRow.Names = { FText::FromString(TEXT("Off")), FText::FromString(TEXT("On")) };
-    VSyncRow.Values = { 0, 1 };
-
-    FOptionRow& FrameRateRow = Rows[FrameRate];
-    FrameRateRow.Label = FText::FromString(TEXT("Frame rate limit"));
-    FrameRateRow.Values = { 30, 60, 120, 144, 240, 0 };
-    for (int32 Limit : FrameRateRow.Values)
-        FrameRateRow.Names.Add(Limit > 0 ? FText::AsNumber(Limit) : FText::FromString(TEXT("Unlimited")));
-
-    FOptionRow& SensitivityRow = Rows[LookSensitivity];
-    SensitivityRow.Label = FText::FromString(TEXT("Camera sensitivity"));
-    for (int32 Value = 20; Value <= 300; Value += SENSITIVITY_PERCENT_STEP)
-    {
-        SensitivityRow.Values.Add(Value);
-        SensitivityRow.Names.Add(Percent(Value));
-    }
-
-    // Inversion flips the default direction of the axis (camera turn / tilt) for its device
-    const TCHAR* InversionLabels[] = { TEXT("Invert mouse left / right"), TEXT("Invert mouse up / down"), TEXT("Invert gamepad stick left / right"), TEXT("Invert gamepad stick up / down") };
-    for (int32 i = 0; i < GetInversionOptions().Num(); ++i)
-    {
-        FOptionRow& Row = Rows[GetInversionOptions()[i].Option];
-        Row.Label = FText::FromString(InversionLabels[i]);
-        Row.Names = { FText::FromString(TEXT("Off")), FText::FromString(TEXT("On")) };
-        Row.Values = { 0, 1 };
-    }
-
-    const TPair<EOption, FText> Volumes[] = {
-        { MasterVolume, FText::FromString(TEXT("Master volume")) },
-        { MusicVolume, FText::FromString(TEXT("Music volume")) },
-        { EffectsVolume, FText::FromString(TEXT("Game sounds volume")) },
-    };
-    for (const auto& [Option, Label] : Volumes)
-    {
-        FOptionRow& Row = Rows[Option];
-        Row.Label = Label;
-        Row.bLive = true;
-        for (int32 Step = 0; Step <= VOLUME_STEPS; ++Step)
-        {
-            Row.Values.Add(Step);
-            Row.Names.Add(Percent(Step * 100 / VOLUME_STEPS));
-        }
-    }
-
-    if (!IsValid(Settings)) return;
-    Select(WindowModeRow, Settings->GetFullscreenMode());
-    Select(ResolutionRow, Resolutions.IndexOfByKey(CurrentResolution));
-    Select(QualityRow, QualityLevel);
-    Select(VSyncRow, Settings->IsVSyncEnabled() ? 1 : 0);
-    const int32 FrameRateLimit = FMath::RoundToInt(Settings->GetFrameRateLimit());
-    if (FrameRateLimit > 0) Select(FrameRateRow, FrameRateLimit);
-    else FrameRateRow.Index = FrameRateRow.Values.Num() - 1;
-    Select(SensitivityRow, FMath::RoundToInt(Settings->GetLookSensitivity() * 100));
-    for (const auto& [Option, bGamepad, bVertical] : GetInversionOptions())
-        Select(Rows[Option], Settings->IsLookInverted(bGamepad, bVertical) ? 1 : 0);
-    Select(Rows[MasterVolume], FMath::RoundToInt(Settings->GetMasterVolume() * VOLUME_STEPS));
-    Select(Rows[MusicVolume], FMath::RoundToInt(Settings->GetMusicVolume() * VOLUME_STEPS));
-    Select(Rows[EffectsVolume], FMath::RoundToInt(Settings->GetEffectsVolume() * VOLUME_STEPS));
-    for (FOptionRow& Row : Rows) Row.AppliedIndex = Row.Index;
-}
-
-void UGameSettingsWidget::ChangeOption(int32 RowIndex, int32 Delta, bool bWrap)
-{
-    if (!Rows.IsValidIndex(RowIndex)) return;
-    FOptionRow& Row = Rows[RowIndex];
-    const int32 Count = Row.Values.Num();
-    if (Count == 0) return;
-
-    const int32 Next = Row.Index + Delta;
-    const int32 Index = bWrap ? (Next % Count + Count) % Count : FMath::Clamp(Next, 0, Count - 1);
-    if (Index == Row.Index) return;
-    Row.Index = Index;
-
-    RefreshRowText(RowIndex);
-    RefreshApplyState();
-    if (Row.bLive) PreviewOption(RowIndex);
-    if (Row.Button.IsValid() && FSlateApplication::IsInitialized())
-        FSlateApplication::Get().PlaySound(Row.Button->GetStyle().PressedSlateSound);
-}
-
-void UGameSettingsWidget::PreviewOption(int32 RowIndex)
-{
-    UReignForceGameUserSettings* Settings = UReignForceGameUserSettings::GetReignForceGameUserSettings();
-    if (!IsValid(Settings) || !Rows.IsValidIndex(RowIndex)) return;
-
-    const float Volume = Rows[RowIndex].GetValue() / static_cast<float>(VOLUME_STEPS);
-    if (RowIndex == MasterVolume) Settings->SetMasterVolume(Volume);
-    else if (RowIndex == MusicVolume) Settings->SetMusicVolume(Volume);
-    else if (RowIndex == EffectsVolume) Settings->SetEffectsVolume(Volume);
-    Settings->ApplyAudioSettings(this);
-}
-
-void UGameSettingsWidget::RefreshRowText(int32 RowIndex)
-{
-    if (!Rows.IsValidIndex(RowIndex)) return;
-    const FOptionRow& Row = Rows[RowIndex];
-    if (!(Row.ValueText.IsValid() && Row.Names.IsValidIndex(Row.Index))) return;
-    Row.ValueText->SetText(Row.Names[Row.Index]);
-
-    const FLinearColor Enabled = FLinearColor::White;
-    const FLinearColor Disabled(1, 1, 1, .3f);
-    if (Row.PreviousArrow.IsValid()) Row.PreviousArrow->SetColorAndOpacity(Row.Index > 0 ? Enabled : Disabled);
-    if (Row.NextArrow.IsValid()) Row.NextArrow->SetColorAndOpacity(Row.Index < Row.Names.Num() - 1 ? Enabled : Disabled);
-}
-
-int32 UGameSettingsWidget::FindActiveRow(bool bPreferHovered) const
-{
-    // Mouse clicks target the hovered row, keyboard & gamepad - the focused one
-    for (int32 i = 0; bPreferHovered && i < Rows.Num(); ++i)
-    {
-        if (Rows[i].Button.IsValid() && Rows[i].Button->IsHovered()) return i;
-    }
-    for (int32 i = 0; i < Rows.Num(); ++i)
-    {
-        if (Rows[i].Button.IsValid() && Rows[i].Button->HasAnyUserFocus()) return i;
-    }
-    return INDEX_NONE;
 }
 
 void UGameSettingsWidget::DiscardChanges()
@@ -470,9 +276,44 @@ void UGameSettingsWidget::DiscardChanges()
     Settings->ApplyAudioSettings(this);
 }
 
-bool UGameSettingsWidget::HasPendingChanges() const
+void UGameSettingsWidget::HandleControlsClicked()
 {
-    return Rows.ContainsByPredicate([] (const FOptionRow& Row) { return Row.Index != Row.AppliedIndex; });
+    auto KeyBindings = IsValid(KeyBindingsMenuClass) ? CreateWidget<UKeyBindingsWidget>(GetOwningPlayer(), KeyBindingsMenuClass) : nullptr;
+    if (!IsValid(KeyBindings)) return;
+    KeyBindings->Setup(ButtonsStyleTemplate.Get());
+    PushChildMenu(KeyBindings);
+}
+
+void UGameSettingsWidget::HandleGamepadSchemeClicked()
+{
+    auto GamepadScheme = IsValid(GamepadSchemeMenuClass) ? CreateWidget<UGamepadSchemeWidget>(GetOwningPlayer(), GamepadSchemeMenuClass) : nullptr;
+    if (!IsValid(GamepadScheme)) return;
+    GamepadScheme->Setup(ButtonsStyleTemplate.Get());
+    PushChildMenu(GamepadScheme);
+}
+
+void UGameSettingsWidget::HandleBackClicked()
+{
+    DiscardChanges();
+    RequestClose();
+}
+
+void UGameSettingsWidget::RefreshRowText(EGameSettingsOption Option)
+{
+    const FGameSettingsOptionRow& Row = Options.GetRow(Option);
+    const FOptionRowView& View = RowViews[static_cast<int32>(Option)];
+    if (!(View.ValueText.IsValid() && Row.Names.IsValidIndex(Row.Index))) return;
+    View.ValueText->SetText(Row.Names[Row.Index]);
+    if (View.PreviousArrow.IsValid()) View.PreviousArrow->SetColorAndOpacity(Row.HasPrevious() ? FLinearColor::White : DISABLED_COLOR);
+    if (View.NextArrow.IsValid()) View.NextArrow->SetColorAndOpacity(Row.HasNext() ? FLinearColor::White : DISABLED_COLOR);
+}
+
+EGameSettingsOption UGameSettingsWidget::FindActiveOption(bool bPreferHovered) const
+{
+    TArray<UButton*> Buttons;
+    Algo::Transform(RowViews, Buttons, [] (const FOptionRowView& View) { return View.Button.Get(); });
+    const int32 Index = FindActiveButton(Buttons, bPreferHovered);
+    return Index == INDEX_NONE ? EGameSettingsOption::COUNT : static_cast<EGameSettingsOption>(Index);
 }
 
 void UGameSettingsWidget::RefreshApplyState()
@@ -482,7 +323,7 @@ void UGameSettingsWidget::RefreshApplyState()
     // Leaving the focus on a disabled Apply would stop keyboard & gamepad navigation
     const bool bApplyFocused = ApplyButton->HasAnyUserFocus();
     ApplyButton->SetIsEnabled(bChanged);
-    if (IsValid(ApplyLabel)) ApplyLabel->SetColorAndOpacity(FLinearColor(1, 1, 1, bChanged ? 1.f : .35f));
+    if (IsValid(ApplyLabel)) ApplyLabel->SetColorAndOpacity(bChanged ? FLinearColor::White : DISABLED_LABEL_COLOR);
     if (!bChanged && bApplyFocused) FocusButton(BackButton);
 
     UWidget* BelowOptions = bChanged ? static_cast<UWidget*>(ApplyButton) : static_cast<UWidget*>(BackButton);

@@ -249,7 +249,6 @@ void UBackgroundMusicComponent::LoadActivePauseMenuSound(int32 NextToPlay)
 		ActivePauseMenuSound->OnAudioFinished.AddDynamic(this, &UBackgroundMusicComponent::ResetActivePauseMenuSound);
 }
 
-
 UAudioComponent* UBackgroundMusicComponent::SpawnMusic(USoundBase* Sound, float Volume, float Pitch) const
 {
 	UAudioComponent* Music = UGameplayStatics::CreateSound2D(GetWorld(), Sound, Volume, Pitch);

@@ -55,10 +55,10 @@ UEnemyEquipSystem::UEnemyEquipSystem(const FObjectInitializer& ObjectInitializer
 
 	WeaponEquipProbabilities =
     {
-        { EWeaponType::Unarmed, { 1, 1, bIgnoreExtraCheck } },
-        { EWeaponType::Melee, { .7f, 1, bIgnoreExtraCheck } },
-        { EWeaponType::Pistol, { .5f, .8f, bApplyExtraCheck } },
-        { EWeaponType::Rifle, { .2f, .8f, bApplyExtraCheck } },
+        { EWeaponType::UNARMED, { 1, 1, bIgnoreExtraCheck } },
+        { EWeaponType::MELEE, { .7f, 1, bIgnoreExtraCheck } },
+        { EWeaponType::PISTOL, { .5f, .8f, bApplyExtraCheck } },
+        { EWeaponType::RIFLE, { .2f, .8f, bApplyExtraCheck } },
     };
 
     TemperamentProbabilities =
@@ -193,11 +193,11 @@ APlayerCharacter* UEnemyEquipSystem::GetPlayerCharacter() const
 
 bool UEnemyEquipSystem::CheckSlotAvailability(UShooterSkillsSystem* SkillsSystem, EWeaponType Slot) const
 {
-    if (!IsValid(SkillsSystem) || Slot == EWeaponType::None) return true;
+    if (!IsValid(SkillsSystem) || Slot == EWeaponType::NONE) return true;
 
     if (UWeaponSlotsSystem::IsFirearmsType(Slot))
     {
-        const EWeaponType FirearmsSlots[] = { EWeaponType::Pistol, EWeaponType::Rifle };
+        const EWeaponType FirearmsSlots[] = { EWeaponType::PISTOL, EWeaponType::RIFLE };
         for (const auto& ToCheck : FirearmsSlots)
         {
             bool bSlotAvailable = SkillsSystem->AvailableSlots.Contains(Slot);

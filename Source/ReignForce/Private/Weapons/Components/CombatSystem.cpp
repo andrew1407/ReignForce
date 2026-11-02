@@ -37,12 +37,12 @@ UCombatSystem::UCombatSystem(const FObjectInitializer& ObjectInitializer) : Supe
 	bAiming = false;
 	bAimFocus = false;
 	ShooterState = EShooterState::Idle;
-	RateOfFireToHandle = EWeaponType::None;
+	RateOfFireToHandle = EWeaponType::NONE;
 
 	RateOfFireDelays =
 	{
-		{ EWeaponType::Pistol, { FTimerHandle(), false } },
-		{ EWeaponType::Rifle, { FTimerHandle(), false } },
+		{ EWeaponType::PISTOL, { FTimerHandle(), false } },
+		{ EWeaponType::RIFLE, { FTimerHandle(), false } },
 	};
 
 	PunchHitChance = 1;
@@ -152,9 +152,9 @@ void UCombatSystem::StopAiming()
 
 bool UCombatSystem::TraceAimWith(EWeaponType WeaponType, AWeapon* Weapon, const FVector& Direction) const
 {
-	if (WeaponType == EWeaponType::None) return false;
+	if (WeaponType == EWeaponType::NONE) return false;
 	FHitResult HitResult;
-	bool bAimTraced = WeaponType != EWeaponType::Unarmed
+	bool bAimTraced = WeaponType != EWeaponType::UNARMED
 		? IsValid(Weapon) && Weapon->Aim(HitResult, Direction)
 		: PunchAimTrace(HitResult, Direction);
 	if (!bAimTraced) return false;
@@ -272,7 +272,7 @@ void UCombatSystem::EnableDelayedShooting()
 	TPair<FTimerHandle, bool>* Info = RateOfFireDelays.Find(RateOfFireToHandle);
 	if (!Info) return;
 	Info->Value = false;
-	RateOfFireToHandle = EWeaponType::None;
+	RateOfFireToHandle = EWeaponType::NONE;
 }
 
 void UCombatSystem::OnPunch(UPrimitiveComponent* OverlappedComponent, AActor* OtherActor,
@@ -296,7 +296,7 @@ void UCombatSystem::OnPunch(UPrimitiveComponent* OverlappedComponent, AActor* Ot
     UAISense_Damage::ReportDamageEvent(GetWorld(), OtherActor, Owner, FistDamage, OtherActor->GetActorLocation(), Owner->GetActorLocation(), NoiseTag);
 	if (Damage == 0) return;
 
-	OnPunchDamageCaused.Broadcast(Damage, EWeaponType::Unarmed, OtherActor, bRightFist ? RightFistIndex : LeftFistIndex);
+	OnPunchDamageCaused.Broadcast(Damage, EWeaponType::UNARMED, OtherActor, bRightFist ? RightFistIndex : LeftFistIndex);
 	if (IsValid(OnPunchHitSound)) UGameplayStatics::SpawnSoundAtLocation(
         GetWorld(),
         OnPunchHitSound,

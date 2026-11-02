@@ -61,6 +61,9 @@ public:
 	FVector2D ApplyLookInversion(const FVector2D& LookInput, bool bGamepad) const;
 
 private:
+	/** Audio & controls settings defaults (the engine ones are reset by the base class) */
+	void ResetCustomSettings();
+
 	UPROPERTY(Config)
 	float MasterVolume;
 

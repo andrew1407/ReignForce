@@ -22,10 +22,10 @@ UBTDecorator_CheckTargetDistance::UBTDecorator_CheckTargetDistance(const FObject
     DefaultDistance = { 300, 500 };
     Distances =
     {
-        { EWeaponType::Unarmed, { 50, 120 } },
-        { EWeaponType::Melee, { 50, 150 } },
-        { EWeaponType::Pistol, { 500, 1800 } },
-        { EWeaponType::Rifle, { 500, 1000 } },
+        { EWeaponType::UNARMED, { 50, 120 } },
+        { EWeaponType::MELEE, { 50, 150 } },
+        { EWeaponType::PISTOL, { 500, 1800 } },
+        { EWeaponType::RIFLE, { 500, 1000 } },
     };
 }
 
@@ -57,7 +57,7 @@ void UBTDecorator_CheckTargetDistance::TickNode(UBehaviorTreeComponent& OwnerCom
     UWeaponSlotsSystem* SlotsSystem = ControlledCharacter->GetWeaponSlotsSystem();
     if (!IsValid(SlotsSystem)) return;
     EWeaponType CurrentWeapon = ControlledCharacter->GetSelectedWeaponType();
-    if (CurrentWeapon == EWeaponType::None) return;
+    if (CurrentWeapon == EWeaponType::NONE) return;
 
     const FVector TargetLocation = TargetActor->GetActorLocation();
     const FVector ControlledLocation = ControlledCharacter->GetActorLocation();

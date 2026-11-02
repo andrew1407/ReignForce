@@ -18,7 +18,8 @@
 #include "EnhancedInputComponent.h"
 #include "EnhancedInputSubsystems.h"
 #include "InputActionValue.h"
-#include "CommonInputSubsystem.h"
+#include "Algo/Find.h"
+#include "Algo/IndexOf.h"
 
 #include "PlayerCharacter/ShooterPlayerController.h"
 #include "PlayerCharacter/PlayerInteractionMode.h"
@@ -44,6 +45,7 @@
 #include "GameStates/Components/UpgradesProgressStateComponent.h"
 #include "ReinforcementLearning/Interfaces/AICommandsStrategy.h"
 #include "Settings/ReignForceGameUserSettings.h"
+#include "Utils/InputDeviceUtils.h"
 
 
 DEFINE_LOG_CATEGORY(LogTemplateCharacter);
@@ -68,10 +70,10 @@ APlayerCharacter::APlayerCharacter(const FObjectInitializer& ObjectInitializer) 
 	GetStatsComponent()->bHealthRegeneratorEnabled = true;
 	TeamId = ETeamID::Player;
     WeaponSlotInputs = {
-		{ FVector2D(0, 1), EWeaponType::Unarmed },
-		{ FVector2D(1, 0), EWeaponType::Rifle },
-		{ FVector2D(-0.f, -1), EWeaponType::Pistol },
-		{ FVector2D(-1, -0.f), EWeaponType::Melee },
+		{ FVector2D(0, 1), EWeaponType::UNARMED },
+		{ FVector2D(1, 0), EWeaponType::RIFLE },
+		{ FVector2D(-0.f, -1), EWeaponType::PISTOL },
+		{ FVector2D(-1, -0.f), EWeaponType::MELEE },
 	};
 
 	MeleeSwingVibration = { .2f, .1f, false, true };
@@ -80,9 +82,11 @@ APlayerCharacter::APlayerCharacter(const FObjectInitializer& ObjectInitializer) 
 	MinShotVibrationScale = .2f;
 
 	// Taken damage: a light buzz for a bullet, a heavy rumble for a machete hit & a stronger longer one for a punch
-	BulletDamageVibration = { .35f, .12f, false, true };
-	MacheteDamageVibration = { .65f, .2f, true, true };
-	FistDamageVibration = { .9f, .26f, true, true };
+	DamageVibrations = {
+		{ EDamageVibrationSource::BULLET, { .35f, .12f, false, true } },
+		{ EDamageVibrationSource::MACHETE, { .65f, .2f, true, true } },
+		{ EDamageVibrationSource::FIST, { .9f, .26f, true, true } },
+	};
 }
 
 void APlayerCharacter::BeginPlay()
@@ -165,23 +169,20 @@ float APlayerCharacter::TakeDamage(float DamageAmount, FDamageEvent const& Damag
 
 EDamageVibrationSource APlayerCharacter::GetDamageVibrationSource(const AActor* DamageCauser)
 {
-	if (!IsValid(DamageCauser)) return EDamageVibrationSource::None;
-	if (DamageCauser->IsA<AFirearmsWeapon>()) return EDamageVibrationSource::Bullet;
-	if (DamageCauser->IsA<AMeleeWeapon>()) return EDamageVibrationSource::Machete;
+	if (!IsValid(DamageCauser)) return EDamageVibrationSource::NONE;
 	// Punches are dealt by the character itself (its fists aren't separate actors)
-	if (DamageCauser->IsA<AShooterCharacter>()) return EDamageVibrationSource::Fist;
-	return EDamageVibrationSource::None;
+	const TPair<UClass*, EDamageVibrationSource> Sources[] = {
+		{ AFirearmsWeapon::StaticClass(), EDamageVibrationSource::BULLET },
+		{ AMeleeWeapon::StaticClass(), EDamageVibrationSource::MACHETE },
+		{ AShooterCharacter::StaticClass(), EDamageVibrationSource::FIST },
+	};
+	const auto* Source = Algo::FindByPredicate(Sources, [DamageCauser] (const TPair<UClass*, EDamageVibrationSource>& Item) { return DamageCauser->IsA(Item.Key); });
+	return Source ? Source->Value : EDamageVibrationSource::NONE;
 }
 
 const FGamepadVibration* APlayerCharacter::FindDamageVibration(EDamageVibrationSource Source) const
 {
-	switch (Source)
-	{
-		case EDamageVibrationSource::Bullet: return &BulletDamageVibration;
-		case EDamageVibrationSource::Machete: return &MacheteDamageVibration;
-		case EDamageVibrationSource::Fist: return &FistDamageVibration;
-		default: return nullptr;
-	}
+	return DamageVibrations.Find(Source);
 }
 
 void APlayerCharacter::HandleStatsDefined(bool bSuccess)
@@ -410,9 +411,8 @@ void APlayerCharacter::LookAction(const FInputActionValue& Value)
 	{
 		LookAxisVector *= Settings->GetLookSensitivity();
 		// The stick & the mouse are inverted separately: the input is from the device used last (CommonUI input type)
-		auto PlayerController = Cast<APlayerController>(GetController());
-		const UCommonInputSubsystem* InputSubsystem = IsValid(PlayerController) ? UCommonInputSubsystem::Get(PlayerController->GetLocalPlayer()) : nullptr;
-		const bool bGamepad = InputSubsystem && InputSubsystem->GetCurrentInputType() == ECommonInputType::Gamepad;
+		auto PlayerController = GetController<APlayerController>();
+		const bool bGamepad = IsValid(PlayerController) && UInputDeviceUtils::IsGamepadUsed(PlayerController->GetLocalPlayer());
 		LookAxisVector = Settings->ApplyLookInversion(LookAxisVector, bGamepad);
 	}
 
@@ -436,28 +436,25 @@ void APlayerCharacter::CycleWeaponAction(const FInputActionValue& Value)
 
 	const float Direction = Value.Get<float>();
 	if (FMath::IsNearlyZero(Direction)) return;
-	constexpr bool bClockwise = true;
-	const EWeaponType Slot = FindNextWeaponSlot(Direction > 0 ? bClockwise : !bClockwise);
+	const EWeaponType Slot = FindNextWeaponSlot(Direction > 0);
 	if (Slot != GetWeaponSlotsSystem()->GetActiveWeaponSlot()) SwitchWeapon(Slot);
 }
 
 EWeaponType APlayerCharacter::FindNextWeaponSlot(bool bClockwise) const
 {
 	// Same order as the slots cross (arrows): up - fists, right - rifle, down - pistol, left - machete
-	static const EWeaponType Order[] = { EWeaponType::Unarmed, EWeaponType::Rifle, EWeaponType::Pistol, EWeaponType::Melee };
+	static const EWeaponType Order[] = { EWeaponType::UNARMED, EWeaponType::RIFLE, EWeaponType::PISTOL, EWeaponType::MELEE };
 	constexpr int32 Count = UE_ARRAY_COUNT(Order);
 
 	const EWeaponType Active = GetWeaponSlotsSystem()->GetActiveWeaponSlot();
-	int32 Current = 0;
-	for (int32 i = 0; i < Count; ++i)
-		if (Order[i] == Active) Current = i;
+	const int32 Current = FMath::Max(0, static_cast<int32>(Algo::IndexOf(Order, Active)));
 
 	// Locked (not unlocked by skills) or empty slots are skipped
 	const int32 Step = bClockwise ? 1 : -1;
 	for (int32 Offset = 1; Offset < Count; ++Offset)
 	{
 		const EWeaponType Slot = Order[(Current + Step * Offset + Count) % Count];
-		bool bAvailable = Slot == EWeaponType::Unarmed
+		bool bAvailable = Slot == EWeaponType::UNARMED
 			|| (GetSkillsSystem()->AvailableSlots.Contains(Slot) && !GetWeaponSlotsSystem()->HasFreeSlot(Slot));
 		if (bAvailable) return Slot;
 	}
@@ -557,7 +554,7 @@ void APlayerCharacter::ReactOnDamageCaused_Implementation(float Damage, EWeaponT
 {
 	Super::ReactOnDamageCaused_Implementation(Damage, WeaponType, HitTarget, Index);
 
-	bool bMeleeHit = WeaponType == EWeaponType::Unarmed || WeaponType == EWeaponType::Melee;
+	bool bMeleeHit = WeaponType == EWeaponType::UNARMED || WeaponType == EWeaponType::MELEE;
 	if (bMeleeHit && Cast<AShooterCharacter>(HitTarget)) PlayVibration(MeleeHitVibration);
 }
 

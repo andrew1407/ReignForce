@@ -63,7 +63,8 @@ void AMeleeWeapon::TraceSwingSurfaceHit()
 
     FHitResult Hit;
     bool bHit = GetWorld()->SweepSingleByObjectType(Hit, SwingStart, SwingLocation, DamageCollision->GetComponentQuat(), Objects, Blade, Params);
-    if (!bHit || Cast<APawn>(Hit.GetActor()) || Cast<AWeapon>(Hit.GetActor())) return;
+    const AActor* HitActor = Hit.GetActor();
+    if (!bHit || (IsValid(HitActor) && (HitActor->IsA<APawn>() || HitActor->IsA<AWeapon>()))) return;
 
     // A single mark per swing, the blade stretches it along the swing direction
     bSurfaceHitDuringSwing = true;

@@ -39,7 +39,7 @@ BEGIN_DEFINE_SPEC(FSettingsMenuIntegrationTests, "ReignForce.Integration.Setting
     void StepVSync(int32 Delta)
     {
         constexpr bool bWrap = false;
-        if (Menu.IsValid()) Menu->ChangeOption(UGameSettingsWidget::VSync, Delta, bWrap);
+        if (Menu.IsValid()) Menu->ChangeOption(EGameSettingsOption::VSYNC, Delta, bWrap);
     }
 
     /** Changes the VSync row to its other value, returns the step to change it back (0 if nothing changed) */
@@ -97,14 +97,14 @@ void FSettingsMenuIntegrationTests::Define()
             const int32 Revert = ToggleVSync();
             if (!TestTrue("Apply is enabled after an option change", Revert != 0)) return;
 
-            Menu->HandleApplyClicked();
+            Menu->ApplyChanges();
             TestTrue("Settings menu stays open after applying", Menu.IsValid() && Menu->IsInViewport());
             TestFalse("Applied values are the new baseline: nothing to apply", IsApplyEnabled());
 
             // Restores the user's VSync setting
             StepVSync(Revert);
             TestTrue("Changing back is a change again", IsApplyEnabled());
-            Menu->HandleApplyClicked();
+            Menu->ApplyChanges();
             TestFalse("Restored", IsApplyEnabled());
         });
     });
@@ -138,7 +138,7 @@ void FSettingsMenuIntegrationTests::Define()
         {
             // Rows out of the scrolled view are reached one by one (not skipped to Apply / Back)
             TArray<UButton*> Chain;
-            for (int32 Option = 0; Option < UGameSettingsWidget::Count; ++Option)
+            for (int32 Option = 0; Option < static_cast<int32>(EGameSettingsOption::COUNT); ++Option)
             {
                 UButton* Row = FindButton(*FString::Printf(TEXT("Option_%d"), Option));
                 if (IsValid(Row)) Chain.Add(Row);
@@ -166,10 +166,10 @@ void FSettingsMenuIntegrationTests::Define()
     {
         It("HasARowPerDeviceAxis", [this]
         {
-            for (int32 Option : { UGameSettingsWidget::InvertMouseX, UGameSettingsWidget::InvertMouseY, UGameSettingsWidget::InvertGamepadX, UGameSettingsWidget::InvertGamepadY })
+            for (EGameSettingsOption Option : { EGameSettingsOption::INVERT_MOUSE_X, EGameSettingsOption::INVERT_MOUSE_Y, EGameSettingsOption::INVERT_GAMEPAD_X, EGameSettingsOption::INVERT_GAMEPAD_Y })
             {
-                UButton* Row = FindButton(*FString::Printf(TEXT("Option_%d"), Option));
-                TestNotNull(FString::Printf(TEXT("Inversion row %d"), Option), Row);
+                UButton* Row = FindButton(*FString::Printf(TEXT("Option_%d"), static_cast<int32>(Option)));
+                TestNotNull(FString::Printf(TEXT("Inversion row %d"), static_cast<int32>(Option)), Row);
             }
         });
 
@@ -177,8 +177,8 @@ void FSettingsMenuIntegrationTests::Define()
         {
             // Two values (Off / On) that don't wrap: one of the directions changes it
             constexpr bool bWrap = false;
-            Menu->ChangeOption(UGameSettingsWidget::InvertMouseY, 1, bWrap);
-            if (!IsApplyEnabled()) Menu->ChangeOption(UGameSettingsWidget::InvertMouseY, -1, bWrap);
+            Menu->ChangeOption(EGameSettingsOption::INVERT_MOUSE_Y, 1, bWrap);
+            if (!IsApplyEnabled()) Menu->ChangeOption(EGameSettingsOption::INVERT_MOUSE_Y, -1, bWrap);
             const bool bChanged = IsApplyEnabled();
             // Not applied: the saved user settings stay as they were
             Menu->DiscardChanges();

@@ -14,8 +14,8 @@ class UTexture2D;
 class ULoadingScreenWidget;
 
 /**
- * Opens levels behind a loading screen (black & white main menu image): it is shown over the current level first,
- * then the movie player keeps the same screen up (rendered on its own thread) while the map is loaded
+ * Opens levels behind a loading screen (black & white main menu image): the map is loaded asynchronously,
+ * then the movie player keeps the screen up while it's opened
  */
 UCLASS()
 class REIGNFORCE_API ULevelLoadingSubsystem : public UGameInstanceSubsystem
@@ -62,6 +62,10 @@ private:
 	UPROPERTY()
 	TObjectPtr<ULoadingScreenWidget> LoadingWidget;
 
+	/** Held until it's opened */
+	UPROPERTY()
+	TObjectPtr<UWorld> PreloadedWorld;
+
 	FName PendingLevel;
 	bool bPendingAbsolute = true;
 	FString PendingOptions;
@@ -76,9 +80,17 @@ private:
 	FDelegateHandle TravelFailureHandle;
 	FTSTicker::FDelegateHandle TravelTickerHandle;
 
+	UWorld* GetCurrentWorld() const;
 	void StopMusic();
+	/** Menus of the current world stop (or resume) handling the input */
+	void SetMenusActive(bool bActive);
 	void ShowLoadingWidget();
 	void HideLoadingWidget();
+	void PreloadLevel();
+	/** Empty if the level is opened without the preload */
+	FString FindPreloadablePackage() const;
+	void HandleLevelPreloaded(const FName& PackageName, UPackage* Package, EAsyncLoadingResult::Type Result);
+	void ScheduleTravel();
 	void Travel();
 	/** The movie player asks for the screen on every map load (the game start too) when none is set up for it */
 	void HandlePrepareLoadingScreen();

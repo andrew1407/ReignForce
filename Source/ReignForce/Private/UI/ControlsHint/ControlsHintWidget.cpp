@@ -4,9 +4,9 @@
 #include "UI/ControlsHint/ControlsHintWidget.h"
 #include "Blueprint/WidgetTree.h"
 #include "Kismet/GameplayStatics.h"
+#include "Algo/Find.h"
 #include "Styling/CoreStyle.h"
 #include "Engine/LocalPlayer.h"
-#include "CommonInputSubsystem.h"
 
 #include "Components/Border.h"
 #include "Components/CanvasPanel.h"
@@ -27,16 +27,57 @@
 #include "UserSettings/EnhancedInputUserSettings.h"
 
 #include "Settings/ReignForceSettings.h"
+#include "UI/Common/MenuLayoutUtils.h"
 #include "UI/Common/ReignForceGamepadControllerData.h"
+#include "Utils/InputDeviceUtils.h"
 
+
+using namespace MenuLayoutUtils;
 
 namespace
 {
     constexpr float GAMEPAD_ICON_SIZE = 34;
     constexpr float KEY_GAP = 6;
-    constexpr float ROW_GAP = 5;
+    constexpr float HINT_ROW_GAP = 5;
     /** Space between the labels & the keys columns */
     constexpr float LABEL_GAP = 22;
+    constexpr int32 HINT_TITLE_FONT_SIZE = 22;
+    constexpr int32 LABEL_FONT_SIZE = 17;
+    constexpr int32 KEY_FONT_SIZE = 14;
+    constexpr float SLIDE_EASE_EXPONENT = 3;
+    /** Panel room past the screen edge when it's hidden */
+    constexpr float HIDDEN_PANEL_MARGIN = 16;
+
+    /** Compact key cap names (the other keys use their short display names); built on the first use, after the engine keys */
+    const TMap<FKey, const TCHAR*>& GetKeyCapNames()
+    {
+        static const TMap<FKey, const TCHAR*> Names = {
+            { EKeys::LeftMouseButton, TEXT("LMB") },
+            { EKeys::RightMouseButton, TEXT("RMB") },
+            { EKeys::MiddleMouseButton, TEXT("MMB") },
+            { EKeys::Escape, TEXT("Esc") },
+            { EKeys::SpaceBar, TEXT("Space") },
+            { EKeys::LeftControl, TEXT("Ctrl") },
+            { EKeys::RightControl, TEXT("Ctrl") },
+            { EKeys::LeftShift, TEXT("Shift") },
+            { EKeys::RightShift, TEXT("Shift") },
+            { EKeys::LeftAlt, TEXT("Alt") },
+            { EKeys::RightAlt, TEXT("Alt") },
+        };
+        return Names;
+    }
+
+    /** A timeline phase: how long it lasts (game time stops while paused), the next one & the panel slide during it */
+    struct FControlsHintPhaseStep
+    {
+        float Duration;
+        bool bGameTime;
+        EControlsHintPhase Next;
+        float (*Slide)(float Alpha);
+    };
+
+    float SlideIn(float Alpha) { return FMath::InterpEaseOut(0.f, 1.f, Alpha, SLIDE_EASE_EXPONENT); }
+    float SlideOut(float Alpha) { return 1 - FMath::InterpEaseIn(0.f, 1.f, Alpha, SLIDE_EASE_EXPONENT); }
 
     FControlsHintEntry MakeEntry(const TCHAR* Label, const TCHAR* ActionName, int32 MaxKeys = 1)
     {
@@ -50,25 +91,13 @@ namespace
     /** Direction of a 2D axis key mapping (W, A, S, D): swizzled - vertical, negated - up / left; the others go last in their order */
     int32 GetDirectionOrder(const FEnhancedActionKeyMapping& Mapping)
     {
-        bool bSwizzled = false;
-        bool bNegated = false;
-        for (const UInputModifier* Modifier : Mapping.Modifiers)
+        auto HasModifier = [&] (UClass* ModifierClass)
         {
-            bSwizzled |= IsValid(Modifier) && Modifier->IsA<UInputModifierSwizzleAxis>();
-            bNegated |= IsValid(Modifier) && Modifier->IsA<UInputModifierNegate>();
-        }
-        if (bSwizzled) return bNegated ? 2 : 0;
+            return Mapping.Modifiers.ContainsByPredicate([ModifierClass] (const UInputModifier* Modifier) { return IsValid(Modifier) && Modifier->IsA(ModifierClass); });
+        };
+        const bool bNegated = HasModifier(UInputModifierNegate::StaticClass());
+        if (HasModifier(UInputModifierSwizzleAxis::StaticClass())) return bNegated ? 2 : 0;
         return bNegated ? 1 : 3;
-    }
-
-    FSlateBrush MakeRoundedBrush(const FLinearColor& Fill, const FLinearColor& Outline, float Radius, float OutlineWidth)
-    {
-        FSlateBrush Brush;
-        Brush.DrawAs = ESlateBrushDrawType::RoundedBox;
-        Brush.TintColor = Fill;
-        Brush.OutlineSettings = FSlateBrushOutlineSettings(FVector4(Radius, Radius, Radius, Radius), FSlateColor(Outline), OutlineWidth);
-        Brush.OutlineSettings.RoundingType = ESlateBrushRoundingType::FixedRadius;
-        return Brush;
     }
 }
 
@@ -134,13 +163,8 @@ void UControlsHintWidget::Build()
     auto Column = WidgetTree->ConstructWidget<UVerticalBox>(UVerticalBox::StaticClass(), TEXT("Column"));
     Frame->SetContent(Column);
 
-    auto Title = WidgetTree->ConstructWidget<UTextBlock>(UTextBlock::StaticClass(), TEXT("Title"));
-    Title->SetText(FText::FromString(TEXT("Controls")));
-    Title->SetFont(FCoreStyle::GetDefaultFontStyle("Bold", 22));
-    Title->SetColorAndOpacity(TitleColor);
-    Title->SetShadowOffset(FVector2D(1));
-    Title->SetShadowColorAndOpacity(FLinearColor(0, 0, 0, .6f));
-    Column->AddChildToVerticalBox(Title);
+    const FSlateFontInfo TitleFont = FCoreStyle::GetDefaultFontStyle("Bold", HINT_TITLE_FONT_SIZE);
+    Column->AddChildToVerticalBox(MakeText(WidgetTree, FText::FromString(TEXT("Controls")), TitleFont, TitleColor, UTextBlock::StaticClass()));
 
     // Thin frame colored line under the title
     auto Separator = WidgetTree->ConstructWidget<UImage>(UImage::StaticClass(), TEXT("Separator"));
@@ -158,7 +182,7 @@ void UControlsHintWidget::Build()
     Table = WidgetTree->ConstructWidget<UGridPanel>(UGridPanel::StaticClass(), TEXT("Table"));
     Column->AddChildToVerticalBox(Table);
 
-    FillTable(IsGamepadUsed());
+    FillTable(UInputDeviceUtils::IsGamepadUsed(GetOwningLocalPlayer()));
     // Off screen (right side) until it slides in
     ApplySlide(0);
 }
@@ -178,8 +202,8 @@ void UControlsHintWidget::FillTable(bool bGamepad)
     Table->ClearChildren();
 
     const UInputMappingContext* Context = UReignForceSettings::Get()->RemappableInputContext.LoadSynchronous();
-    const FSlateFontInfo LabelFont = FCoreStyle::GetDefaultFontStyle("Bold", 17);
-    const FSlateFontInfo KeyFont = FCoreStyle::GetDefaultFontStyle("Bold", 14);
+    const FSlateFontInfo LabelFont = FCoreStyle::GetDefaultFontStyle("Bold", LABEL_FONT_SIZE);
+    const FSlateFontInfo KeyFont = FCoreStyle::GetDefaultFontStyle("Bold", KEY_FONT_SIZE);
 
     // The keys column takes the space the minimum panel width adds, the keys stay next to the labels
     Table->SetColumnFill(0, 0);
@@ -191,16 +215,11 @@ void UControlsHintWidget::FillTable(bool bGamepad)
         const TArray<FKey> Keys = FindActionKeys(Context, Entry.ActionName, bGamepad, Entry.MaxKeys, GetOwningLocalPlayer());
         if (Keys.IsEmpty()) continue;
 
-        auto Label = WidgetTree->ConstructWidget<UTextBlock>(UTextBlock::StaticClass());
-        Label->SetText(Entry.Label);
-        Label->SetFont(LabelFont);
-        Label->SetColorAndOpacity(FLinearColor::White);
-        Label->SetShadowOffset(FVector2D(1));
-        Label->SetShadowColorAndOpacity(FLinearColor(0, 0, 0, .6f));
+        UTextBlock* Label = MakeText(WidgetTree, Entry.Label, LabelFont, FLinearColor::White, UTextBlock::StaticClass());
         if (UGridSlot* LabelSlot = Table->AddChildToGrid(Label, RowIndex, 0))
         {
             LabelSlot->SetVerticalAlignment(VAlign_Center);
-            LabelSlot->SetPadding(FMargin(0, ROW_GAP * .5f, LABEL_GAP, ROW_GAP * .5f));
+            LabelSlot->SetPadding(FMargin(0, HINT_ROW_GAP * .5f, LABEL_GAP, HINT_ROW_GAP * .5f));
         }
 
         auto KeysRow = WidgetTree->ConstructWidget<UHorizontalBox>(UHorizontalBox::StaticClass());
@@ -221,7 +240,7 @@ void UControlsHintWidget::FillTable(bool bGamepad)
         {
             KeysSlot->SetVerticalAlignment(VAlign_Center);
             KeysSlot->SetHorizontalAlignment(HAlign_Left);
-            KeysSlot->SetPadding(FMargin(0, ROW_GAP * .5f));
+            KeysSlot->SetPadding(FMargin(0, HINT_ROW_GAP * .5f));
         }
         ++RowIndex;
     }
@@ -274,18 +293,12 @@ TArray<FKey> UControlsHintWidget::FindActionKeys(const UInputMappingContext* Con
         if (!(IsValid(Mapping.Action) && Mapping.Action->GetFName() == ActionName)) continue;
         if (Mapping.Key.IsTouch() || Mapping.Key.IsGamepadKey() != bGamepad) continue;
 
-        FKey Key = Mapping.Key;
         // Keyboard & mouse keys may be rebound by the player (controls settings)
         const FKeyMappingRow* PlayerRow = Profile && Mapping.IsPlayerMappable() ? Profile->FindKeyMappingRow(Mapping.GetMappingName()) : nullptr;
-        if (PlayerRow)
-        {
-            for (const FPlayerKeyMapping& PlayerMapping : PlayerRow->Mappings)
-            {
-                if (PlayerMapping.GetDefaultKey() != Mapping.Key) continue;
-                Key = PlayerMapping.GetCurrentKey();
-                break;
-            }
-        }
+        const FPlayerKeyMapping* PlayerMapping = PlayerRow
+            ? Algo::FindByPredicate(PlayerRow->Mappings, [&] (const FPlayerKeyMapping& Item) { return Item.GetDefaultKey() == Mapping.Key; })
+            : nullptr;
+        const FKey Key = PlayerMapping ? PlayerMapping->GetCurrentKey() : Mapping.Key;
         if (!Key.IsValid() || Found.ContainsByPredicate([&] (const TPair<int32, FKey>& Item) { return Item.Value == Key; })) continue;
         Found.Emplace(GetDirectionOrder(Mapping), Key);
     }
@@ -299,14 +312,7 @@ TArray<FKey> UControlsHintWidget::FindActionKeys(const UInputMappingContext* Con
 
 FText UControlsHintWidget::GetKeyCapText(const FKey& Key)
 {
-    if (Key == EKeys::LeftMouseButton) return FText::FromString(TEXT("LMB"));
-    if (Key == EKeys::RightMouseButton) return FText::FromString(TEXT("RMB"));
-    if (Key == EKeys::MiddleMouseButton) return FText::FromString(TEXT("MMB"));
-    if (Key == EKeys::Escape) return FText::FromString(TEXT("Esc"));
-    if (Key == EKeys::SpaceBar) return FText::FromString(TEXT("Space"));
-    if (Key == EKeys::LeftControl || Key == EKeys::RightControl) return FText::FromString(TEXT("Ctrl"));
-    if (Key == EKeys::LeftShift || Key == EKeys::RightShift) return FText::FromString(TEXT("Shift"));
-    if (Key == EKeys::LeftAlt || Key == EKeys::RightAlt) return FText::FromString(TEXT("Alt"));
+    if (const TCHAR* const* Name = GetKeyCapNames().Find(Key)) return FText::FromString(*Name);
     constexpr bool bLongDisplayName = false;
     return Key.GetDisplayName(bLongDisplayName);
 }
@@ -319,69 +325,51 @@ void UControlsHintWidget::NativeTick(const FGeometry& MyGeometry, float InDeltaT
 
 void UControlsHintWidget::Advance(float InDeltaTime)
 {
-    if (Phase == EControlsHintPhase::Finished) return;
+    if (Phase == EControlsHintPhase::FINISHED) return;
+    AdvanceDeviceSwitch(InDeltaTime);
+    AdvancePhase(InDeltaTime);
+}
 
+void UControlsHintWidget::AdvanceDeviceSwitch(float DeltaTime)
+{
     // The table follows the used device: it fades out, gets the other keys & fades in
-    const bool bGamepad = IsGamepadUsed();
+    const bool bGamepad = UInputDeviceUtils::IsGamepadUsed(GetOwningLocalPlayer());
     const bool bTargetGamepad = bDeviceSwitchPending ? bPendingGamepad : bShowingGamepad;
     if (bGamepad != bTargetGamepad)
     {
         bPendingGamepad = bGamepad;
         bDeviceSwitchPending = bGamepad != bShowingGamepad;
     }
-    const float FadeSpeed = 2.f / DeviceSwitchFadeDuration;
-    if (bDeviceSwitchPending)
+
+    const float FadeStep = DeltaTime * 2.f / DeviceSwitchFadeDuration;
+    if (!bDeviceSwitchPending) TableOpacity = FMath::Min(1.f, TableOpacity + FadeStep);
+    else TableOpacity = Phase == EControlsHintPhase::WAITING ? 0.f : FMath::Max(0.f, TableOpacity - FadeStep);
+    if (bDeviceSwitchPending && TableOpacity <= 0)
     {
-        TableOpacity = Phase == EControlsHintPhase::Waiting ? 0.f : FMath::Max(0.f, TableOpacity - InDeltaTime * FadeSpeed);
-        if (TableOpacity <= 0)
-        {
-            bDeviceSwitchPending = false;
-            FillTable(bPendingGamepad);
-        }
-    }
-    else
-    {
-        TableOpacity = FMath::Min(1.f, TableOpacity + InDeltaTime * FadeSpeed);
+        bDeviceSwitchPending = false;
+        FillTable(bPendingGamepad);
     }
     if (IsValid(Table) && !FMath::IsNearlyEqual(Table->GetRenderOpacity(), TableOpacity)) Table->SetRenderOpacity(TableOpacity);
+}
 
+void UControlsHintWidget::AdvancePhase(float DeltaTime)
+{
     // Waiting & showing count the game time (stopped while paused), the slides run on their own
-    const bool bPaused = IsGamePaused();
-    switch (Phase)
-    {
-        case EControlsHintPhase::Waiting:
-            if (!bPaused) PhaseTime += InDeltaTime;
-            if (PhaseTime < StartDelay) break;
-            Phase = EControlsHintPhase::SlidingIn;
-            PhaseTime = 0;
-            break;
+    const FControlsHintPhaseStep Steps[] = {
+        { StartDelay, true, EControlsHintPhase::SLIDING_IN, nullptr },
+        { SlideDuration, false, EControlsHintPhase::SHOWN, &SlideIn },
+        { ShowDuration, true, EControlsHintPhase::SLIDING_OUT, nullptr },
+        { SlideDuration, false, EControlsHintPhase::FINISHED, &SlideOut },
+    };
+    const FControlsHintPhaseStep& Step = Steps[static_cast<int32>(Phase)];
 
-        case EControlsHintPhase::SlidingIn:
-            PhaseTime += InDeltaTime;
-            ApplySlide(FMath::InterpEaseOut(0.f, 1.f, FMath::Min(1.f, PhaseTime / SlideDuration), 3.f));
-            if (PhaseTime < SlideDuration) break;
-            Phase = EControlsHintPhase::Shown;
-            PhaseTime = 0;
-            break;
+    if (!(Step.bGameTime && IsGamePaused())) PhaseTime += DeltaTime;
+    if (Step.Slide) ApplySlide(Step.Slide(FMath::Min(1.f, PhaseTime / Step.Duration)));
+    if (PhaseTime < Step.Duration) return;
 
-        case EControlsHintPhase::Shown:
-            if (!bPaused) PhaseTime += InDeltaTime;
-            if (PhaseTime < ShowDuration) break;
-            Phase = EControlsHintPhase::SlidingOut;
-            PhaseTime = 0;
-            break;
-
-        case EControlsHintPhase::SlidingOut:
-            PhaseTime += InDeltaTime;
-            ApplySlide(1 - FMath::InterpEaseIn(0.f, 1.f, FMath::Min(1.f, PhaseTime / SlideDuration), 3.f));
-            if (PhaseTime < SlideDuration) break;
-            Phase = EControlsHintPhase::Finished;
-            RemoveFromParent();
-            break;
-
-        default:
-            break;
-    }
+    Phase = Step.Next;
+    PhaseTime = 0;
+    if (Phase == EControlsHintPhase::FINISHED) RemoveFromParent();
 }
 
 void UControlsHintWidget::ApplySlide(float Shown)
@@ -389,15 +377,9 @@ void UControlsHintWidget::ApplySlide(float Shown)
     if (!IsValid(Panel)) return;
     // Fully hidden past the screen right edge, shown at its place
     const float PanelTotalWidth = FMath::Max(Panel->GetDesiredSize().X, PanelMinWidth + 40);
-    const float Offset = (1 - Shown) * (PanelTotalWidth + ScreenOffset.X + 16);
+    const float Offset = (1 - Shown) * (PanelTotalWidth + ScreenOffset.X + HIDDEN_PANEL_MARGIN);
     Panel->SetRenderTranslation(FVector2D(Offset, 0));
     Panel->SetRenderOpacity(FMath::Clamp(Shown * 1.5f, 0.f, 1.f));
-}
-
-bool UControlsHintWidget::IsGamepadUsed() const
-{
-    const UCommonInputSubsystem* InputSubsystem = UCommonInputSubsystem::Get(GetOwningLocalPlayer());
-    return InputSubsystem && InputSubsystem->GetCurrentInputType() == ECommonInputType::Gamepad;
 }
 
 bool UControlsHintWidget::IsGamePaused() const

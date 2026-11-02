@@ -67,5 +67,4 @@ private:
 	void BuildGamepadPrompt();
 	void SetGamepadPrompt(bool bGamepad);
 	void ApplyKeyBlend();
-	bool IsGamepadUsed() const;
 };

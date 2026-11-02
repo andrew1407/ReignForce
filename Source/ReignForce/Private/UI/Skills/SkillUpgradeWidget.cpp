@@ -5,7 +5,7 @@
 #include "Kismet/GameplayStatics.h"
 #include "Engine/AssetManager.h"
 #include "Engine/Texture2D.h"
-#include "CommonInputSubsystem.h"
+#include "Utils/InputDeviceUtils.h"
 #include "Framework/Application/SlateApplication.h"
 
 #include "Components/Button.h"
@@ -150,8 +150,7 @@ void USkillUpgradeWidget::OnActionClick()
     {
         // Gamepad & keyboard select skills by moving over them, so pressing on the selected one upgrades it;
         // the mouse uses the description upgrade button
-        auto InputSubsystem = UCommonInputSubsystem::Get(GetOwningLocalPlayer());
-        bool bGamepad = InputSubsystem && InputSubsystem->GetCurrentInputType() == ECommonInputType::Gamepad;
+        const bool bGamepad = UInputDeviceUtils::IsGamepadUsed(GetOwningLocalPlayer());
         bool bPointerClick = IsValid(ActionButton) && ActionButton->IsHovered();
         if (bGamepad || !bPointerClick) OnUpgradeRequested.Broadcast(this);
         return;
@@ -177,8 +176,7 @@ void USkillUpgradeWidget::OnActionHover()
         HoverCursorPosition = CursorPosition;
     }
     // With the gamepad the (hidden) cursor follows the focus: the hover is the navigation itself, its sound is played on the focus
-    auto InputSubsystem = UCommonInputSubsystem::Get(GetOwningLocalPlayer());
-    if (InputSubsystem && InputSubsystem->GetCurrentInputType() == ECommonInputType::Gamepad) return;
+    if (UInputDeviceUtils::IsGamepadUsed(GetOwningLocalPlayer())) return;
 
     // Mouse hover moves the focus as well, so gamepad & keyboard navigation continues from it.
     // Only a real mouse move does it: the skill under a resting cursor (menu just opened) keeps the navigation focus where it is

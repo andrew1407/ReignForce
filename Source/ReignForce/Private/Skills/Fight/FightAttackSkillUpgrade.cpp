@@ -11,7 +11,7 @@
 UFightAttackSkillUpgrade::UFightAttackSkillUpgrade(const FObjectInitializer& ObjectInitializer) : Super(ObjectInitializer)
 {
     Index = 0;
-    WeaponType = EWeaponType::None;
+    WeaponType = EWeaponType::NONE;
     BaseDescription = FText::FromString(TEXT("Increase attack speed {0} times (from the original)."));
 }
 

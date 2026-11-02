@@ -53,10 +53,10 @@ AEnemyCharacter::AEnemyCharacter(const FObjectInitializer& ObjectInitializer) : 
 
 	WeaponSelectionPriorities =
 	{
-		EWeaponType::Rifle,
-		EWeaponType::Pistol,
-		EWeaponType::Melee,
-		EWeaponType::Unarmed,
+		EWeaponType::RIFLE,
+		EWeaponType::PISTOL,
+		EWeaponType::MELEE,
+		EWeaponType::UNARMED,
 	};
 
 	OnStatsDefined.AddDynamic(this, &AEnemyCharacter::HandleStatsDefined);
@@ -110,8 +110,8 @@ EWeaponType AEnemyCharacter::GetWeaponSloatByPriority() const
 	if (!IsValid(GetWeaponSlotsSystem()) || WeaponSelectionPriorities.IsEmpty()) return Current;
 	for (const auto& WeaponType : WeaponSelectionPriorities)
 	{
-		if (WeaponType == Current || WeaponType == EWeaponType::None) continue;
-		if (WeaponType == EWeaponType::Unarmed) return WeaponType;
+		if (WeaponType == Current || WeaponType == EWeaponType::NONE) continue;
+		if (WeaponType == EWeaponType::UNARMED) return WeaponType;
 		AWeapon* Weapon = GetWeaponSlotsSystem()->GetWeaponFromSlot(WeaponType);
 		if (!IsValid(Weapon)) continue;
 		bool bFirearms = UWeaponSlotsSystem::IsFirearmsType(Weapon->GetType());
@@ -122,7 +122,7 @@ EWeaponType AEnemyCharacter::GetWeaponSloatByPriority() const
 		}
 		return Weapon->GetType();
 	}
-	return EWeaponType::Unarmed;
+	return EWeaponType::UNARMED;
 }
 
 void AEnemyCharacter::SetAimOffsetPitch(float Offset)
@@ -172,8 +172,8 @@ void AEnemyCharacter::SwitchWeaponToRandom(bool bAttachDirectly)
 void AEnemyCharacter::SwitchWeaponByPriority(bool bAttachDirectly)
 {
 	EWeaponType ToSwitch = GetWeaponSloatByPriority();
-	bool bCannotSwitch = ToSwitch == EWeaponType::None || ToSwitch == GetSelectedWeaponType();
-	if (bCannotSwitch) ToSwitch = EWeaponType::Unarmed;
+	bool bCannotSwitch = ToSwitch == EWeaponType::NONE || ToSwitch == GetSelectedWeaponType();
+	if (bCannotSwitch) ToSwitch = EWeaponType::UNARMED;
 	if (bAttachDirectly)
 	{
 		if (IsValid(GetWeaponSlotsSystem()))

@@ -16,6 +16,7 @@
 #include "GameStates/ShooterGameState.h"
 #include "GameModes/ReignForceGameMode.h"
 #include "GameModes/LevelLoadingSubsystem.h"
+#include "UI/Common/MenuLayoutUtils.h"
 #include "GameModes/Components/BackgroundMusicComponent.h"
 
 
@@ -29,13 +30,13 @@ void UMainMenuWidget::NativeOnInitialized()
     Super::NativeOnInitialized();
 
     if (!IsValid(SettingsButton))
-        SettingsButton = CreateButtonLike(ExitButton, FText::FromString(TEXT("Settings")), TEXT("SettingsButton"));
+        SettingsButton = MenuLayoutUtils::CreateButtonLike(WidgetTree, ExitButton, FText::FromString(TEXT("Settings")), TEXT("SettingsButton"));
     if (IsValid(SettingsButton))
         SettingsButton->OnClicked.AddDynamic(this, &UMainMenuWidget::OnSettingsClick);
 
     // One more item than the layout was made for: tighter gaps keep the menu compact
     constexpr float ItemsGap = 16;
-    SetMenuItemsGap(PlayNewGameButton, ItemsGap);
+    MenuLayoutUtils::SetMenuItemsGap(PlayNewGameButton, ItemsGap);
 
     RegisterFocusableButton(ContinuePlayingButton);
     RegisterFocusableButton(PlayNewGameButton);

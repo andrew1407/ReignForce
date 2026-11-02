@@ -15,13 +15,13 @@
 // Sets default values for this component's properties
 UWeaponSlotsSystem::UWeaponSlotsSystem(const FObjectInitializer& ObjectInitializer) : Super(ObjectInitializer)
 {
-	ActiveWeapon = EWeaponType::Unarmed;
-	ReservedSlot = EWeaponType::None;
+	ActiveWeapon = EWeaponType::UNARMED;
+	ReservedSlot = EWeaponType::NONE;
 }
 
 bool UWeaponSlotsSystem::IsFirearmsType(EWeaponType WeaponType)
 {
-	return WeaponType == EWeaponType::Pistol || WeaponType == EWeaponType::Rifle;
+	return WeaponType == EWeaponType::PISTOL || WeaponType == EWeaponType::RIFLE;
 }
 
 bool UWeaponSlotsSystem::CreateAttachedWeapon(TSubclassOf<AWeapon> WeaponClass, EWeaponType Slot)
@@ -71,7 +71,7 @@ bool UWeaponSlotsSystem::IsActiveWeaponValid() const
 
 bool UWeaponSlotsSystem::IsWeaponInSlotValid(EWeaponType Slot) const
 {
-	return Slot == EWeaponType::Unarmed || !HasFreeSlot(Slot) && IsValid(Weapons[Slot]);
+	return Slot == EWeaponType::UNARMED || !HasFreeSlot(Slot) && IsValid(Weapons[Slot]);
 }
 
 bool UWeaponSlotsSystem::HasFreeSlot(EWeaponType Slot) const
@@ -112,7 +112,7 @@ bool UWeaponSlotsSystem::EquipFromSlot(EWeaponType Slot, float Rate)
 	if (!IsWeaponInSlotValid(Slot)) return false;
 	FSlotDetails* SlotDetailsPtr = SlotsDescription.Find(Slot);
 	if (!(SlotDetailsPtr && Weapons.Contains(Slot))) return false;
-	if (Slot == EWeaponType::Unarmed || Slot == ActiveWeapon) return false;
+	if (Slot == EWeaponType::UNARMED || Slot == ActiveWeapon) return false;
 	TObjectPtr<UAnimMontage>& EquipMontage = SlotDetailsPtr->EquipAnimation;
 	if (!IsValid(EquipMontage)) return false;
 	UAnimInstance* AnimInstance = GetMeshAnimInstance();
@@ -124,7 +124,7 @@ bool UWeaponSlotsSystem::EquipFromSlot(EWeaponType Slot, float Rate)
 bool UWeaponSlotsSystem::HideActiveWeapon(float Rate)
 {
 	FSlotDetails* SlotDetailsPtr = SlotsDescription.Find(ActiveWeapon);
-	if (!SlotDetailsPtr || ActiveWeapon == EWeaponType::Unarmed) return false;
+	if (!SlotDetailsPtr || ActiveWeapon == EWeaponType::UNARMED) return false;
 	UAnimInstance* AnimInstance = GetMeshAnimInstance();
 	if (!IsValid(AnimInstance)) return false;
 	TObjectPtr<UAnimMontage>& UnequipAnimation = SlotDetailsPtr->UnequipAnimation;
@@ -135,16 +135,16 @@ bool UWeaponSlotsSystem::HideActiveWeapon(float Rate)
 bool UWeaponSlotsSystem::SwapActiveWeapon(EWeaponType Slot, float Rate)
 {
 	if (!IsWeaponInSlotValid(Slot) || ActiveWeapon == Slot) return false;
-	if (ActiveWeapon == EWeaponType::Unarmed) return EquipFromSlot(Slot, Rate);
+	if (ActiveWeapon == EWeaponType::UNARMED) return EquipFromSlot(Slot, Rate);
 	ReservedSlot = Slot;
 	return HideActiveWeapon(Rate);
 }
 
 bool UWeaponSlotsSystem::SetReservedToActive()
 {
-	if (ReservedSlot == EWeaponType::None) return false;
+	if (ReservedSlot == EWeaponType::NONE) return false;
 	ActiveWeapon = ReservedSlot;
-	ReservedSlot = EWeaponType::None;
+	ReservedSlot = EWeaponType::NONE;
 	return true;
 }
 
@@ -163,7 +163,7 @@ bool UWeaponSlotsSystem::AttachWeaponToSlot(EWeaponType Slot)
 
 bool UWeaponSlotsSystem::AttachToActive(EWeaponType Slot)
 {
-	if (Slot == EWeaponType::Unarmed) return false;
+	if (Slot == EWeaponType::UNARMED) return false;
 	AWeapon** WeaponPtr = Weapons.Find(Slot);
 	if (!(WeaponPtr && IsValid(*WeaponPtr))) return false;
 	USkeletalMeshComponent* Mesh = GetSkeletalMesh();

@@ -32,7 +32,7 @@ public:
 	FPlayerProgressionBalance PlayerProgressionBalance;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Weapon")
-	EWeaponType SelectedWeapon = EWeaponType::None;
+	EWeaponType SelectedWeapon = EWeaponType::NONE;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Weapon")
 	TMap<EWeaponType, int32> WeaponModels;
