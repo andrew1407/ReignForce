@@ -211,3 +211,14 @@ dmypy.json
 
 # Pyre type checker
 .pyre/
+
+# Third-party content packs (Fab / Marketplace, not redistributable): see ThirdPartyAssets.json
+Content/AnimStarterPack/
+Content/InfinityBladeEffects/
+Content/InfinityBladeWeapons/
+Content/MilitaryWeapSilver/
+Content/FPS_Weapon_Bundle/
+Content/Realistic_Starter_VFX_Pack_Vol2/
+Content/SCK_Casual01/
+Content/Megascans/
+Content/MSPresets/

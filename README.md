@@ -54,6 +54,11 @@ Process automation lives in the **[Scripts](./Scripts)** folder: a single cross-
 | `package [-c CONFIG]` | Builds, cooks, stages, paks and archives the game to `Build/Archived` (config defaults to **Shipping**). |
 | `graph [NODE] [-c CONFIG]` | Runs the **[BuildGraph](./Scripts/BuildGraph.xml)** pipeline: `CompileEditor`, `CompileGame`, `Cook`, `Package` (default), `Test` or `All`. Completed nodes are reused on re-runs. |
 | `python [ARGS...]` | Runs the engine's bundled Python. |
+| `assets` | Lists the third-party content packs from **[ThirdPartyAssets.json](./ThirdPartyAssets.json)** and which of them are missing (exit code 1 if any). |
+
+## Third-party content
+
+Marketplace / Fab content packs can't be redistributed in source form, so they aren't in the repo (they're git-ignored). After cloning, add each pack listed in **[ThirdPartyAssets.json](./ThirdPartyAssets.json)** to the project from Fab (Epic Games Launcher > Fab Library > **Add to project**) so it lands in its listed `Content/...` dir, then check with `.\Scripts\ue.bat assets`. The maps & blueprints reference these packs, so they won't load properly until all of them are present.
 
 ## Tests
 

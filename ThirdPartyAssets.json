@@ -1,0 +1,18 @@
+{
+  "description": "Third-party content packs the project uses but can't redistribute. They're git-ignored: add each one to the project from Fab (Epic Games Launcher > Fab Library > Add to project, or fab.com) so it lands in the listed Content dir. Check with: Scripts/ue.bat assets",
+  "packs": [
+    { "dir": "Content/AnimStarterPack", "name": "Animation Starter Pack", "source": "Fab (Epic Games)" },
+    { "dir": "Content/InfinityBladeEffects", "name": "Infinity Blade: Effects", "source": "Fab (Epic Games)" },
+    { "dir": "Content/InfinityBladeWeapons", "name": "Infinity Blade: Weapons", "source": "Fab (Epic Games)" },
+    { "dir": "Content/MilitaryWeapSilver", "name": "Military Weapons Silver", "source": "Fab (Epic Games)" },
+    { "dir": "Content/FPS_Weapon_Bundle", "name": "FPS Weapon Bundle", "source": "Fab" },
+    { "dir": "Content/Realistic_Starter_VFX_Pack_Vol2", "name": "Realistic Starter VFX Pack Vol 2", "source": "Fab" },
+    { "dir": "Content/SCK_Casual01", "name": "Stylized Character Kit: Casual 01", "source": "Fab" },
+    {
+      "dir": "Content/Megascans",
+      "name": "Megascans: Leather Fern (tkytbjdia), Brick Wall (wgrlfbr), Concrete Pavers (vhogdbq), Mossy Ground (xeunbh1), Wooden Planks (wchncbqs)",
+      "source": "Fab (Quixel Megascans)"
+    },
+    { "dir": "Content/MSPresets", "name": "Megascans master materials (added together with any Megascans asset)", "source": "Fab (Quixel Megascans)" }
+  ]
+}

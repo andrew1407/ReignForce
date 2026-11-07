@@ -201,6 +201,18 @@ class Unreal:
         )
 
 
+def check_assets():
+    manifest = json.loads((PROJECT_DIR / "ThirdPartyAssets.json").read_text(encoding="utf-8"))
+    missing = 0
+    for pack in manifest["packs"]:
+        present = any((PROJECT_DIR / pack["dir"]).glob("**/*.uasset"))
+        missing += not present
+        print(f"[{'ok' if present else 'MISSING'}] {pack['dir']}: {pack['name']} ({pack['source']})")
+    if missing:
+        print(f"\n{missing} pack(s) missing. {manifest['description']}")
+    return 1 if missing else 0
+
+
 def main():
     parser = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     parser.add_argument("--engine", help="engine root dir (overrides auto-detection & UE_ROOT)")
@@ -230,7 +242,11 @@ def main():
     python = commands.add_parser("python")
     python.add_argument("args", nargs=argparse.REMAINDER)
 
+    commands.add_parser("assets", help="lists the third-party content packs (ThirdPartyAssets.json) missing from Content")
+
     args = parser.parse_args()
+    if args.command == "assets":
+        return check_assets()
     project = find_project()
     unreal = Unreal(find_engine(project, args.engine), project)
 
