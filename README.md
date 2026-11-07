@@ -60,6 +60,8 @@ Process automation lives in the **[Scripts](./Scripts)** folder: a single cross-
 
 Marketplace / Fab content packs can't be redistributed in source form, so they aren't in the repo (they're git-ignored). After cloning, add each pack listed in **[ThirdPartyAssets.json](./ThirdPartyAssets.json)** to the project from Fab (Epic Games Launcher > Fab Library > **Add to project**) so it lands in its listed `Content/...` dir, then check with `.\Scripts\ue.bat assets`. The maps & blueprints reference these packs, so they won't load properly until all of them are present.
 
+Sound effects from Freesound and their licences & authors are listed in **[CREDITS.md](./CREDITS.md)**.
+
 ## Tests
 
 Automation specs live in the **[tests](./Source/ReignForce/Private/Tests/)** dir (editor builds only), grouped by test name prefix so a level can be run alone (e.g. `.\Scripts\ue.bat test ReignForce.Unit`):
