@@ -6,6 +6,14 @@ Third-party content used by Reign Force. The MIT licence in [LICENCE](./LICENCE)
 
 Fab / Marketplace packs listed in [ThirdPartyAssets.json](./ThirdPartyAssets.json), used under their Fab / Unreal Engine licences.
 
+## Images (skills menu background, CC0)
+
+| Asset | Source | Author |
+| --- | --- | --- |
+| `T_SkillsBg_GraffitiWall` | [Grunge graffiti (Unsplash)](https://commons.wikimedia.org/wiki/File:Grunge_graffiti_(Unsplash).jpg) | Chris Barbalis |
+| `T_SkillsBg_MetalShutter` | [Rusty Metal Shutter](https://polyhaven.com/a/rusty_metal_shutter) | Poly Haven |
+| `T_SkillsBg_WoodPole` | [Rough Wood](https://polyhaven.com/a/rough_wood) | Poly Haven |
+
 ## Sound effects ([Freesound](https://freesound.org))
 
 ### CC BY 4.0 ([licence](https://creativecommons.org/licenses/by/4.0/))
