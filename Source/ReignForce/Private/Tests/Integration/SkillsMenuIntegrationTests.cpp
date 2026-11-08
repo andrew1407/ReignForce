@@ -4,6 +4,8 @@
 #include "Misc/AutomationTest.h"
 #include "Kismet/GameplayStatics.h"
 #include "Components/Button.h"
+#include "Components/Image.h"
+#include "Blueprint/WidgetTree.h"
 
 #include "Tests/TestUtils.h"
 #include "UI/Skills/SkillsProgressionWidget.h"
@@ -93,6 +95,50 @@ void FSkillsMenuIntegrationTests::Define()
         {
             TestNull("Nothing before the first skill", Navigate(EUINavigation::Left));
             TestEqual("Selection stays", GetSelectedIndex(), 0);
+        });
+
+        It("ShowsAtMostOneGraffiti", [this]
+        {
+            UWorld* World = GetGameWorld();
+            APlayerController* Controller = IsValid(World) ? UGameplayStatics::GetPlayerController(World, 0) : nullptr;
+            UClass* MenuClass = LoadClass<USkillsProgressionWidget>(nullptr, SKILLS_MENU_CLASS_PATH);
+            if (!TestNotNull("Player controller", Controller) || !TestNotNull("Skills menu class", MenuClass)) return;
+            const TCHAR* Graffiti[] = { TEXT("GraffitiImage"), TEXT("GraffitiImage1"), TEXT("GraffitiImage2") };
+            // The graffiti is random: every opening shows one of them at most
+            for (int32 Opening = 0; Opening < 20; ++Opening)
+            {
+                USkillsProgressionWidget* Opened = CreateWidget<USkillsProgressionWidget>(Controller, MenuClass);
+                Opened->AddToViewport(100);
+                int32 Visible = 0;
+                for (const TCHAR* Name : Graffiti)
+                {
+                    const UWidget* Image = Opened->GetWidgetFromName(Name);
+                    if (TestNotNull(Name, Image) && Image->IsVisible()) ++Visible;
+                }
+                TestTrue(FString::Printf(TEXT("Opening #%d shows %d graffiti"), Opening, Visible), Visible <= 1);
+                Opened->RemoveFromParent();
+            }
+        });
+
+        It("HasAnOpaqueBackground", [this]
+        {
+            // Every background texture image (graffiti wall, metal shutter, wooden pole)
+            TArray<const UImage*> Images;
+            Menu->WidgetTree->ForEachWidget([&Images] (UWidget* Widget)
+            {
+                auto Image = Cast<UImage>(Widget);
+                if (IsValid(Image) && GetNameSafe(Image->GetBrush().GetResourceObject()).StartsWith(TEXT("T_SkillsBg_"))) Images.Add(Image);
+            });
+            TestEqual("Background images", Images.Num(), 3);
+            for (const UImage* Image : Images)
+            {
+                const FString Name = Image->GetName();
+                const float Alpha = Image->GetRenderOpacity() * Image->GetColorAndOpacity().A * Image->GetBrush().TintColor.GetSpecifiedColor().A;
+                AddInfo(FString::Printf(TEXT("%s: %s, render opacity %.2f, color alpha %.2f, tint alpha %.2f"), *Name,
+                    *GetNameSafe(Image->GetBrush().GetResourceObject()), Image->GetRenderOpacity(), Image->GetColorAndOpacity().A,
+                    Image->GetBrush().TintColor.GetSpecifiedColor().A));
+                TestTrue(FString::Printf(TEXT("%s is opaque (alpha %.2f)"), *Name, Alpha), FMath::IsNearlyEqual(Alpha, 1.f));
+            }
         });
 
         It("ShowsBackOnTheCloseButton", [this]

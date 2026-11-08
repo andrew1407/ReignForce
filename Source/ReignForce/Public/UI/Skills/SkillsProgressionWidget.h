@@ -132,4 +132,10 @@ private:
 	TPair<USkillUpgradeWidget*, UShooterSkillUpgrade*> GetCurrentSkillState(APlayerCharacter* Character);
 	TPair<int32, EStageProgress> GetStagesStatus(const FSkillUpgradeStages& Stages, APlayerCharacter* Character) const;
 	void PlayOnUpgradeSound(EStageProgress StageProgress);
+
+	/** Background textures drawn fully opaque (the game must not show through the menu) */
+	void MakeBackgroundOpaque();
+
+	/** The random graffiti shows one image at most */
+	void KeepSingleGraffiti();
 };

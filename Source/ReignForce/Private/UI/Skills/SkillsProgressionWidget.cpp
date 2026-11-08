@@ -6,6 +6,8 @@
 
 #include "Components/PanelWidget.h"
 #include "Components/Button.h"
+#include "Components/Image.h"
+#include "Blueprint/WidgetTree.h"
 #include "Components/AudioComponent.h"
 
 #include "UI/Skills/DataAssets/SkillsDataAsset.h"
@@ -24,9 +26,43 @@
 #include "UI/Common/MenuLayoutUtils.h"
 
 
+namespace
+{
+    const TCHAR* BACKGROUND_TEXTURE_PREFIX = TEXT("T_SkillsBg_");
+    const FName GRAFFITI_IMAGES[] = { TEXT("GraffitiImage"), TEXT("GraffitiImage1"), TEXT("GraffitiImage2") };
+}
+
 USkillsProgressionWidget::USkillsProgressionWidget(const FObjectInitializer& ObjectInitializer) : Super(ObjectInitializer)
 {
     UpgradeConfirmationClass = USkillUpgradeConfirmationWidget::StaticClass();
+}
+
+void USkillsProgressionWidget::MakeBackgroundOpaque()
+{
+    if (!IsValid(WidgetTree)) return;
+    WidgetTree->ForEachWidget([] (UWidget* Widget)
+    {
+        auto Image = Cast<UImage>(Widget);
+        if (!IsValid(Image) || !GetNameSafe(Image->GetBrush().GetResourceObject()).StartsWith(BACKGROUND_TEXTURE_PREFIX)) return;
+        FLinearColor Tint = Image->GetBrush().TintColor.GetSpecifiedColor();
+        Tint.A = 1;
+        Image->SetBrushTintColor(Tint);
+        Image->SetRenderOpacity(1);
+    });
+}
+
+void USkillsProgressionWidget::KeepSingleGraffiti()
+{
+    TArray<UWidget*> Shown;
+    for (const FName& Name : GRAFFITI_IMAGES)
+    {
+        UWidget* Graffiti = GetWidgetFromName(Name);
+        if (IsValid(Graffiti) && Graffiti->IsVisible()) Shown.Add(Graffiti);
+    }
+    if (Shown.Num() <= 1) return;
+    const int32 Kept = FMath::RandRange(0, Shown.Num() - 1);
+    for (int32 i = 0; i < Shown.Num(); ++i)
+        if (i != Kept) Shown[i]->SetVisibility(ESlateVisibility::Collapsed);
 }
 
 void USkillsProgressionWidget::NativeOnInitialized()
@@ -39,6 +75,10 @@ void USkillsProgressionWidget::NativeOnInitialized()
 void USkillsProgressionWidget::NativeConstruct()
 {
     Super::NativeConstruct();
+
+    // After the blueprint pre-construct & construct events, which pick the graffiti
+    MakeBackgroundOpaque();
+    KeepSingleGraffiti();
 
     SetDescriptionVisibility(false);
 
